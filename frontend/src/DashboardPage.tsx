@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import {
-  Area,
-  AreaChart,
   Bar,
   CartesianGrid,
+  Cell,
   ComposedChart,
   Line,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -15,74 +16,134 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpRight,
-  ChevronDown,
   Download,
-  Info,
-  Layers,
-  Search,
-  ShoppingBag,
-  TrendingUp,
+  FileSpreadsheet,
+  FileText,
+  Sparkles,
 } from 'lucide-react';
 
 type Props = { name?: string; onNavigate?: (label: string) => void };
 
 const CORAL = '#FC7460';
-const INV_GREEN = '#0F8A66';
-const OPEN_GREEN = '#B8DBC9';
+const CORAL_LIGHT = '#FF9678';
+const CORAL_SOFT = '#FF8A76';
+const INK = '#0F1214';
 const TOTAL_NAVY = '#1E3A8A';
+
+// Softer, more executive-feeling segment colors
+const C_USW = '#22C55E';
+const C_DIST = '#3B82F6';
+const C_RETAIL = '#F59E0B';
+const C_ECOM = '#8B5CF6';
+const C_AMZN = '#EC4899';
+const C_OPEN = '#86EFAC';
+
+const BORDER = 'rgb(232 236 240)';
+const TRACK = '#F0F1F2';
+const MUTED = '#8A8E93';
+
 const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
 const MONO = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } as const;
 
-const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
-const usdM = (n: number) => {
+const usd0 = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
+const fmtM = (n: number) => {
   const a = Math.abs(n);
-  if (a >= 1e6) return `${n < 0 ? '-' : ''}$${(a / 1e6).toFixed(1)}M`;
-  if (a >= 1e3) return `${n < 0 ? '-' : ''}$${Math.round(a / 1e3)}K`;
-  return `${n < 0 ? '-' : ''}$${Math.round(a)}`;
+  const sign = n < 0 ? '-' : '';
+  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(2)}M`;
+  if (a >= 1e3) return `${sign}$${Math.round(a / 1e3)}K`;
+  return `${sign}$${Math.round(a)}`;
+};
+const fmtMShort = (n: number) => {
+  const a = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${sign}$${Math.round(a / 1e3)}K`;
+  return `${sign}$${Math.round(a)}`;
 };
 
-// ─── Data (source-repo mocks, unchanged) ───────────────────────────────
-const HERO_TABS = ['All', 'US Wholesale', 'Distributors'];
-const REV_TABS = ['YTD', '12M', 'Quarter'];
+// ─── Data (from user spec, verbatim) ─────────────────────────────────
+const SEGMENTS = ['All', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'] as const;
 
-const heroSpark = [
-  { m: 'Jan', v: 1_180_000 }, { m: 'Feb', v: 1_260_000 }, { m: 'Mar', v: 1_080_000 },
-  { m: 'Apr', v: 1_340_000 }, { m: 'May', v: 1_510_000 }, { m: 'Jun', v: 1_640_000 },
-  { m: 'Jul', v: 1_780_000 }, { m: 'Aug', v: 1_640_000 }, { m: 'Sep', v: 1_286_665 },
-];
+const SHARE = { usw: 0.37, dist: 0.30, ecom: 0.26, amzn: 0.05, retail: 0.02 };
+const MONTH_TOTAL_M = [1.35, 2.45, 1.55, 1.75, 1.90, 1.85, 2.45, 2.65, 1.55, 1.30, 2.30, 2.10];
+const OPEN_TAIL_M   = [0,    0,    0,    0,    0,    0,    0,    0,    0,    0.35, 0.55, 0.70];
+const FORECAST_M    = [1.50, 2.55, 1.70, 1.90, 2.10, 2.30, 3.00, 2.80, 1.90, 1.70, 2.60, 2.50];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const monthly = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => {
-  const inv = [1_180, 1_260, 1_080, 1_340, 1_510, 1_640, 1_780, 2_060, 1_286, 0, 0, 0][i] * 1000;
-  const open = [0, 0, 0, 0, 0, 0, 0, 540, 690, 890, 940, 1_010][i] * 1000;
-  return { m, inv, open, total: inv + open };
+const MONTHLY = MONTHS.map((m, i) => {
+  const total = MONTH_TOTAL_M[i] * 1e6;
+  return {
+    m,
+    usw: total * SHARE.usw,
+    dist: total * SHARE.dist,
+    retail: total * SHARE.retail,
+    ecom: total * SHARE.ecom,
+    amzn: total * SHARE.amzn,
+    open: OPEN_TAIL_M[i] * 1e6,
+    total,
+    forecast: FORECAST_M[i] * 1e6,
+  };
 });
 
-type Acct = { id: string; name: string; segment: 'US Wholesale' | 'Distributors'; strategic?: boolean; invoiced: number; open: number; total: number; goal: number; vsGoal: number; yoy: number; priorYear: number; priorYtd: number };
-const ACCOUNTS: Acct[] = [
-  { id: 'lids',       name: 'Lids',                                    segment: 'US Wholesale', strategic: true, invoiced: 2_700_000, open: 1_744_320, total: 4_460_373, goal: 3_000_000, vsGoal:  48.7, yoy: -20.1, priorYear: 4_683_724, priorYtd: 3_400_000 },
-  { id: 'sasa',       name: 'SASAtrend',                               segment: 'Distributors', strategic: true, invoiced: 1_400_000, open:   860_300, total: 2_200_000, goal: 2_200_000, vsGoal:   1.3, yoy: -10.4, priorYear: 2_460_000, priorYtd: 1_560_000 },
-  { id: 'buckle',     name: 'Buckle Inc., The',                        segment: 'US Wholesale', strategic: true, invoiced:   616_600, open:   726_000, total: 1_300_000, goal: 1_000_000, vsGoal:  32.7, yoy: -54.8, priorYear: 1_365_000, priorYtd: 1_365_000 },
-  { id: 'dtlr',       name: 'DTLR Inc.',                               segment: 'US Wholesale',                  invoiced:   569_400, open:   705_000, total: 1_300_000, goal:   810_000, vsGoal:  57.3, yoy: 267.7, priorYear:   346_000, priorYtd:   154_800 },
-  { id: '313srl',     name: '313 SRL VAT 04640850238',                 segment: 'Distributors',                  invoiced:   603_800, open:   691_700, total: 1_300_000, goal: 1_800_000, vsGoal: -29.1, yoy: -11.3, priorYear: 1_460_000, priorYtd:   680_000 },
-  { id: 'mercury',    name: 'Industrias Mercury, S.A.',                segment: 'Distributors',                  invoiced: 1_000_000, open:   524_100, total: 1_600_000, goal: 1_100_000, vsGoal:  37.8, yoy:  62.6, priorYear:   984_000, priorYtd:   615_000 },
-  { id: 'fibelock',   name: 'Fibelock Mills SA (Energy Brands)',       segment: 'Distributors',                  invoiced:   508_600, open:   416_600, total:   925_100, goal:   514_100, vsGoal:  80.0, yoy:  57.6, priorYear:   587_000, priorYtd:   323_000 },
-  { id: 'gardea',     name: 'Grupo Gardea SA DE CV',                   segment: 'Distributors',                  invoiced:   362_200, open:   365_400, total:   727_600, goal:   698_100, vsGoal:   4.2, yoy:  13.2, priorYear:   643_000, priorYtd:   320_000 },
-  { id: 'petek',      name: 'Petek Tekstil San. VE Tc. A.S.',          segment: 'Distributors',                  invoiced:   240_200, open:   335_500, total:   575_700, goal:   540_200, vsGoal:   6.6, yoy: -62.2, priorYear:   635_000, priorYtd:   635_000 },
-  { id: 'nordstrom',  name: 'Nordstrom Accounts Payable',              segment: 'US Wholesale',                  invoiced:   726_500, open:   298_000, total: 1_024_500, goal: 1_200_000, vsGoal: -14.6, yoy: -19.6, priorYear: 1_274_000, priorYtd:   903_000 },
-  { id: 'manhattan',  name: 'Manhattan International Concepts Inc',    segment: 'US Wholesale',                  invoiced:   210_400, open:   188_000, total:   398_400, goal:   360_000, vsGoal:  10.7, yoy:   8.4, priorYear:   367_000, priorYtd:   194_000 },
-  { id: 'zumiez',     name: 'Zumiez Services LLC',                     segment: 'US Wholesale',                  invoiced:   184_900, open:   142_600, total:   327_500, goal:   420_000, vsGoal: -22.0, yoy:  -4.1, priorYear:   341_000, priorYtd:   192_000 },
+const SEGMENT_ROWS = [
+  { key: 'US Wholesale', pct: 71, cur: 6_480_000, tgt: 9_180_000, c: C_USW },
+  { key: 'Distributors', pct: 62, cur: 5_240_000, tgt: 8_410_000, c: C_DIST },
+  { key: 'Retail',       pct: 72, cur:   462_000, tgt:   640_000, c: C_RETAIL },
+  { key: 'Ecommerce',    pct: 68, cur: 4_550_000, tgt: 6_730_000, c: C_ECOM },
+  { key: 'Amazon',       pct: 77, cur:   785_000, tgt: 1_020_000, c: C_AMZN },
 ];
-const SORTED = [...ACCOUNTS].sort((a, b) => b.invoiced - a.invoiced);
-const TOP5 = new Set(SORTED.slice(0, 5).map((a) => a.id));
-const initials = (name: string) => {
-  const p = name.replace(/[^A-Za-z ]/g, '').trim().split(/\s+/).filter(Boolean);
-  return ((p[0]?.[0] ?? name[0]) + (p[1]?.[0] ?? '')).toUpperCase();
-};
 
-// ─── Small components ──────────────────────────────────────────────────
-function SegTabs({ tabs, value, onChange, testIdPrefix }: { tabs: readonly string[]; value: string; onChange: (v: string) => void; testIdPrefix: string }) {
+const DONUT_ALL = [
+  { name: 'US Wholesale', v: 6_480_000, share: 37.0, c: C_USW },
+  { name: 'Distributors', v: 5_240_000, share: 29.9, c: C_DIST },
+  { name: 'Ecommerce',    v: 4_550_000, share: 26.0, c: C_ECOM },
+  { name: 'Amazon',       v:   785_000, share:  4.5, c: C_AMZN },
+  { name: 'Retail',       v:   462_000, share:  2.6, c: C_RETAIL },
+];
+const DONUT_B2B = [
+  { name: 'B2B',       v: 11_720_000, share: 66.9, c: C_USW },
+  { name: 'Ecommerce', v:  4_550_000, share: 26.0, c: C_ECOM },
+  { name: 'Amazon',    v:    785_000, share:  4.5, c: C_AMZN },
+  { name: 'Retail',    v:    462_000, share:  2.6, c: C_RETAIL },
+];
+
+const SVG_ROWS = [
+  { name: 'US Wholesale', c: C_USW,    net: 6_480_000, goal: 7_580_000, variance: -1_100_000, pct: 86, annual: 9_180_000 },
+  { name: 'Distributors', c: C_DIST,   net: 5_240_000, goal: 5_750_000, variance:   -518_000, pct: 91, annual: 8_410_000 },
+  { name: 'Retail',       c: C_RETAIL, net:   462_000, goal:   483_000, variance:    -22_000, pct: 96, annual:   640_000 },
+  { name: 'Ecommerce',    c: C_ECOM,   net: 4_550_000, goal: 5_040_000, variance:   -494_000, pct: 90, annual: 6_730_000 },
+  { name: 'Amazon',       c: C_AMZN,   net:   785_000, goal:   827_000, variance:    -42_000, pct: 95, annual: 1_020_000 },
+];
+const SVG_TOTAL = { net: 17_510_000, goal: 19_690_000, variance: -2_170_000, pct: 89, annual: 25_980_000 };
+
+const TOP_ACCOUNTS = [
+  { name: 'Lids',                            net: 2_720_000, yoy: -24.8 },
+  { name: 'SASAtrend',                       net: 1_460_000, yoy:  -4.7 },
+  { name: 'Industrias Mercury, S.A.',        net: 1_030_000, yoy:  53.7 },
+  { name: 'Nordstrom Accounts Payable',      net:   726_000, yoy: -20.2 },
+  { name: 'Buckle Inc., The',                net:   617_000, yoy: -54.8 },
+];
+
+const TOP_ITEMS = [
+  { name: 'Panther Trucker',            variant: 'Void · One Size',                     sku: '101-2450-VOI01-O/S',            rev: 287_000, units: 25_132 },
+  { name: 'Suede Black Panther',        variant: 'Dust / Void · One Size',              sku: '101-2961-DUS02-O/S',            rev: 120_000, units:  7_957 },
+  { name: 'Black Sheep Trucker',        variant: 'Void · One Size',                     sku: '101-2457-VOI01-O/S',            rev: 111_000, units:  7_521 },
+  { name: 'Suede Colorful Rooster',     variant: 'Dust White / Void Black · One Size',  sku: '101-3849-WHT02/BLK01-O/S',      rev: 103_000, units:  6_058 },
+  { name: 'The Alpha Dog',              variant: 'Void · One Size',                     sku: '101-1666-VOI01-O/S',            rev:  77_000, units:  4_826 },
+];
+
+// ─── Reusable atoms ───────────────────────────────────────────────────
+const EYEBROW = 'text-[11px] font-semibold uppercase tracking-[0.14em]';
+const eyebrowStyle = { color: MUTED } as const;
+
+function SegTabs({ tabs, value, onChange, testId, slugPrefix }: { tabs: readonly string[]; value: string; onChange: (v: any) => void; testId: string; slugPrefix: string }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1" role="tablist">
+    <div
+      className="inline-flex items-center gap-[2px] rounded-full p-1"
+      role="tablist"
+      style={{ background: '#EEEEEC' }}
+      data-testid={testId}
+    >
       {tabs.map((t) => {
         const active = value === t;
         return (
@@ -91,8 +152,28 @@ function SegTabs({ tabs, value, onChange, testIdPrefix }: { tabs: readonly strin
             role="tab"
             aria-selected={active}
             onClick={() => onChange(t)}
-            data-testid={`${testIdPrefix}-${t.toLowerCase().replace(/\s+/g, '-')}`}
-            className={`rounded-md px-3 py-1 text-[12px] font-semibold transition ${active ? 'bg-white text-neutral-900 border border-slate-200 shadow-sm' : 'text-neutral-500 border border-transparent hover:text-neutral-800'}`}
+            data-testid={`${slugPrefix}-${t.toLowerCase().replace(/\s+/g, '-')}`}
+            className="rounded-full px-4 py-2 text-[13.5px] tracking-tight transition focus:outline-none"
+            style={
+              active
+                ? {
+                    background: '#FFFFFF',
+                    color: '#0F1214',
+                    fontWeight: 700,
+                    boxShadow: '0 1px 2px rgba(15,17,20,0.06), 0 2px 6px rgba(15,17,20,0.04)',
+                    border: '1px solid rgba(15,17,20,0.06)',
+                  }
+                : {
+                    color: '#8A8E93',
+                    fontWeight: 600,
+                    border: '1px solid transparent',
+                    background: 'transparent',
+                  }
+            }
+            onFocus={(e) => { e.currentTarget.style.outline = '2px solid rgba(252,116,96,0.35)'; e.currentTarget.style.outlineOffset = '2px'; }}
+            onBlur={(e) => { e.currentTarget.style.outline = ''; e.currentTarget.style.outlineOffset = ''; }}
+            onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = '#4B5058'; }}
+            onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = '#8A8E93'; }}
           >
             {t}
           </button>
@@ -102,12 +183,16 @@ function SegTabs({ tabs, value, onChange, testIdPrefix }: { tabs: readonly strin
   );
 }
 
-function Delta({ v }: { v: number }) {
+function DeltaPill({ v }: { v: number }) {
   const up = v >= 0;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${up ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}
-      style={TABULAR}
+      className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold"
+      style={{
+        ...TABULAR,
+        background: up ? 'rgba(16,185,129,0.10)' : 'rgba(244,63,94,0.10)',
+        color: up ? '#059669' : '#E11D48',
+      }}
     >
       {up ? <ArrowUp size={10} strokeWidth={2.6} /> : <ArrowDown size={10} strokeWidth={2.6} />}
       {Math.abs(v).toFixed(1)}%
@@ -115,232 +200,550 @@ function Delta({ v }: { v: number }) {
   );
 }
 
-function StatCard({ icon: Icon, label, value, caption, testId }: { icon: any; label: string; value: string; caption: string; testId: string }) {
+function HeroKPI({ label, value, sub, testId }: { label: string; value: string; sub?: string; testId: string }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6" data-testid={testId}>
-      <div className="flex items-center gap-3">
-        <span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-neutral-500"><Icon size={13} /></span>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">{label}</p>
+    <div className="flex flex-col gap-2" data-testid={testId}>
+      <p className={EYEBROW} style={eyebrowStyle}>{label}</p>
+      <p
+        className="text-[32px] font-bold leading-none tracking-tight"
+        style={{ ...TABULAR, letterSpacing: '-0.03em', color: INK }}
+      >
+        {value}
+      </p>
+      {sub && <p className="text-[11.5px] leading-snug text-neutral-500" style={TABULAR}>{sub}</p>}
+    </div>
+  );
+}
+
+function Donut({ title, headerRight, data, testId }: { title: string; headerRight?: string; data: typeof DONUT_ALL; testId: string }) {
+  const total = data.reduce((s, d) => s + d.v, 0);
+  return (
+    <div
+      className="rounded-3xl bg-white p-8"
+      style={{ border: `1px solid ${BORDER}` }}
+      data-testid={testId}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className={EYEBROW} style={eyebrowStyle}>Channel Mix</p>
+          <h3 className="mt-1.5 text-[16px] font-bold tracking-tight" style={{ color: INK }}>{title}</h3>
+        </div>
+        {headerRight && (
+          <span className={EYEBROW} style={eyebrowStyle}>{headerRight}</span>
+        )}
       </div>
-      <p className="mt-3 text-[36px] font-bold leading-none tracking-tight text-neutral-900" style={TABULAR}>{value}</p>
-      <p className="mt-2 text-[12px] text-neutral-500">{caption}</p>
-    </section>
+
+      <div className="mt-5 flex items-center gap-7">
+        <div className="relative h-[196px] w-[196px] shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={data} dataKey="v" innerRadius={64} outerRadius={92} paddingAngle={2} stroke="none" isAnimationActive={false}>
+                {data.map((d, i) => <Cell key={i} fill={d.c} />)}
+              </Pie>
+              <Tooltip formatter={(v: number) => fmtM(v)} contentStyle={{ borderRadius: 12, border: `1px solid ${BORDER}`, fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 grid place-items-center">
+            <div className="text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: MUTED }}>YTD</p>
+              <p className="mt-1 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: INK }}>{fmtM(total)}</p>
+            </div>
+          </div>
+        </div>
+        <ul className="flex-1 space-y-3">
+          {data.map((d) => (
+            <li key={d.name} className="flex items-center gap-2.5 text-[13px]" data-testid={`${testId}-item-${d.name.toLowerCase().replace(/\s+/g, '-')}`}>
+              <i className="h-2.5 w-2.5 rounded-full" style={{ background: d.c }} />
+              <span className="min-w-0 flex-1 truncate text-neutral-700">{d.name}</span>
+              <b className="text-neutral-900" style={TABULAR}>{fmtM(d.v)}</b>
+              <span className="w-12 text-right text-[11.5px] font-semibold text-neutral-500" style={TABULAR}>{d.share.toFixed(1)}%</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function Swatch({ color, label, dashed = false, line = false }: { color: string; label: string; dashed?: boolean; line?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-600" style={TABULAR}>
+      {line ? (
+        <span
+          className="inline-block h-[2px] w-5 rounded"
+          style={{ background: dashed ? 'transparent' : color, borderTop: dashed ? `2px dashed ${color}` : 'none' }}
+        />
+      ) : (
+        <i className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+      )}
+      {label}
+    </span>
   );
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────
 export default function DashboardPage({ onNavigate }: Props) {
-  const [heroTab, setHeroTab] = useState<string>('All');
-  const [revTab, setRevTab] = useState<string>('YTD');
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
+  const [seg, setSeg] = useState<string>('All');
+  const [svgTab, setSvgTab] = useState<'By Class' | 'By Month'>('By Class');
 
-  const rows = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q ? SORTED.filter((a) => a.name.toLowerCase().includes(q) || a.segment.toLowerCase().includes(q)) : SORTED;
-  }, [query]);
+  const netSalesYTD = 9_166_708;
+  const openOrders = 26_679_135;
+  const total = 26_679_135;
+  const forecast = 25_980_800;
+
+  const topAcctMax = TOP_ACCOUNTS[0].net;
+  const topItemMax = TOP_ITEMS[0].rev;
+  const yTicks = useMemo(() => [0, 1.3e6, 2.5e6, 3.8e6, 5e6], []);
 
   return (
-    <div className="min-h-full space-y-6 bg-[#F5F6F3] p-6 pt-6" data-testid="dashboard-page" style={TABULAR}>
-      {/* Row 1: Hero + Annual Goal */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2.35fr)_minmax(0,1fr)]">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6" data-testid="hero-card">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <i className="h-2 w-2 rounded-full" style={{ background: CORAL }} />
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">Invoiced Revenue · YTD</p>
+    <div className="min-h-full space-y-8 p-1" data-testid="dashboard-page" style={TABULAR}>
+      {/* ── Section 1: Segment Tabs (first content element) ─────────── */}
+      <header className="flex flex-wrap items-center justify-end gap-4" data-testid="dashboard-header">
+        <SegTabs tabs={SEGMENTS} value={seg} onChange={setSeg} testId="segment-tabs" slugPrefix="seg" />
+      </header>
+
+      {/* ── Section 2: LIGHT Hero Card (4 KPIs + Annual Goal) ───────── */}
+      <section
+        className="relative overflow-hidden rounded-3xl bg-white p-6 sm:p-8"
+        style={{
+          border: `1px solid ${BORDER}`,
+          backgroundImage: 'linear-gradient(135deg, rgba(252,116,96,0.05) 0%, rgba(252,116,96,0) 55%)',
+        }}
+        data-testid="hero-card"
+      >
+        {/* 4 KPIs */}
+        <div className="grid grid-cols-2 gap-6 xl:grid-cols-4 xl:gap-8">
+          {/* Net Sales YTD (with coral accent bar + delta pill + caption) */}
+          <div
+            data-testid="kpi-net-sales"
+            className="relative xl:border-r xl:pr-8"
+            style={{ borderColor: BORDER }}
+          >
+            <p className={EYEBROW} style={eyebrowStyle}>Net Sales YTD</p>
+            <div className="mt-3 flex items-baseline gap-3">
+              <p
+                className="text-[64px] font-bold leading-none tracking-tight"
+                style={{ ...TABULAR, letterSpacing: '-0.035em', color: INK }}
+              >
+                {usd0(netSalesYTD)}
+              </p>
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[12px] font-semibold"
+                style={{ ...TABULAR, background: 'rgba(16,185,129,0.10)', color: '#059669' }}
+              >
+                <ArrowUp size={11} strokeWidth={2.6} />25.6%
+              </span>
             </div>
-            <SegTabs tabs={HERO_TABS} value={heroTab} onChange={setHeroTab} testIdPrefix="hero-tab" />
+            <span
+              className="mt-3 block h-[2px] w-9 rounded-full"
+              style={{ background: 'rgba(252,116,96,0.6)' }}
+            />
+            <p className="mt-3 text-[12px] leading-snug text-neutral-500">After discounts, returns &amp; tax · shipping included</p>
           </div>
-          <div className="mt-3 flex flex-wrap items-baseline gap-4">
-            <strong className="text-[68px] font-bold leading-none tracking-tight text-neutral-900 sm:text-[76px] xl:text-[84px]" style={TABULAR}>{usd(11_717_665)}</strong>
-            <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-600" data-testid="hero-delta">
-              <ArrowDown size={12} strokeWidth={2.5} />16.4% vs LY
-            </span>
-          </div>
-          <div className="mt-6 h-[220px]" data-testid="hero-sparkline">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={heroSpark} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="heroFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={CORAL} stopOpacity={0.28} />
-                    <stop offset="100%" stopColor={CORAL} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#8a938e' }} interval={0} />
-                <YAxis hide />
-                <Tooltip formatter={(v: number) => usd(v)} contentStyle={{ borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 12 }} />
-                <Area type="monotone" dataKey="v" stroke={CORAL} strokeWidth={2.6} fill="url(#heroFill)" isAnimationActive={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6" data-testid="annual-goal">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">Annual Goal</p>
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold text-white" style={{ background: CORAL }}>68%</span>
+          <div
+            className="xl:border-r xl:pr-8"
+            style={{ borderColor: BORDER }}
+          >
+            <HeroKPI label="Open Orders" value={usd0(openOrders)} testId="kpi-open-orders" />
           </div>
-          <p className="mt-3 text-[32px] font-bold leading-none tracking-tight text-neutral-900" style={TABULAR}>$11.7M</p>
-          <p className="mt-1.5 text-[12px] text-neutral-500" style={TABULAR}>of $17.3M · $5.6M to go</p>
-          <p className="mt-5 text-[10px] font-semibold uppercase tracking-widest text-neutral-500">Pace 75%</p>
-          <div className="mt-2 flex h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <span className="h-full" style={{ width: '68%', background: CORAL }} />
-            <span className="h-full" style={{ width: '7%', background: '#FFC0B0' }} />
+          <div
+            className="xl:border-r xl:pr-8"
+            style={{ borderColor: BORDER }}
+          >
+            <HeroKPI label="Total" value={usd0(total)} sub="Net Sales + Open Orders" testId="kpi-total" />
           </div>
-          <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-neutral-500">
-            <i className="h-1.5 w-1.5 rounded-full bg-amber-400" />7 pts behind pace
-          </p>
-          <div className="my-5 border-t border-slate-100" />
-          <ul className="space-y-3">
-            <li className="flex items-center gap-2 text-sm" data-testid="goal-us"><i className="h-2 w-2 rounded-full" style={{ background: INV_GREEN }} /><span className="flex-1 text-neutral-700">US Wholesale</span><b className="text-neutral-900" style={TABULAR}>$6.5M</b><span className="w-14 text-right text-xs font-semibold text-emerald-600" style={TABULAR}>73%</span></li>
-            <li className="flex items-center gap-2 text-sm" data-testid="goal-dist"><i className="h-2 w-2 rounded-full" style={{ background: '#3B6EF6' }} /><span className="flex-1 text-neutral-700">Distributors</span><b className="text-neutral-900" style={TABULAR}>$5.2M</b><span className="w-14 text-right text-xs font-semibold text-neutral-500" style={TABULAR}>62%</span></li>
-          </ul>
-        </section>
-      </div>
-
-      {/* Row 2: 3 stat cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <StatCard icon={ShoppingBag} label="Open Orders" value="$9.2M" caption="booked, not yet invoiced" testId="stat-open-orders" />
-        <StatCard icon={Layers} label="Total" value="$20.9M" caption="invoiced + open orders" testId="stat-total" />
-        <StatCard icon={TrendingUp} label="Forecast" value="$17.3M" caption="full-year projection" testId="stat-forecast" />
-      </div>
-
-      {/* Row 3: Revenue by month */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6" data-testid="rev-by-month">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-base font-semibold text-neutral-900">Revenue by month</h2>
-          <SegTabs tabs={REV_TABS} value={revTab} onChange={setRevTab} testIdPrefix="rev-tab" />
-          <div className="flex flex-wrap items-center gap-4 text-[11px] text-neutral-600">
-            <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full" style={{ background: INV_GREEN }} />Invoiced</span>
-            <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full" style={{ background: OPEN_GREEN }} />Open orders</span>
-            <span className="inline-flex items-center gap-1.5"><i className="inline-block h-[2px] w-4 rounded" style={{ background: TOTAL_NAVY }} />Total</span>
-            <button className="inline-flex items-center gap-1 font-semibold text-neutral-500 hover:text-neutral-800" data-testid="rev-export"><Download size={12} /> Export</button>
-          </div>
+          <HeroKPI label="Forecast" value={usd0(forecast)} testId="kpi-forecast" />
         </div>
-        <div className="mt-4 h-[360px]" style={TABULAR}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={monthly} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#E2E8F0" strokeWidth={1} vertical={false} />
-              <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#8a938e' }} />
-              <YAxis tickFormatter={usdM} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#a3aaa5' }} width={60} />
-              <Tooltip formatter={(v: number) => usdM(v)} contentStyle={{ borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 12 }} />
-              <Bar dataKey="inv" stackId="s" fill={INV_GREEN} isAnimationActive={false} />
-              <Bar dataKey="open" stackId="s" fill={OPEN_GREEN} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-              <Line type="monotone" dataKey="total" stroke={TOTAL_NAVY} strokeWidth={2.4} dot={false} isAnimationActive={false} />
-            </ComposedChart>
-          </ResponsiveContainer>
+
+        {/* Annual Goal Progress */}
+        <div
+          className="mt-8 pt-6"
+          style={{ borderTop: `1px solid ${BORDER}` }}
+          data-testid="annual-goal"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className={EYEBROW} style={eyebrowStyle}>Annual Goal Progress</p>
+              <div className="mt-2 flex items-baseline gap-3">
+                <p
+                  className="text-[42px] font-bold leading-none tracking-tight"
+                  style={{ ...TABULAR, letterSpacing: '-0.03em', color: INK }}
+                >
+                  67%
+                </p>
+                <span className="text-[13px] text-neutral-500" style={TABULAR}>$17.51M of $25.98M</span>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1.5">
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                style={{ background: 'rgba(245,158,11,0.12)', color: '#B45309' }}
+                data-testid="behind-pace-pill"
+              >
+                Behind pace
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-neutral-500" style={TABULAR}>
+                <i className="h-1.5 w-1.5 rounded-full" style={{ background: MUTED }} /> Pace 75%
+              </span>
+            </div>
+          </div>
+          <div
+            className="mt-4 h-[10px] w-full overflow-hidden rounded-full"
+            style={{ background: TRACK }}
+            data-testid="goal-bar"
+          >
+            <span
+              className="block h-full rounded-full"
+              style={{ width: '67%', background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)` }}
+            />
+          </div>
         </div>
       </section>
 
-      {/* Row 4: Accounts (restored from source, exec styling) */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6" data-testid="rv-account-detail">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold text-neutral-900">Accounts</h2>
-            <p className="mt-0.5 text-xs text-neutral-500">Ranked by invoiced · top 5 pinned · click a row to expand</p>
-          </div>
+      {/* ── Section 3: AI Assist Strip ──────────────────────────────── */}
+      <section
+        className="rounded-3xl bg-white px-6 py-3.5"
+        style={{ border: `1px solid ${BORDER}` }}
+        data-testid="ai-strip"
+      >
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 focus-within:border-neutral-400">
-              <Search size={13} className="text-neutral-400" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search accounts..."
-                aria-label="Search accounts"
-                className="w-40 border-0 bg-transparent text-sm outline-none placeholder:text-neutral-400"
-                data-testid="rv-account-search"
-              />
-            </label>
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">{query.trim() ? `${rows.length} of 220` : '220 accounts'}</span>
+            <span
+              className="grid h-6 w-6 place-items-center rounded-full"
+              style={{ background: `linear-gradient(135deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)` }}
+            >
+              <Sparkles size={12} color="#fff" strokeWidth={2.4} />
+            </span>
+            <p className="text-[13px] text-neutral-700">
+              <span className="font-semibold" style={{ color: INK }}>Claude</span> is analyzing your data…
+            </p>
+          </div>
+          <button
+            data-testid="ai-strip-view-insights"
+            className="inline-flex items-center gap-1 text-[12.5px] font-semibold transition hover:opacity-80"
+            style={{ color: CORAL }}
+          >
+            View insights <ArrowUpRight size={13} />
+          </button>
+        </div>
+      </section>
+
+      {/* ── Section 4: Revenue by Month + Segments panel ────────────── */}
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,2.15fr)_minmax(0,1fr)]">
+        <div
+          className="rounded-3xl bg-white p-8"
+          style={{ border: `1px solid ${BORDER}` }}
+          data-testid="rev-by-month"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className={EYEBROW} style={eyebrowStyle}>Monthly</p>
+              <h2 className="mt-1.5 text-[16px] font-bold tracking-tight" style={{ color: INK }}>Revenue by Month</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Swatch color={C_USW}      label="US Wholesale" />
+              <Swatch color={C_DIST}     label="Distributors" />
+              <Swatch color={C_RETAIL}   label="Retail" />
+              <Swatch color={C_ECOM}     label="Ecommerce" />
+              <Swatch color={C_AMZN}     label="Amazon" />
+              <Swatch color={C_OPEN}     label="Open Orders" />
+              <Swatch color={TOTAL_NAVY} label="Total"    line />
+              <Swatch color={CORAL}      label="Forecast" line dashed />
+              <button
+                data-testid="rev-export"
+                className="ml-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-neutral-700 transition hover:bg-neutral-50"
+                style={{ border: `1px solid ${BORDER}` }}
+              >
+                <Download size={12} /> Export
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 h-[340px]" style={TABULAR}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={MONTHLY} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="rgb(240 242 244)" vertical={false} />
+                <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: MUTED }} />
+                <YAxis
+                  ticks={yTicks}
+                  domain={[0, 5e6]}
+                  tickFormatter={fmtMShort}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11, fill: MUTED }}
+                  width={56}
+                />
+                <Tooltip formatter={(v: number) => fmtM(v)} contentStyle={{ borderRadius: 12, border: `1px solid ${BORDER}`, fontSize: 12 }} />
+                <Bar dataKey="usw"    stackId="s" fill={C_USW}    isAnimationActive={false} />
+                <Bar dataKey="dist"   stackId="s" fill={C_DIST}   isAnimationActive={false} />
+                <Bar dataKey="retail" stackId="s" fill={C_RETAIL} isAnimationActive={false} />
+                <Bar dataKey="ecom"   stackId="s" fill={C_ECOM}   isAnimationActive={false} />
+                <Bar dataKey="amzn"   stackId="s" fill={C_AMZN}   isAnimationActive={false} />
+                <Bar dataKey="open"   stackId="s" fill={C_OPEN}   radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                <Line type="monotone" dataKey="total"    stroke={TOTAL_NAVY} strokeWidth={2} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="forecast" stroke={CORAL}      strokeWidth={2} dot={false} strokeDasharray="5 4" isAnimationActive={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto" role="table">
-          <div className="grid grid-cols-[minmax(240px,1.6fr)_minmax(140px,1.1fr)_100px_110px_100px_100px_100px_24px] items-center gap-x-4 border-b border-slate-200 pb-2 text-[10px] font-semibold uppercase tracking-widest text-neutral-500" role="row">
-            <span role="columnheader">Account</span>
-            <span role="columnheader" className="text-right">Invoiced</span>
-            <span role="columnheader" className="text-right">Open</span>
-            <span role="columnheader" className="text-right">Total</span>
-            <span role="columnheader" className="text-right">Goal</span>
-            <span role="columnheader" className="text-right">vs Goal</span>
-            <span role="columnheader" className="text-right">YoY</span>
-            <span aria-hidden="true" />
-          </div>
-
-          {rows.map((a) => {
-            const isOpen = expanded === a.id;
-            const barPct = Math.min(100, (a.invoiced / a.goal) * 100);
-            const rank = SORTED.indexOf(a) + 1;
-            return (
-              <div key={a.id} className={`border-b border-slate-100 last:border-b-0 ${isOpen ? 'bg-slate-50/40' : ''}`}>
-                <div
-                  role="row"
-                  tabIndex={0}
-                  onClick={() => setExpanded(isOpen ? null : a.id)}
-                  onKeyDown={(e) => e.key === 'Enter' && setExpanded(isOpen ? null : a.id)}
-                  data-testid={`rv-account-row-${a.id}`}
-                  className="grid cursor-pointer grid-cols-[minmax(240px,1.6fr)_minmax(140px,1.1fr)_100px_110px_100px_100px_100px_24px] items-center gap-x-4 py-3 text-sm outline-none transition hover:bg-slate-50/60 focus-visible:ring-2 focus-visible:ring-neutral-300"
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-neutral-900 text-[10px] font-bold text-white" style={TABULAR}>{initials(a.name)}</span>
-                    <span className="flex min-w-0 flex-col">
-                      <b className="flex items-center gap-1.5 truncate text-neutral-900">
-                        {a.name}
-                        {TOP5.has(a.id) && !query.trim() ? (
-                          <em className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold not-italic text-white" style={{ background: CORAL }}>Top {rank}</em>
-                        ) : a.strategic ? (
-                          <em className="inline-flex items-center rounded-full bg-neutral-100 px-1.5 py-0.5 text-[9px] font-bold not-italic text-neutral-600">Strategic</em>
-                        ) : null}
-                      </b>
-                      <small className="truncate text-[11px] text-neutral-500">{a.segment}</small>
-                    </span>
+        <div
+          className="rounded-3xl bg-white p-8"
+          style={{ border: `1px solid ${BORDER}` }}
+          data-testid="segment-panel"
+        >
+          <p className={EYEBROW} style={eyebrowStyle}>Segments</p>
+          <h2 className="mt-1.5 text-[16px] font-bold tracking-tight" style={{ color: INK }}>Attainment</h2>
+          <ul className="mt-6 space-y-5">
+            {SEGMENT_ROWS.map((s) => (
+              <li key={s.key} data-testid={`seg-row-${s.key.toLowerCase().replace(/\s+/g, '-')}`}>
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="flex items-center gap-2">
+                    <i className="h-2.5 w-2.5 rounded-full" style={{ background: s.c }} />
+                    <b className="font-semibold text-neutral-800">{s.key}</b>
                   </span>
-                  <span className="flex items-center justify-end gap-2 text-right">
-                    <b className="text-neutral-900" style={TABULAR}>{usdM(a.invoiced)}</b>
-                    <span className="ml-auto h-1 w-16 overflow-hidden rounded-full bg-slate-100">
-                      <i className="block h-full rounded-full" style={{ width: `${Math.max(6, barPct)}%`, background: a.vsGoal >= 0 ? CORAL : '#F59F00' }} />
-                    </span>
-                  </span>
-                  <span className="text-right text-neutral-500" style={TABULAR}>{usdM(a.open)}</span>
-                  <span className="text-right font-semibold text-neutral-900" style={TABULAR}>{usdM(a.total)}</span>
-                  <span className="text-right text-neutral-500" style={TABULAR}>{usdM(a.goal)}</span>
-                  <span className={`text-right text-xs font-semibold ${a.vsGoal >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} style={TABULAR}>{a.vsGoal >= 0 ? '+' : ''}{a.vsGoal.toFixed(1)}%</span>
-                  <span className="flex justify-end"><Delta v={a.yoy} /></span>
-                  <span className="flex justify-end text-neutral-400"><ChevronDown size={15} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} /></span>
+                  <b style={{ ...TABULAR, color: INK }}>{s.pct}%</b>
                 </div>
+                <div className="mt-2 h-[5px] w-full overflow-hidden rounded-full" style={{ background: TRACK }}>
+                  <span className="block h-full rounded-full" style={{ width: `${s.pct}%`, background: s.c }} />
+                </div>
+                <div className="mt-1.5 flex items-center justify-between text-[11.5px] text-neutral-500" style={TABULAR}>
+                  <span>{fmtM(s.cur)}</span>
+                  <span>of {fmtM(s.tgt)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
-                {isOpen && (
-                  <div className="grid gap-4 border-t border-slate-100 px-2 pb-5 pt-4 md:grid-cols-[repeat(5,minmax(0,1fr))_auto]" data-testid={`rv-account-expand-${a.id}`}>
-                    {[
-                      { s: 'Open pipeline', b: usd(a.open), t: 'in pipeline' },
-                      { s: 'Conservative land', b: usd(a.total), t: 'invoiced + open', info: true },
-                      { s: 'Full-year forecast', b: usd(a.total), t: `${a.total >= a.goal ? '+' : '-'}${usdM(Math.abs(a.total - a.goal))} vs goal`, green: true, info: true },
-                      { s: 'Annual goal', b: usd(a.goal), t: 'target' },
-                      { s: 'Prior year', b: usd(a.priorYear), t: `YTD ${usdM(a.priorYtd)} · ${a.yoy >= 0 ? '+' : ''}${a.yoy.toFixed(1)}% YoY` },
-                    ].map((m, i) => (
-                      <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
-                        <small className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-neutral-500">{m.s}{m.info && <Info size={10} className="text-neutral-400" />}</small>
-                        <strong className={`mt-1.5 block text-[15px] font-bold ${m.green ? 'text-emerald-600' : 'text-neutral-900'}`} style={TABULAR}>{m.b}</strong>
-                        <span className="mt-0.5 block text-[11px] text-neutral-500" style={TABULAR}>{m.t}</span>
-                      </div>
-                    ))}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onNavigate?.('Open Orders'); }}
-                      data-testid={`rv-open-account-${a.id}`}
-                      className="inline-flex items-center gap-1 self-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold hover:border-neutral-300"
-                      style={{ color: CORAL }}
-                    >
-                      Open account <ArrowUpRight size={13} />
-                    </button>
+      {/* ── Section 5: Channel Mix (2 donuts) ───────────────────────── */}
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-2" data-testid="channel-mix">
+        <Donut title="All Channels" headerRight="% of Net Sales YTD" data={DONUT_ALL} testId="donut-all" />
+        <Donut title="B2B Combined" headerRight="% of Net Sales YTD" data={DONUT_B2B} testId="donut-b2b" />
+      </section>
+
+      {/* ── Section 6: Sales vs Goal ────────────────────────────────── */}
+      <section
+        className="rounded-3xl bg-white p-8"
+        style={{ border: `1px solid ${BORDER}` }}
+        data-testid="sales-vs-goal"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div>
+            <h2 className="text-[16px] font-bold tracking-tight" style={{ color: INK }}>Sales vs Goal</h2>
+            <p className="mt-1 text-[12.5px] text-neutral-500">2026 goal pacing through September</p>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                data-testid="svg-export-excel"
+                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
+                style={{ border: `1px solid transparent` }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = BORDER)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+              >
+                <FileSpreadsheet size={12} /> Excel
+              </button>
+              <button
+                data-testid="svg-export-pdf"
+                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-neutral-600 transition hover:text-neutral-900"
+                style={{ border: `1px solid transparent` }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = BORDER)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+              >
+                <FileText size={12} /> PDF
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 md:gap-x-8" data-testid="svg-kpis">
+            <div className="text-right">
+              <p className={EYEBROW} style={eyebrowStyle}>Net Sales YTD</p>
+              <p className="mt-1.5 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: INK }}>$17.51M</p>
+            </div>
+            <span className="hidden h-6 w-px md:block" style={{ background: BORDER }} aria-hidden="true" />
+            <div className="text-right">
+              <p className={EYEBROW} style={eyebrowStyle}>Goal YTD</p>
+              <p className="mt-1.5 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: INK }}>$19.69M</p>
+            </div>
+            <span className="hidden h-6 w-px md:block" style={{ background: BORDER }} aria-hidden="true" />
+            <div className="text-right">
+              <p className={EYEBROW} style={eyebrowStyle}>Variance</p>
+              <p className="mt-1.5 text-[20px] font-bold tracking-tight text-rose-600" style={TABULAR}>-$2.17M</p>
+            </div>
+            <span className="hidden h-6 w-px md:block" style={{ background: BORDER }} aria-hidden="true" />
+            <div className="text-right">
+              <p className={EYEBROW} style={eyebrowStyle}>% to Goal</p>
+              <p className="mt-1.5 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: CORAL }}>89%</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="mt-6" data-testid="svg-tabs-wrap">
+          <SegTabs tabs={['By Class', 'By Month']} value={svgTab} onChange={setSvgTab} testId="svg-tabs" slugPrefix="svg-tab" />
+        </div>
+
+        {/* Table */}
+        <div className="mt-4 overflow-x-auto">
+          <div
+            className={`grid grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 pb-2.5 ${EYEBROW}`}
+            style={{ ...eyebrowStyle, borderBottom: `1px solid ${BORDER}` }}
+          >
+            <span>Class</span>
+            <span className="text-right">Net Sales YTD</span>
+            <span className="text-right">Goal YTD</span>
+            <span className="text-right">Variance</span>
+            <span>% to Goal</span>
+            <span className="text-right">Annual Goal</span>
+          </div>
+          {SVG_ROWS.map((r) => (
+            <div
+              key={r.name}
+              className="grid grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 py-4 text-[13px] last:border-b-0 hover:bg-neutral-50/60"
+              style={{ borderBottom: `1px solid ${BORDER}` }}
+              data-testid={`svg-row-${r.name.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <i className="h-2.5 w-2.5 rounded-full" style={{ background: r.c }} />
+                <b className="truncate font-semibold" style={{ color: INK }}>{r.name}</b>
+              </span>
+              <b className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(r.net)}</b>
+              <span className="text-right text-neutral-700" style={TABULAR}>{fmtM(r.goal)}</span>
+              <span className="text-right font-semibold text-rose-600" style={TABULAR}>{fmtM(r.variance)}</span>
+              <span className="flex items-center gap-3">
+                <span className="relative h-[6px] flex-1 overflow-hidden rounded-full" style={{ background: TRACK }}>
+                  <span
+                    className="absolute left-0 top-0 h-full rounded-full"
+                    style={{ width: `${r.pct}%`, background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)` }}
+                  />
+                </span>
+                <b className="w-10 text-right text-[12px] font-bold" style={{ ...TABULAR, color: CORAL }}>{r.pct}%</b>
+              </span>
+              <span className="text-right text-neutral-700" style={TABULAR}>{fmtM(r.annual)}</span>
+            </div>
+          ))}
+          {/* Total row */}
+          <div
+            className="grid grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 py-4 text-[13.5px] font-bold"
+            style={{ borderTop: `2px solid ${BORDER}` }}
+            data-testid="svg-total-row"
+          >
+            <span style={{ color: INK }}>Total</span>
+            <b className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(SVG_TOTAL.net)}</b>
+            <span className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(SVG_TOTAL.goal)}</span>
+            <span className="text-right text-rose-600" style={TABULAR}>{fmtM(SVG_TOTAL.variance)}</span>
+            <span className="flex items-center gap-3">
+              <span className="relative h-[6px] flex-1 overflow-hidden rounded-full" style={{ background: TRACK }}>
+                <span
+                  className="absolute left-0 top-0 h-full rounded-full"
+                  style={{ width: `${SVG_TOTAL.pct}%`, background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)` }}
+                />
+              </span>
+              <b className="w-10 text-right text-[12px]" style={{ ...TABULAR, color: CORAL }}>{SVG_TOTAL.pct}%</b>
+            </span>
+            <span className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(SVG_TOTAL.annual)}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Section 7: Top Accounts + Top Items ─────────────────────── */}
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        {/* Top Accounts */}
+        <div
+          className="rounded-3xl bg-white p-8"
+          style={{ border: `1px solid ${BORDER}` }}
+          data-testid="top-accounts"
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className={EYEBROW} style={eyebrowStyle}>Leaderboard</p>
+              <h2 className="mt-1.5 text-[16px] font-bold tracking-tight" style={{ color: INK }}>Top Accounts</h2>
+            </div>
+            <span className={EYEBROW} style={eyebrowStyle}>Net Sales · YTD</span>
+          </div>
+          <ol className="mt-5 space-y-4">
+            {TOP_ACCOUNTS.map((a, i) => {
+              const share = (a.net / topAcctMax) * 100;
+              const isFirst = i === 0;
+              return (
+                <li
+                  key={a.name}
+                  className="grid grid-cols-[22px_minmax(0,1fr)_auto_auto] items-center gap-3 -mx-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(15,17,20,0.02)]"
+                  data-testid={`top-acct-${i}`}
+                >
+                  <span
+                    className="grid h-[22px] w-[22px] place-items-center rounded-full text-[11px] font-bold"
+                    style={{ background: isFirst ? CORAL_SOFT : TRACK, color: isFirst ? '#fff' : '#3d3f3c' }}
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <b className="block truncate text-[13.5px] font-semibold" style={{ color: INK }}>{a.name}</b>
+                    <div className="mt-1.5 h-[4px] w-full overflow-hidden rounded-full" style={{ background: TRACK }}>
+                      <span
+                        className="block h-full rounded-full"
+                        style={{ width: `${share}%`, background: `linear-gradient(90deg, ${INK} 0%, ${CORAL} 100%)` }}
+                      />
+                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
-          {rows.length === 0 && (
-            <div className="py-8 text-center text-sm text-neutral-500" data-testid="rv-account-empty">No accounts match &ldquo;{query}&rdquo;.</div>
-          )}
+                  <b className="text-right text-[13.5px]" style={{ ...TABULAR, color: INK }}>{fmtM(a.net)}</b>
+                  <DeltaPill v={a.yoy} />
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+
+        {/* Top Items */}
+        <div
+          className="rounded-3xl bg-white p-8"
+          style={{ border: `1px solid ${BORDER}` }}
+          data-testid="top-items"
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className={EYEBROW} style={eyebrowStyle}>Products</p>
+              <h2 className="mt-1.5 text-[16px] font-bold tracking-tight" style={{ color: INK }}>Top Items</h2>
+            </div>
+            <span className={EYEBROW} style={eyebrowStyle}>Revenue · YTD</span>
+          </div>
+          <ol className="mt-5 space-y-4">
+            {TOP_ITEMS.map((it, i) => {
+              const share = (it.rev / topItemMax) * 100;
+              const isFirst = i === 0;
+              return (
+                <li
+                  key={it.sku}
+                  className="grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-3 -mx-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(15,17,20,0.02)]"
+                  data-testid={`top-item-${i}`}
+                >
+                  <span
+                    className="grid h-[22px] w-[22px] place-items-center rounded-full text-[11px] font-bold"
+                    style={{ background: isFirst ? CORAL_SOFT : TRACK, color: isFirst ? '#fff' : '#3d3f3c' }}
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-1.5">
+                      <b className="text-[13.5px] font-semibold" style={{ color: INK }}>{it.name}</b>
+                      <span className="text-[11.5px] text-neutral-500">· {it.variant}</span>
+                    </div>
+                    <p className="text-[11px] text-neutral-500" style={MONO}>{it.sku}</p>
+                    <div className="mt-1.5 h-[4px] w-full overflow-hidden rounded-full" style={{ background: TRACK }}>
+                      <span
+                        className="block h-full rounded-full"
+                        style={{ width: `${share}%`, background: `linear-gradient(90deg, ${INK} 0%, ${CORAL} 100%)` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <b className="block text-[13.5px]" style={{ ...TABULAR, color: INK }}>{fmtM(it.rev)}</b>
+                    <span className="text-[11px] text-neutral-500" style={TABULAR}>{it.units.toLocaleString('en-US')} units</span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       </section>
     </div>
