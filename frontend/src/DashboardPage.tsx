@@ -90,6 +90,31 @@ const SEG_KEY: Record<SegKey, string> = {
   'Retail': 'retail', 'Ecommerce': 'ecom', 'Amazon': 'amzn',
 };
 
+const RANGE_SCALE: Record<string, number> = {
+  'YTD':      1.00,
+  'QTD':      0.28,
+  'Last 30d': 0.083,
+  'Custom':   1.00,
+};
+const RANGE_LABEL: Record<string, string> = {
+  'YTD':      'YTD',
+  'QTD':      'QTD',
+  'Last 30d': 'LAST 30D',
+  'Custom':   'CUSTOM RANGE',
+};
+const SVG_SUBTITLE: Record<string, string> = {
+  'YTD':      '2026 goal pacing through September',
+  'QTD':      'Q3 2026 pacing',
+  'Last 30d': 'Last 30 days',
+  'Custom':   'Custom range',
+};
+const MONTHS_VISIBLE: Record<string, number> = {
+  'YTD':      12,
+  'QTD':      3,
+  'Last 30d': 4,
+  'Custom':   12,
+};
+
 const SHARE = { usw: 0.37, dist: 0.30, ecom: 0.26, amzn: 0.05, retail: 0.02 };
 const MONTH_TOTAL_M = [1.35, 2.45, 1.55, 1.75, 1.90, 1.85, 2.45, 2.65, 1.55, 1.30, 2.30, 2.10];
 const OPEN_TAIL_M   = [0,    0,    0,    0,    0,    0,    0,    0,    0,    0.35, 0.55, 0.70];
@@ -266,7 +291,7 @@ function Spark({ data, stroke = CORAL, gradId, width = 72, height = 20 }: { data
   );
 }
 
-function HeroKPI({ label, target, sub, testId }: { label: string; target: number; sub?: string; testId: string }) {
+function HeroKPI({ label, target, sub, testId }: { label: string; target: number; sub?: React.ReactNode; testId: string }) {
   const v = useCountUp(target, 700);
   return (
     <div className="flex flex-col gap-2" data-testid={testId}>
@@ -277,34 +302,92 @@ function HeroKPI({ label, target, sub, testId }: { label: string; target: number
       >
         {usd0(Math.max(0, v))}
       </p>
-      {sub && <p className="text-[12px] font-medium leading-snug" style={{ ...TABULAR, color: MUTED }}>{sub}</p>}
+      {sub && <div className="text-[12px] font-medium leading-snug" style={{ ...TABULAR, color: MUTED }}>{sub}</div>}
     </div>
   );
 }
 
-function RevTooltip({ active, payload, label }: any) {
+function RevTooltip({ active, payload, label, monthly }: any) {
   if (!active || !payload?.length) return null;
   const nameMap: Record<string, string> = {
     usw: 'US Wholesale', dist: 'Distributors', retail: 'Retail', ecom: 'Ecommerce',
-    amzn: 'Amazon', open: 'Open Orders', total: 'Total', forecast: 'Forecast', ly: 'vs LY',
+    amzn: 'Amazon', open: 'Open Orders',
   };
-  const visible = payload.filter((p: any) => p.value != null && p.value !== 0);
+  const segRows = payload.filter((p: any) => p.value != null && p.value !== 0 && nameMap[p.dataKey]);
+  const current = payload[0]?.payload ?? {};
+  const idx = Array.isArray(monthly) ? monthly.findIndex((r: any) => r.m === label) : -1;
+  const prev = idx > 0 ? monthly[idx - 1] : null;
+
+  const t = current.total ?? 0;
+  const f = current.forecast ?? 0;
+  const ly = current.ly ?? 0;
+  const pt = prev?.total ?? 0;
+
+  const mom = pt ? { d: t - pt, p: ((t - pt) / pt) * 100 } : { d: 0, p: 0 };
+  const vsLy = ly ? { d: t - ly, p: ((t - ly) / ly) * 100 } : { d: 0, p: 0 };
+  const vsFc = f ? { d: t - f, p: ((t - f) / f) * 100 } : { d: 0, p: 0 };
+
+  const totalShare = segRows.reduce((s: number, p: any) => s + p.value, 0);
+  const HAIRLINE = '1px solid #EDEDEE';
+
+  const arrow = (n: number) => Math.abs(n) < 0.01 ? '↔' : (n > 0 ? '↑' : '↓');
+  const tone = (n: number, invertIfNeg = false) => {
+    if (Math.abs(n) < 0.01) return '#71717A';
+    const pos = invertIfNeg ? n < 0 : n > 0;
+    return pos ? '#047857' : '#BE123C';
+  };
+
+  const DeltaRow = ({ lbl, delta, pct, invertIfNeg }: { lbl: string; delta: number; pct: number; invertIfNeg?: boolean }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '3px 0', color: '#3F3F46' }}>
+      <span style={{ width: 12, textAlign: 'center', color: tone(delta, invertIfNeg), fontWeight: 700 }}>{arrow(delta)}</span>
+      <span style={{ flex: 1, fontWeight: 500 }}>{lbl}</span>
+      <b style={{ color: tone(delta, invertIfNeg), minWidth: 72, textAlign: 'right' }}>{fmtM(delta)}</b>
+      <span style={{ color: tone(delta, invertIfNeg), minWidth: 52, textAlign: 'right', fontWeight: 600 }}>{`${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`}</span>
+    </div>
+  );
+
   return (
     <div
       style={{
         background: '#FFFFFF', border: `1px solid ${BORDER}`, borderRadius: 10,
         padding: '10px 14px', boxShadow: '0 8px 24px rgba(15,17,20,0.06)',
-        minWidth: 176, ...TABULAR,
+        minWidth: 240, maxWidth: 320, ...TABULAR,
       }}
     >
       <p style={{ color: INK, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', marginBottom: 8 }}>{label}</p>
-      {visible.map((p: any, idx: number) => (
-        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#4B5058', padding: '3px 0' }}>
-          <span style={{ width: 8, height: 8, borderRadius: 4, background: p.color || p.stroke, flexShrink: 0 }} />
-          <span style={{ flex: 1, fontWeight: 500 }}>{nameMap[p.dataKey] || p.dataKey}</span>
-          <b style={{ color: INK, minWidth: 56, textAlign: 'right' }}>{fmtM(p.value)}</b>
+      {segRows.map((p: any, idx: number) => {
+        const share = totalShare > 0 ? (p.value / totalShare) * 100 : 0;
+        return (
+          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#3F3F46', padding: '3px 0' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 4, background: p.color || p.stroke, flexShrink: 0 }} />
+            <span style={{ flex: 1, fontWeight: 500 }}>{nameMap[p.dataKey] || p.dataKey}</span>
+            <b style={{ color: INK, minWidth: 56, textAlign: 'right' }}>{fmtM(p.value)}</b>
+            <span style={{ color: MUTED, minWidth: 42, textAlign: 'right', fontWeight: 500 }}>{share.toFixed(1)}%</span>
+          </div>
+        );
+      })}
+      <div style={{ marginTop: 8, paddingTop: 8, borderTop: HAIRLINE, display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#3F3F46', padding: '3px 0' }}>
+          <span style={{ width: 16, height: 2, background: TOTAL_NAVY, borderRadius: 1 }} />
+          <span style={{ flex: 1, fontWeight: 500 }}>Total</span>
+          <b style={{ color: INK, minWidth: 56, textAlign: 'right' }}>{fmtM(t)}</b>
         </div>
-      ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#3F3F46', padding: '3px 0' }}>
+          <span style={{ width: 16, height: 2, background: CORAL, borderRadius: 1, boxShadow: `2px 0 0 ${CORAL}, -2px 0 0 ${CORAL}` }} />
+          <span style={{ flex: 1, fontWeight: 500 }}>Forecast</span>
+          <b style={{ color: INK, minWidth: 56, textAlign: 'right' }}>{fmtM(f)}</b>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#3F3F46', padding: '3px 0' }}>
+          <span style={{ width: 16, height: 2, background: LY_GRAY, borderRadius: 1 }} />
+          <span style={{ flex: 1, fontWeight: 500 }}>vs LY</span>
+          <b style={{ color: INK, minWidth: 56, textAlign: 'right' }}>{fmtM(ly)}</b>
+        </div>
+      </div>
+      <div style={{ marginTop: 8, paddingTop: 8, borderTop: HAIRLINE }}>
+        <DeltaRow lbl="MoM change" delta={mom.d} pct={mom.p} />
+        <DeltaRow lbl="vs LY"      delta={vsLy.d} pct={vsLy.p} />
+        <DeltaRow lbl="Δ Forecast" delta={vsFc.d} pct={vsFc.p} />
+      </div>
     </div>
   );
 }
@@ -414,48 +497,75 @@ export default function DashboardPage({ onNavigate }: Props) {
   const segKey = SEG_KEY[seg];
   const isAll = seg === 'All';
 
-  const netSalesYTD = 9_166_708 * scale;
-  const openOrders = 26_679_135 * scale;
-  const total = 26_679_135 * scale;
-  const forecastVal = 25_980_800 * scale;
-  const goalValue = 17_510_000 * scale;
-  const goalMax = 25_980_000 * scale;
+  const rScale = RANGE_SCALE[range] ?? 1;
+  const rLabel = RANGE_LABEL[range] ?? 'YTD';
+  const svgSubtitle = SVG_SUBTITLE[range] ?? SVG_SUBTITLE.YTD;
+  const monthsToShow = MONTHS_VISIBLE[range] ?? 12;
+  const combined = scale * rScale;
+
+  const netSalesYTD = 9_166_708 * combined;
+  const openOrders = 26_679_135 * combined;
+  const total = 26_679_135 * combined;
+  const forecastVal = 25_980_800 * combined;
+  const goalValue = 17_510_000 * combined;
+  const goalMax = 25_980_000;
   const goalPct = Math.round((goalValue / goalMax) * 100);
+  const pace = 75;
+  const onPace = goalPct >= pace;
 
   // Filtered monthly data (only selected segment bars when not All)
   const monthlyData = useMemo(() => {
-    return MONTHLY_BASE.map((row) => {
+    const source = monthsToShow >= 12 ? MONTHLY_BASE : MONTHLY_BASE.slice(-monthsToShow);
+    return source.map((row) => {
       const scaled: any = { m: row.m };
       const segFields = ['usw', 'dist', 'retail', 'ecom', 'amzn'];
       if (isAll) {
-        segFields.forEach((k) => { scaled[k] = (row as any)[k]; });
-        scaled.open = row.open;
+        segFields.forEach((k) => { scaled[k] = (row as any)[k] * rScale; });
+        scaled.open = row.open * rScale;
       } else {
-        segFields.forEach((k) => { scaled[k] = (k === segKey) ? (row as any)[k] : 0; });
-        scaled.open = (segKey === 'usw' || segKey === 'dist') ? row.open : 0;
+        segFields.forEach((k) => { scaled[k] = (k === segKey) ? (row as any)[k] * rScale : 0; });
+        scaled.open = (segKey === 'usw' || segKey === 'dist') ? row.open * rScale : 0;
       }
-      scaled.total = row.total * scale;
-      scaled.forecast = row.forecast * scale;
-      scaled.ly = row.ly * scale;
+      scaled.total = row.total * combined;
+      scaled.forecast = row.forecast * combined;
+      scaled.ly = row.ly * combined;
       return scaled;
     });
-  }, [isAll, segKey, scale]);
+  }, [isAll, segKey, combined, rScale, monthsToShow]);
 
   const highlightSegRow = (rowKey: string) => isAll || rowKey === seg;
   const emphasizeName = isAll ? null : seg;
   const emphasizeB2B = seg === 'US Wholesale' || seg === 'Distributors' ? 'B2B' : (isAll ? null : seg);
 
-  const svgVisibleRows = useMemo(() => (isAll ? SVG_ROWS : SVG_ROWS.filter((r) => r.name === seg)), [seg, isAll]);
-  const svgTotalScaled = useMemo(() => ({
-    net: SVG_TOTAL.net * scale,
-    goal: SVG_TOTAL.goal * scale,
-    variance: SVG_TOTAL.variance * scale,
-    pct: SVG_TOTAL.pct,
-    annual: SVG_TOTAL.annual * scale,
-  }), [scale]);
+  const segmentRowsScaled = useMemo(() => SEGMENT_ROWS.map((s) => {
+    const cur = s.cur * combined;
+    return { ...s, cur, pct: Math.round((cur / s.tgt) * 100) };
+  }), [combined]);
 
-  const topAcctMax = TOP_ACCOUNTS[0].net;
-  const topItemMax = TOP_ITEMS[0].rev;
+  const svgRowsScaled = useMemo(() => SVG_ROWS.map((r) => {
+    const net = r.net * combined;
+    return { ...r, net, variance: net - r.goal, pct: Math.round((net / r.goal) * 100) };
+  }), [combined]);
+  const svgVisibleRows = useMemo(() => (isAll ? svgRowsScaled : svgRowsScaled.filter((r) => r.name === seg)), [seg, isAll, svgRowsScaled]);
+  const svgTotalScaled = useMemo(() => {
+    const net = SVG_TOTAL.net * combined;
+    return {
+      net,
+      goal: SVG_TOTAL.goal,
+      variance: net - SVG_TOTAL.goal,
+      pct: Math.round((net / SVG_TOTAL.goal) * 100),
+      annual: SVG_TOTAL.annual,
+    };
+  }, [combined]);
+
+  const donutAllScaled = useMemo(() => DONUT_ALL.map((d) => ({ ...d, v: d.v * combined })), [combined]);
+  const donutB2BScaled = useMemo(() => DONUT_B2B.map((d) => ({ ...d, v: d.v * combined })), [combined]);
+
+  const topAccountsScaled = useMemo(() => TOP_ACCOUNTS.map((a) => ({ ...a, net: a.net * combined })), [combined]);
+  const topItemsScaled = useMemo(() => TOP_ITEMS.map((it) => ({ ...it, rev: it.rev * combined })), [combined]);
+
+  const topAcctMax = topAccountsScaled[0]?.net || 1;
+  const topItemMax = topItemsScaled[0]?.rev || 1;
   const yTicks = useMemo(() => [0, 1.7e6, 3.3e6, 5e6], []);
 
   // Stagger animation helper
@@ -467,7 +577,7 @@ export default function DashboardPage({ onNavigate }: Props) {
   return (
     <div className="min-h-full space-y-8 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
       {/* ── 1) Segment tabs + Date range ───────────────────────────── */}
-      <header className="flex flex-col gap-3 md:h-11 md:flex-row md:flex-wrap md:items-center md:justify-between" data-testid="dashboard-header" style={enter(0)}>
+      <header className="relative z-30 flex flex-col gap-3 md:h-11 md:flex-row md:flex-wrap md:items-center md:justify-between" data-testid="dashboard-header" style={enter(0)}>
         <div className="-mx-4 overflow-x-auto no-scrollbar px-4 md:mx-0 md:overflow-visible md:px-0">
           <SegTabs tabs={SEGMENTS} value={seg} onChange={(v: any) => setSeg(v as SegKey)} testId="segment-tabs" slugPrefix="seg" />
         </div>
@@ -493,7 +603,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             className="relative xl:border-r xl:pr-8"
             style={{ borderColor: BORDER }}
           >
-            <p className="text-[11px] font-semibold uppercase" style={{ ...eyebrowStyle, letterSpacing: '0.18em' }}>Net Sales · YTD</p>
+            <p className="text-[11px] font-semibold uppercase" style={{ ...eyebrowStyle, letterSpacing: '0.18em' }}>Net Sales · {rLabel}</p>
             <div className="mt-3">
               <NetSalesValue target={netSalesYTD} />
             </div>
@@ -509,12 +619,27 @@ export default function DashboardPage({ onNavigate }: Props) {
             <p className="mt-3 text-[12px] font-medium leading-snug" style={{ color: MUTED }}>After discounts, returns &amp; tax · shipping included</p>
           </div>
           <div className="xl:border-r xl:pr-8" style={{ borderColor: BORDER }}>
-            <HeroKPI label="Open Orders" target={openOrders} testId="kpi-open-orders" />
+            <HeroKPI
+              label="Open Orders"
+              target={openOrders}
+              sub={<span className="inline-flex items-center gap-1" style={{ color: '#047857' }}><ArrowUp size={11} strokeWidth={2.6} />+12.4%<span style={{ color: MUTED, fontWeight: 500 }}> vs prior 30d</span></span>}
+              testId="kpi-open-orders"
+            />
           </div>
           <div className="xl:border-r xl:pr-8" style={{ borderColor: BORDER }}>
-            <HeroKPI label="Total" target={total} sub="Net Sales + Open Orders" testId="kpi-total" />
+            <HeroKPI
+              label="Total (Net Sales + Open Orders)"
+              target={total}
+              sub={<span className="inline-flex items-center gap-1" style={{ color: '#047857' }}><ArrowUp size={11} strokeWidth={2.6} />+8.1%<span style={{ color: MUTED, fontWeight: 500 }}> vs LY</span></span>}
+              testId="kpi-total"
+            />
           </div>
-          <HeroKPI label="Forecast" target={forecastVal} testId="kpi-forecast" />
+          <HeroKPI
+            label="Forecast"
+            target={forecastVal}
+            sub={<span className="inline-flex items-center gap-1" style={{ color: '#B45309' }}>⚠<span style={{ fontWeight: 600 }}>Trailing</span><span style={{ color: MUTED, fontWeight: 500 }}> vs pace</span></span>}
+            testId="kpi-forecast"
+          />
         </div>
 
         {/* Annual Goal Progress */}
@@ -537,13 +662,13 @@ export default function DashboardPage({ onNavigate }: Props) {
             <div className="flex flex-col items-end gap-1.5">
               <span
                 className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-[11px] font-semibold"
-                style={{ background: 'rgba(245,158,11,0.12)', color: '#B45309' }}
+                style={{ background: onPace ? 'rgba(5,150,105,0.12)' : 'rgba(217,119,6,0.12)', color: onPace ? '#047857' : '#B45309' }}
                 data-testid="behind-pace-pill"
               >
-                Behind pace
+                {onPace ? 'On pace' : 'Behind pace'}
               </span>
               <span className="inline-flex items-center gap-1 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>
-                <i className="h-1.5 w-1.5 rounded-full" style={{ background: MUTED }} /> Pace 75%
+                <i className="h-1.5 w-1.5 rounded-full" style={{ background: MUTED }} /> Pace {pace}%
               </span>
             </div>
           </div>
@@ -634,7 +759,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                   tickLine={false} axisLine={false}
                   tick={{ fontSize: 11, fill: MUTED, fontWeight: 500 }} width={56}
                 />
-                <Tooltip content={<RevTooltip />} cursor={{ stroke: 'rgb(160,170,180)', strokeDasharray: '3 3', strokeWidth: 1 }} />
+                <Tooltip content={<RevTooltip monthly={monthlyData} />} cursor={{ stroke: 'rgb(160,170,180)', strokeDasharray: '3 3', strokeWidth: 1 }} />
                 <Bar dataKey="usw"    stackId="s" fill={C_USW}    fillOpacity={0.92} stroke={C_USW}    strokeWidth={0.6} isAnimationActive animationDuration={400} />
                 <Bar dataKey="dist"   stackId="s" fill={C_DIST}   fillOpacity={0.92} stroke={C_DIST}   strokeWidth={0.6} isAnimationActive animationDuration={400} />
                 <Bar dataKey="retail" stackId="s" fill={C_RETAIL} fillOpacity={0.92} stroke={C_RETAIL} strokeWidth={0.6} isAnimationActive animationDuration={400} />
@@ -656,7 +781,7 @@ export default function DashboardPage({ onNavigate }: Props) {
         >
           <p className={EYEBROW} style={eyebrowStyle}>Segments</p>
           <ul className="mt-6">
-            {SEGMENT_ROWS.map((s, idx) => {
+            {segmentRowsScaled.map((s, idx) => {
               const active = highlightSegRow(s.key);
               return (
                 <li
@@ -691,8 +816,8 @@ export default function DashboardPage({ onNavigate }: Props) {
 
       {/* ── 5) Channel Mix — two side-by-side donuts ───────────────── */}
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-2" style={enter(4)} data-testid="channel-mix">
-        <Donut title="All Channels" headerRight="% of Net Sales YTD" data={DONUT_ALL} testId="donut-all" emphasizeName={emphasizeName} />
-        <Donut title="B2B Combined" headerRight="% of Net Sales YTD" data={DONUT_B2B} testId="donut-b2b" emphasizeName={emphasizeB2B} />
+        <Donut title="All Channels" headerRight="% of Net Sales YTD" data={donutAllScaled} testId="donut-all" emphasizeName={emphasizeName} />
+        <Donut title="B2B Combined" headerRight="% of Net Sales YTD" data={donutB2BScaled} testId="donut-b2b" emphasizeName={emphasizeB2B} />
       </section>
 
       {/* ── 6) Sales vs Goal — table ───────────────────────────────── */}
@@ -705,7 +830,7 @@ export default function DashboardPage({ onNavigate }: Props) {
           <div>
             <p className={EYEBROW} style={eyebrowStyle}>Pacing</p>
             <h2 className="mt-1.5 text-[16px] font-bold" style={{ color: INK, letterSpacing: '-0.01em' }}>Sales vs Goal</h2>
-            <p className="mt-1 text-[12px] font-medium" style={{ color: MUTED }}>2026 goal pacing through September</p>
+            <p className="mt-1 text-[12px] font-medium" style={{ color: MUTED }}>{svgSubtitle}</p>
             <div className="mt-3 flex items-center gap-2">
               <button
                 data-testid="svg-export-excel"
@@ -836,7 +961,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             <span className="text-[12px] font-medium uppercase tracking-[0.12em]" style={{ color: MUTED }}>Net Sales · YTD</span>
           </div>
           <ol className="mt-5">
-            {TOP_ACCOUNTS.map((a, i) => {
+            {topAccountsScaled.map((a, i) => {
               const share = (a.net / topAcctMax) * 100;
               const isFirst = i === 0;
               const stroke = a.trend === 'up' ? '#10B981' : '#F43F5E';
@@ -889,7 +1014,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             <span className="text-[12px] font-medium uppercase tracking-[0.12em]" style={{ color: MUTED }}>Revenue · YTD</span>
           </div>
           <ol className="mt-5">
-            {TOP_ITEMS.map((it, i) => {
+            {topItemsScaled.map((it, i) => {
               const share = (it.rev / topItemMax) * 100;
               const isFirst = i === 0;
               return (
