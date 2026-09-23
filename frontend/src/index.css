@@ -91,6 +91,39 @@ button { font: inherit; border: 0; cursor: pointer; }
 .brand-textmark-underline { display: block; width: 110px; height: 3px; border-radius: 2px; background: var(--accent, #00d4a1); }
 .brand-textmark-sub { font-family: 'Outfit', 'DM Sans', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.22em; color: #cfd3d0; text-transform: uppercase; }
 .sidebar-collapsed .brand-textmark { display: none !important; }
+.nav-item { position: relative; }
+.nav-active-dot { position: absolute; right: 14px; top: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #00d4a1); transform: translateY(-50%); box-shadow: 0 0 0 3px rgba(0, 212, 161, 0.18); }
+.sidebar-collapsed .nav-active-dot { display: none; }
+
+/* ---- Phase 2: sidebar coral accent + 300px lock + new logo sizing ---- */
+:root { --goorin-coral: #FC7460; }
+
+/* Sidebar image logo (replaces text lockup) */
+.brand-logo-image { display: block; width: 100%; max-width: 220px; height: auto; margin: 0 auto; object-fit: contain; }
+.sidebar-collapsed .brand-logo-image { display: none !important; }
+
+/* Auth page image logo */
+.login-brand-image { display: block; width: 100%; max-width: 240px; height: auto; margin: 0 auto; object-fit: contain; }
+
+/* Lock the expanded desktop sidebar to exactly 300px at all supported desktop widths.
+   The 218px narrow variant at <=1080px is overridden here; the <=760px mobile drawer
+   is intentionally kept because it's the mobile off-canvas behavior. */
+@media (min-width: 761px) {
+  .sidebar:not(.sidebar-collapsed) { width: 300px !important; min-width: 300px !important; max-width: 300px !important; flex: 0 0 300px !important; }
+  .main-content:not(.main-collapsed) { margin-left: 300px !important; }
+}
+
+/* Sidebar-only coral accent (does NOT modify --accent so the rest of the app keeps its palette). */
+.sidebar .nav-item.active { color: #fff; }
+.sidebar .nav-item.active::before { background: var(--goorin-coral); }
+.sidebar .nav-item.active > svg { color: var(--goorin-coral); }
+.sidebar .nav-item:hover::before { content: ''; width: 3px; height: 24px; border-radius: 0 3px 3px 0; background: var(--goorin-coral); opacity: 0.45; position: absolute; left: 0; }
+.sidebar .nav-item.active:hover::before { opacity: 1; }
+.sidebar .nav-active-dot { background: var(--goorin-coral); box-shadow: 0 0 0 3px rgba(255, 106, 77, 0.22); }
+.sidebar-collapsed .nav-item.active { color: var(--goorin-coral); }
+.sidebar-collapsed .nav-item.active::before { background: var(--goorin-coral); }
+
+
 
 .login-body { padding: 30px 36px 28px; }
 .login-heading { text-align: center; margin-bottom: 26px; }

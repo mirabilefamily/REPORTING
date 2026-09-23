@@ -32,11 +32,7 @@ export default function AuthPage() {
     <div className="login-page">
       <div className="login-card" data-testid="login-card">
         <div className="login-topbar">
-          <div className="login-brand-lockup" role="img" aria-label="Goorin REPORTING">
-            <span className="login-brand-wordmark">GOORIN</span>
-            <span className="login-brand-underline" aria-hidden="true" />
-            <span className="login-brand-subline">REPORTING</span>
-          </div>
+          <img className="login-brand-image" src="/goorin_reporting_logo.png" alt="Goorin REPORTING" />
         </div>
 
         <div className="login-body">
