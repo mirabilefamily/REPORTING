@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Page, Kpi, Card, usd } from './_shared';
+import DateRangePicker from '../components/DateRangePicker';
+import { usePageRange } from '../lib/pageRange';
 
 const KPIS = [
   { label: 'Gross Margin', value: '49.8%', delta: '+1.2 pts', tone: 'up' as const, sublabel: 'vs prior year' },
@@ -83,8 +86,9 @@ function MarginBars({ data, testId }: { data: { name: string; margin: number }[]
 }
 
 export default function ProfitabilityPage() {
+  const [range, setRange] = usePageRange('profitability');
   return (
-    <Page title="Profitability" subtitle="Margins by category, segment and product." testId="profitability-page">
+    <Page title="Profitability" subtitle="Margins by category, segment and product." testId="profitability-page" actions={<DateRangePicker value={range} onChange={setRange} testId="profitability-range" />}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {KPIS.map((k) => <Kpi key={k.label} {...k} deltaTone={k.tone} testId={`kpi-${k.label.toLowerCase().replace(/\s+/g, '-')}`} />)}
       </div>

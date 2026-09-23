@@ -18,24 +18,29 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpRight,
-  CheckCircle2,
   Download,
   FileSpreadsheet,
   FileText,
-  Link2,
   Sparkles,
 } from 'lucide-react';
+import DateRangePicker from './components/DateRangePicker';
+import { usePageRange } from './lib/pageRange';
 
 type Props = { name?: string; onNavigate?: (label: string) => void };
 
+// ─── Design tokens ────────────────────────────────────────────────────
 const CORAL = '#FC7460';
 const CORAL_LIGHT = '#FF9678';
 const CORAL_SOFT = '#FF8A76';
 const INK = '#0F1214';
 const TOTAL_NAVY = '#1E3A8A';
 const LY_GRAY = 'rgb(160,170,180)';
+const BORDER = 'rgb(232 236 240)';
+const RULE = '#EDEEEA';
+const TRACK = '#F0F1F2';
+const MUTED = '#8A8E93';
 
-// Softer segment palette
+// Segment palette
 const C_USW = '#22C55E';
 const C_DIST = '#3B82F6';
 const C_RETAIL = '#F59E0B';
@@ -43,13 +48,11 @@ const C_ECOM = '#8B5CF6';
 const C_AMZN = '#EC4899';
 const C_OPEN = '#86EFAC';
 
-const BORDER = 'rgb(232 236 240)';
-const TRACK = '#F0F1F2';
-const MUTED = '#8A8E93';
-const BAR_TRANS = 'width 700ms cubic-bezier(0.22, 1, 0.36, 1)';
-
 const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
 const MONO = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } as const;
+const EYEBROW = 'text-[11px] font-semibold uppercase tracking-[0.14em]';
+const eyebrowStyle = { color: MUTED } as const;
+const BAR_TRANS = 'width 700ms cubic-bezier(0.22, 1, 0.36, 1)';
 
 const usd0 = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
 const fmtM = (n: number) => {
@@ -67,33 +70,23 @@ const fmtMShort = (n: number) => {
   return `${sign}$${Math.round(a)}`;
 };
 
-// ─── Data (spec-verbatim) ─────────────────────────────────────────────
+// ─── Data ─────────────────────────────────────────────────────────────
 const SEGMENTS = ['All', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'] as const;
 type SegKey = typeof SEGMENTS[number];
 
 const SEG_SCALE: Record<SegKey, number> = {
-  'All': 1.0,
-  'US Wholesale': 0.559,
-  'Distributors': 0.451,
-  'Retail': 0.040,
-  'Ecommerce': 0.393,
-  'Amazon': 0.068,
+  'All': 1.0, 'US Wholesale': 0.559, 'Distributors': 0.451,
+  'Retail': 0.040, 'Ecommerce': 0.393, 'Amazon': 0.068,
 };
-
 const SEG_KEY: Record<SegKey, string> = {
-  'All': 'all',
-  'US Wholesale': 'usw',
-  'Distributors': 'dist',
-  'Retail': 'retail',
-  'Ecommerce': 'ecom',
-  'Amazon': 'amzn',
+  'All': 'all', 'US Wholesale': 'usw', 'Distributors': 'dist',
+  'Retail': 'retail', 'Ecommerce': 'ecom', 'Amazon': 'amzn',
 };
 
 const SHARE = { usw: 0.37, dist: 0.30, ecom: 0.26, amzn: 0.05, retail: 0.02 };
 const MONTH_TOTAL_M = [1.35, 2.45, 1.55, 1.75, 1.90, 1.85, 2.45, 2.65, 1.55, 1.30, 2.30, 2.10];
 const OPEN_TAIL_M   = [0,    0,    0,    0,    0,    0,    0,    0,    0,    0.35, 0.55, 0.70];
 const FORECAST_M    = [1.50, 2.55, 1.70, 1.90, 2.10, 2.30, 3.00, 2.80, 1.90, 1.70, 2.60, 2.50];
-// vs LY: peaks in Nov (different from Aug), ~12% lower on average
 const LY_M          = [1.55, 2.10, 1.40, 1.62, 1.70, 1.60, 2.05, 2.15, 1.40, 1.60, 2.75, 2.35];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -144,12 +137,6 @@ const SVG_ROWS = [
 ];
 const SVG_TOTAL = { net: 17_510_000, goal: 19_690_000, variance: -2_170_000, pct: 89, annual: 25_980_000 };
 
-// Sparkline data per KPI + per account (12 mock monthly points)
-const SPARK_NET      = [1.0, 1.1, 1.05, 1.18, 1.25, 1.22, 1.35, 1.42, 1.30, 1.48, 1.55, 1.62];
-const SPARK_OPEN     = [0.90, 0.92, 0.95, 0.94, 0.98, 1.02, 1.05, 1.03, 1.10, 1.14, 1.18, 1.22];
-const SPARK_TOTAL    = [0.95, 1.05, 1.02, 1.15, 1.20, 1.19, 1.32, 1.38, 1.28, 1.46, 1.52, 1.60];
-const SPARK_FORECAST = [1.10, 1.15, 1.22, 1.30, 1.35, 1.42, 1.50, 1.58, 1.62, 1.68, 1.72, 1.80];
-
 const TOP_ACCOUNTS = [
   { name: 'Lids',                       net: 2_720_000, yoy: -24.8, spark: [1.85, 1.70, 1.58, 1.42, 1.30, 1.18, 1.22, 1.05, 0.95, 0.82, 0.75, 0.68], trend: 'down' as const },
   { name: 'SASAtrend',                  net: 1_460_000, yoy:  -4.7, spark: [1.20, 1.15, 1.18, 1.12, 1.10, 1.08, 1.05, 1.02, 1.00, 0.98, 0.95, 0.98], trend: 'down' as const },
@@ -159,11 +146,11 @@ const TOP_ACCOUNTS = [
 ];
 
 const TOP_ITEMS = [
-  { name: 'Panther Trucker',            variant: 'Void · One Size',                     sku: '101-2450-VOI01-O/S',            rev: 287_000, units: 25_132 },
-  { name: 'Suede Black Panther',        variant: 'Dust / Void · One Size',              sku: '101-2961-DUS02-O/S',            rev: 120_000, units:  7_957 },
-  { name: 'Black Sheep Trucker',        variant: 'Void · One Size',                     sku: '101-2457-VOI01-O/S',            rev: 111_000, units:  7_521 },
-  { name: 'Suede Colorful Rooster',     variant: 'Dust White / Void Black · One Size',  sku: '101-3849-WHT02/BLK01-O/S',      rev: 103_000, units:  6_058 },
-  { name: 'The Alpha Dog',              variant: 'Void · One Size',                     sku: '101-1666-VOI01-O/S',            rev:  77_000, units:  4_826 },
+  { name: 'Panther Trucker',        variant: 'Void · One Size',                     sku: '101-2450-VOI01-O/S',       rev: 287_000, units: 25_132 },
+  { name: 'Suede Black Panther',    variant: 'Dust / Void · One Size',              sku: '101-2961-DUS02-O/S',       rev: 120_000, units:  7_957 },
+  { name: 'Black Sheep Trucker',    variant: 'Void · One Size',                     sku: '101-2457-VOI01-O/S',       rev: 111_000, units:  7_521 },
+  { name: 'Suede Colorful Rooster', variant: 'Dust White / Void Black · One Size',  sku: '101-3849-WHT02/BLK01-O/S', rev: 103_000, units:  6_058 },
+  { name: 'The Alpha Dog',          variant: 'Void · One Size',                     sku: '101-1666-VOI01-O/S',       rev:  77_000, units:  4_826 },
 ];
 
 // ─── Hooks ────────────────────────────────────────────────────────────
@@ -188,14 +175,11 @@ function useCountUp(target: number, duration = 700) {
   return v;
 }
 
-// ─── Reusable atoms ───────────────────────────────────────────────────
-const EYEBROW = 'text-[11px] font-semibold uppercase tracking-[0.14em]';
-const eyebrowStyle = { color: MUTED } as const;
-
+// ─── Atoms ────────────────────────────────────────────────────────────
 function SegTabs({ tabs, value, onChange, testId, slugPrefix }: { tabs: readonly string[]; value: string; onChange: (v: any) => void; testId: string; slugPrefix: string }) {
   return (
     <div
-      className="inline-flex items-center gap-[2px] rounded-full p-1"
+      className="inline-flex items-center gap-[2px] rounded-2xl p-1"
       role="tablist"
       style={{ background: '#EEEEEC' }}
       data-testid={testId}
@@ -209,7 +193,7 @@ function SegTabs({ tabs, value, onChange, testId, slugPrefix }: { tabs: readonly
             aria-selected={active}
             onClick={() => onChange(t)}
             data-testid={`${slugPrefix}-${t.toLowerCase().replace(/\s+/g, '-')}`}
-            className="rounded-full px-4 py-2 text-[13.5px] tracking-tight transition focus:outline-none"
+            className="rounded-[10px] px-4 py-2 text-[13.5px] tracking-tight transition focus:outline-none"
             style={
               active
                 ? {
@@ -243,7 +227,7 @@ function DeltaPill({ v }: { v: number }) {
   const up = v >= 0;
   return (
     <span
-      className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold"
+      className="inline-flex items-center gap-0.5 rounded-[8px] px-1.5 py-0.5 text-[11px] font-semibold"
       style={{
         ...TABULAR,
         background: up ? 'rgba(16,185,129,0.10)' : 'rgba(244,63,94,0.10)',
@@ -256,8 +240,7 @@ function DeltaPill({ v }: { v: number }) {
   );
 }
 
-// Reusable mini sparkline
-function Spark({ data, stroke = CORAL, gradId, width = 140, height = 28 }: { data: number[]; stroke?: string; gradId: string; width?: number; height?: number }) {
+function Spark({ data, stroke = CORAL, gradId, width = 72, height = 20 }: { data: number[]; stroke?: string; gradId: string; width?: number; height?: number }) {
   const rows = useMemo(() => data.map((v, i) => ({ i, v })), [data]);
   return (
     <div style={{ width, height }} aria-hidden="true">
@@ -276,55 +259,22 @@ function Spark({ data, stroke = CORAL, gradId, width = 140, height = 28 }: { dat
   );
 }
 
-// Hero KPI cell with count-up + sparkline
-function HeroKPI({
-  label,
-  target,
-  sub,
-  delta,
-  accent,
-  spark,
-  sparkGradId,
-  testId,
-}: {
-  label: string;
-  target: number;
-  sub?: string;
-  delta?: number;
-  accent?: boolean;
-  spark?: number[];
-  sparkGradId: string;
-  testId: string;
-}) {
+function HeroKPI({ label, target, sub, testId }: { label: string; target: number; sub?: string; testId: string }) {
   const v = useCountUp(target, 700);
   return (
     <div className="flex flex-col gap-2" data-testid={testId}>
       <p className={EYEBROW} style={eyebrowStyle}>{label}</p>
-      <div className="flex items-baseline gap-2">
-        <p
-          className={`${accent ? 'text-[54px] sm:text-[60px] xl:text-[64px]' : 'text-[30px] xl:text-[34px]'} font-bold leading-none tracking-tight`}
-          style={{ ...TABULAR, letterSpacing: '-0.035em', color: INK }}
-        >
-          {usd0(Math.max(0, v))}
-        </p>
-        {typeof delta === 'number' && (
-          <span
-            className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[12px] font-semibold"
-            style={{ ...TABULAR, background: 'rgba(16,185,129,0.10)', color: '#059669' }}
-          >
-            <ArrowUp size={11} strokeWidth={2.6} />{delta.toFixed(1)}%
-          </span>
-        )}
-      </div>
-      {accent && (
-        <span className="mt-1 block h-[2px] w-9 rounded-full" style={{ background: 'rgba(252,116,96,0.6)' }} />
-      )}
+      <p
+        className="text-[38px] font-bold leading-none tracking-tight xl:text-[42px]"
+        style={{ ...TABULAR, letterSpacing: '-0.03em', color: INK }}
+      >
+        {usd0(Math.max(0, v))}
+      </p>
       {sub && <p className="text-[11.5px] leading-snug text-neutral-500" style={TABULAR}>{sub}</p>}
     </div>
   );
 }
 
-// Custom Revenue-by-Month tooltip
 function RevTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   const nameMap: Record<string, string> = {
@@ -335,13 +285,9 @@ function RevTooltip({ active, payload, label }: any) {
   return (
     <div
       style={{
-        background: '#fff',
-        border: `1px solid ${BORDER}`,
-        borderRadius: 16,
-        padding: '10px 14px',
-        boxShadow: '0 4px 12px rgba(15,17,20,0.05)',
-        minWidth: 172,
-        ...TABULAR,
+        background: '#FFFFFF', border: `1px solid ${BORDER}`, borderRadius: 12,
+        padding: '10px 14px', boxShadow: '0 4px 12px rgba(15,17,20,0.05)',
+        minWidth: 172, ...TABULAR,
       }}
     >
       <p style={{ color: CORAL, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>{label}</p>
@@ -356,27 +302,11 @@ function RevTooltip({ active, payload, label }: any) {
   );
 }
 
-// Donut with hover interactivity
-function InteractiveDonut({
-  title,
-  headerRight,
-  data,
-  testId,
-  emphasizeName,
-  centerTitle,
-}: {
-  title: string;
-  headerRight?: string;
-  data: typeof DONUT_ALL;
-  testId: string;
-  emphasizeName?: string | null;
-  centerTitle: string;
-}) {
+function Donut({ title, headerRight, data, testId, emphasizeName }: { title: string; headerRight?: string; data: typeof DONUT_ALL; testId: string; emphasizeName?: string | null }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const total = data.reduce((s, d) => s + d.v, 0);
   const centerIdx = hovered ?? (emphasizeName ? data.findIndex((d) => d.name === emphasizeName) : -1);
   const centerData = centerIdx >= 0 ? data[centerIdx] : null;
-
   return (
     <div
       className="rounded-3xl bg-white p-8"
@@ -390,20 +320,14 @@ function InteractiveDonut({
         </div>
         {headerRight && <span className={EYEBROW} style={eyebrowStyle}>{headerRight}</span>}
       </div>
-
       <div className="mt-5 flex items-center gap-7">
         <div className="relative h-[196px] w-[196px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data}
-                dataKey="v"
-                innerRadius={64}
-                outerRadius={92}
-                paddingAngle={2}
-                stroke="none"
-                isAnimationActive
-                animationDuration={400}
+                data={data} dataKey="v"
+                innerRadius={64} outerRadius={92} paddingAngle={2} stroke="none"
+                isAnimationActive animationDuration={400}
                 onMouseEnter={(_: any, idx: number) => setHovered(idx)}
                 onMouseLeave={() => setHovered(null)}
               >
@@ -411,14 +335,7 @@ function InteractiveDonut({
                   const isEmphasized = emphasizeName ? d.name === emphasizeName : true;
                   const isHovered = hovered === i;
                   const dimmed = (hovered != null && !isHovered) || (emphasizeName && !isEmphasized && hovered == null);
-                  return (
-                    <Cell
-                      key={i}
-                      fill={d.c}
-                      opacity={dimmed ? 0.4 : 1}
-                      style={{ transition: 'opacity 200ms ease' }}
-                    />
-                  );
+                  return <Cell key={i} fill={d.c} opacity={dimmed ? 0.4 : 1} style={{ transition: 'opacity 200ms ease' }} />;
                 })}
               </Pie>
             </PieChart>
@@ -426,7 +343,7 @@ function InteractiveDonut({
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <div className="text-center">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                {centerData ? centerData.name : centerTitle}
+                {centerData ? centerData.name : 'YTD'}
               </p>
               <p className="mt-1 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: INK }}>
                 {centerData ? fmtM(centerData.v) : fmtM(total)}
@@ -437,15 +354,19 @@ function InteractiveDonut({
             </div>
           </div>
         </div>
-        <ul className="flex-1 space-y-3">
+        <ul className="flex-1">
           {data.map((d, i) => {
             const isEmphasized = emphasizeName ? d.name === emphasizeName : true;
             const dimmed = (hovered != null && hovered !== i) || (emphasizeName && !isEmphasized && hovered == null);
             return (
               <li
                 key={d.name}
-                className="flex items-center gap-2.5 text-[13px]"
-                style={{ opacity: dimmed ? 0.4 : 1, transition: 'opacity 200ms ease' }}
+                className="flex items-center gap-2.5 py-2 text-[13px]"
+                style={{
+                  opacity: dimmed ? 0.4 : 1,
+                  transition: 'opacity 200ms ease',
+                  borderTop: i === 0 ? 'none' : `1px solid ${RULE}`,
+                }}
                 data-testid={`${testId}-item-${d.name.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 <i className="h-2.5 w-2.5 rounded-full" style={{ background: d.c }} />
@@ -461,8 +382,7 @@ function InteractiveDonut({
   );
 }
 
-// Legend swatch
-function Swatch({ color, label, dashed = false, line = false, dashSize = '5 4', dim = false }: { color: string; label: string; dashed?: boolean; line?: boolean; dashSize?: string; dim?: boolean }) {
+function Swatch({ color, label, dashed = false, line = false, dim = false }: { color: string; label: string; dashed?: boolean; line?: boolean; dim?: boolean }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[11px] text-neutral-600"
@@ -471,10 +391,7 @@ function Swatch({ color, label, dashed = false, line = false, dashSize = '5 4', 
       {line ? (
         <span
           className="inline-block h-[2px] w-5 rounded"
-          style={{
-            background: dashed ? 'transparent' : color,
-            borderTop: dashed ? `2px dashed ${color}` : 'none',
-          }}
+          style={{ background: dashed ? 'transparent' : color, borderTop: dashed ? `2px dashed ${color}` : 'none' }}
         />
       ) : (
         <i className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
@@ -488,14 +405,12 @@ function Swatch({ color, label, dashed = false, line = false, dashSize = '5 4', 
 export default function DashboardPage({ onNavigate }: Props) {
   const [seg, setSeg] = useState<SegKey>('All');
   const [svgTab, setSvgTab] = useState<'By Class' | 'By Month'>('By Class');
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimer = useRef<number | null>(null);
+  const [range, setRange] = usePageRange('dashboard');
 
   const scale = SEG_SCALE[seg];
   const segKey = SEG_KEY[seg];
   const isAll = seg === 'All';
 
-  // Base values
   const netSalesYTD = 9_166_708 * scale;
   const openOrders = 26_679_135 * scale;
   const total = 26_679_135 * scale;
@@ -504,7 +419,7 @@ export default function DashboardPage({ onNavigate }: Props) {
   const goalMax = 25_980_000 * scale;
   const goalPct = Math.round((goalValue / goalMax) * 100);
 
-  // Filtered monthly data (only show selected segment bars when not All)
+  // Filtered monthly data (only selected segment bars when not All)
   const monthlyData = useMemo(() => {
     return MONTHLY_BASE.map((row) => {
       const scaled: any = { m: row.m };
@@ -521,14 +436,12 @@ export default function DashboardPage({ onNavigate }: Props) {
       scaled.ly = row.ly * scale;
       return scaled;
     });
-  }, [seg, isAll, segKey, scale]);
+  }, [isAll, segKey, scale]);
 
-  // Which segments to emphasize
   const highlightSegRow = (rowKey: string) => isAll || rowKey === seg;
   const emphasizeName = isAll ? null : seg;
   const emphasizeB2B = seg === 'US Wholesale' || seg === 'Distributors' ? 'B2B' : (isAll ? null : seg);
 
-  // Filtered SVG rows
   const svgVisibleRows = useMemo(() => (isAll ? SVG_ROWS : SVG_ROWS.filter((r) => r.name === seg)), [seg, isAll]);
   const svgTotalScaled = useMemo(() => ({
     net: SVG_TOTAL.net * scale,
@@ -542,23 +455,6 @@ export default function DashboardPage({ onNavigate }: Props) {
   const topItemMax = TOP_ITEMS[0].rev;
   const yTicks = useMemo(() => [0, 1.3e6, 2.5e6, 3.8e6, 5e6], []);
 
-  // Copy digest link
-  const copyDigest = async () => {
-    const slug = seg.toLowerCase().replace(/\s+/g, '-');
-    const url = `${window.location.origin}/digest/wk40-2026-${slug}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      if (toastTimer.current) window.clearTimeout(toastTimer.current);
-      setToast('Link copied');
-      toastTimer.current = window.setTimeout(() => setToast(null), 1400);
-    } catch {
-      setToast('Copy failed');
-      toastTimer.current = window.setTimeout(() => setToast(null), 1400);
-    }
-  };
-
-  useEffect(() => () => { if (toastTimer.current) window.clearTimeout(toastTimer.current); }, []);
-
   // Stagger animation helper
   const enter = (i: number) => ({
     animation: 'dashFadeSlideUp 400ms ease-out both',
@@ -567,73 +463,49 @@ export default function DashboardPage({ onNavigate }: Props) {
 
   return (
     <div className="min-h-full space-y-8 p-1" data-testid="dashboard-page" style={TABULAR}>
-      {/* ── Section 1: Segment Tabs + Copy digest ───────────────────── */}
-      <header className="flex flex-wrap items-center justify-end gap-3" data-testid="dashboard-header" style={enter(0)}>
-        <button
-          onClick={copyDigest}
-          data-testid="copy-digest"
-          className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 transition hover:border-neutral-300 hover:text-neutral-900"
-          style={{ border: `1px solid ${BORDER}` }}
-        >
-          <Link2 size={13} style={{ color: CORAL }} />
-          Copy weekly digest link
-        </button>
+      {/* ── 1) Segment tabs + Date range ───────────────────────────── */}
+      <header className="flex flex-wrap items-center justify-between gap-3" data-testid="dashboard-header" style={enter(0)}>
         <SegTabs tabs={SEGMENTS} value={seg} onChange={(v: any) => setSeg(v as SegKey)} testId="segment-tabs" slugPrefix="seg" />
+        <DateRangePicker value={range} onChange={setRange} testId="dashboard-range" />
       </header>
 
-      {/* ── Section 2: Light Hero Card ──────────────────────────────── */}
+      {/* ── 2) Light Hero Card (4 KPIs + Annual Goal) ───────────────── */}
       <section
         className="relative overflow-hidden rounded-3xl bg-white p-6 sm:p-8"
         style={{
           border: `1px solid ${BORDER}`,
-          backgroundImage: 'linear-gradient(135deg, rgba(252,116,96,0.05) 0%, rgba(252,116,96,0) 55%)',
+          backgroundImage: 'linear-gradient(135deg, rgba(252,116,96,0.035) 0%, rgba(252,116,96,0) 55%)',
           ...enter(1),
         }}
         data-testid="hero-card"
       >
-        <div className="grid grid-cols-2 gap-6 xl:grid-cols-4 xl:gap-8">
+        <div className="grid grid-cols-2 gap-8 xl:grid-cols-4 xl:gap-10">
+          {/* Net Sales YTD (anchor) */}
           <div
             data-testid="kpi-net-sales"
             className="relative xl:border-r xl:pr-8"
             style={{ borderColor: BORDER }}
           >
-            <HeroKPI
-              label="Net Sales YTD"
-              target={netSalesYTD}
-              delta={25.6}
-              accent
-              spark={SPARK_NET.map((n) => n * scale)}
-              sparkGradId="spark-net"
-              sub="After discounts, returns & tax · shipping included"
-              testId="kpi-net-sales-inner"
-            />
+            <p className={EYEBROW} style={eyebrowStyle}>Net Sales YTD</p>
+            <div className="mt-3 flex items-baseline gap-3">
+              <NetSalesValue target={netSalesYTD} />
+              <span
+                className="inline-flex items-center gap-0.5 rounded-[8px] px-2 py-0.5 text-[12px] font-semibold"
+                style={{ ...TABULAR, background: 'rgba(16,185,129,0.10)', color: '#059669' }}
+              >
+                <ArrowUp size={11} strokeWidth={2.6} />25.6%
+              </span>
+            </div>
+            <span className="mt-3 block h-[2px] w-9 rounded-full" style={{ background: 'rgba(252,116,96,0.6)' }} />
+            <p className="mt-3 text-[12px] leading-snug text-neutral-500">After discounts, returns &amp; tax · shipping included</p>
           </div>
           <div className="xl:border-r xl:pr-8" style={{ borderColor: BORDER }}>
-            <HeroKPI
-              label="Open Orders"
-              target={openOrders}
-              spark={SPARK_OPEN.map((n) => n * scale)}
-              sparkGradId="spark-open"
-              testId="kpi-open-orders"
-            />
+            <HeroKPI label="Open Orders" target={openOrders} testId="kpi-open-orders" />
           </div>
           <div className="xl:border-r xl:pr-8" style={{ borderColor: BORDER }}>
-            <HeroKPI
-              label="Total"
-              target={total}
-              sub="Net Sales + Open Orders"
-              spark={SPARK_TOTAL.map((n) => n * scale)}
-              sparkGradId="spark-total"
-              testId="kpi-total"
-            />
+            <HeroKPI label="Total" target={total} sub="Net Sales + Open Orders" testId="kpi-total" />
           </div>
-          <HeroKPI
-            label="Forecast"
-            target={forecastVal}
-            spark={SPARK_FORECAST.map((n) => n * scale)}
-            sparkGradId="spark-fcst"
-            testId="kpi-forecast"
-          />
+          <HeroKPI label="Forecast" target={forecastVal} testId="kpi-forecast" />
         </div>
 
         {/* Annual Goal Progress */}
@@ -655,7 +527,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             </div>
             <div className="flex flex-col items-end gap-1.5">
               <span
-                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-[11px] font-semibold"
                 style={{ background: 'rgba(245,158,11,0.12)', color: '#B45309' }}
                 data-testid="behind-pace-pill"
               >
@@ -666,11 +538,7 @@ export default function DashboardPage({ onNavigate }: Props) {
               </span>
             </div>
           </div>
-          <div
-            className="mt-4 h-[10px] w-full overflow-hidden rounded-full"
-            style={{ background: TRACK }}
-            data-testid="goal-bar"
-          >
+          <div className="mt-4 h-[10px] w-full overflow-hidden rounded-full" style={{ background: TRACK }} data-testid="goal-bar">
             <span
               className="block h-full rounded-full"
               style={{
@@ -682,21 +550,9 @@ export default function DashboardPage({ onNavigate }: Props) {
           </div>
         </div>
 
-        {/* Local toast (rendered inside hero-card region) */}
-        {toast && (
-          <div
-            className="pointer-events-none absolute right-6 top-6 inline-flex items-center gap-2 rounded-full bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg"
-            role="status"
-            data-testid="copy-toast"
-            style={{ animation: 'dashFadeSlideUp 200ms ease-out both' }}
-          >
-            <CheckCircle2 size={13} style={{ color: CORAL_LIGHT }} />
-            {toast}
-          </div>
-        )}
       </section>
 
-      {/* ── Section 3: AI Assist Strip ──────────────────────────────── */}
+      {/* ── 3) AI Assist Strip ──────────────────────────────────────── */}
       <section
         className="rounded-3xl bg-white px-6 py-3.5"
         style={{ border: `1px solid ${BORDER}`, ...enter(2) }}
@@ -724,7 +580,7 @@ export default function DashboardPage({ onNavigate }: Props) {
         </div>
       </section>
 
-      {/* ── Section 4: Revenue by Month + Segments panel ────────────── */}
+      {/* ── 4) Revenue by Month + Segments ──────────────────────────── */}
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,2.15fr)_minmax(0,1fr)]" style={enter(3)}>
         <div
           className="rounded-3xl bg-white p-8"
@@ -745,10 +601,10 @@ export default function DashboardPage({ onNavigate }: Props) {
               <Swatch color={C_OPEN}     label="Open Orders"  dim={!isAll && seg !== 'US Wholesale' && seg !== 'Distributors'} />
               <Swatch color={TOTAL_NAVY} label="Total"    line />
               <Swatch color={CORAL}      label="Forecast" line dashed />
-              <Swatch color={LY_GRAY}    label="vs LY"    line dashed dashSize="4 4" />
+              <Swatch color={LY_GRAY}    label="vs LY"    line dashed />
               <button
                 data-testid="rev-export"
-                className="ml-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-neutral-700 transition hover:bg-neutral-50"
+                className="ml-1 inline-flex items-center gap-1 rounded-[10px] px-2.5 py-1 text-[11.5px] font-semibold text-neutral-700 transition hover:bg-neutral-50"
                 style={{ border: `1px solid ${BORDER}` }}
               >
                 <Download size={12} /> Export
@@ -762,18 +618,12 @@ export default function DashboardPage({ onNavigate }: Props) {
                 <CartesianGrid stroke="rgb(240 242 244)" vertical={false} />
                 <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: MUTED }} />
                 <YAxis
-                  ticks={yTicks}
-                  domain={[0, 5e6]}
+                  ticks={yTicks} domain={[0, 5e6]}
                   tickFormatter={fmtMShort}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 11, fill: MUTED }}
-                  width={56}
+                  tickLine={false} axisLine={false}
+                  tick={{ fontSize: 11, fill: MUTED }} width={56}
                 />
-                <Tooltip
-                  content={<RevTooltip />}
-                  cursor={{ stroke: 'rgb(160,170,180)', strokeDasharray: '3 3', strokeWidth: 1 }}
-                />
+                <Tooltip content={<RevTooltip />} cursor={{ stroke: 'rgb(160,170,180)', strokeDasharray: '3 3', strokeWidth: 1 }} />
                 <Bar dataKey="usw"    stackId="s" fill={C_USW}    isAnimationActive animationDuration={400} />
                 <Bar dataKey="dist"   stackId="s" fill={C_DIST}   isAnimationActive animationDuration={400} />
                 <Bar dataKey="retail" stackId="s" fill={C_RETAIL} isAnimationActive animationDuration={400} />
@@ -795,7 +645,7 @@ export default function DashboardPage({ onNavigate }: Props) {
         >
           <p className={EYEBROW} style={eyebrowStyle}>Segments</p>
           <h2 className="mt-1.5 text-[16px] font-bold tracking-tight" style={{ color: INK }}>Attainment</h2>
-          <ul className="mt-6 space-y-5">
+          <ul className="mt-7 space-y-7">
             {SEGMENT_ROWS.map((s) => {
               const active = highlightSegRow(s.key);
               return (
@@ -804,12 +654,11 @@ export default function DashboardPage({ onNavigate }: Props) {
                   data-testid={`seg-row-${s.key.toLowerCase().replace(/\s+/g, '-')}`}
                   style={{
                     opacity: active ? 1 : 0.4,
-                    transition: 'opacity 250ms ease, box-shadow 200ms ease',
+                    transition: 'opacity 250ms ease',
                     padding: !isAll && s.key === seg ? '10px' : '0',
                     margin: !isAll && s.key === seg ? '-10px' : '0',
                     borderRadius: 12,
                     outline: !isAll && s.key === seg ? `1px solid ${CORAL}` : 'none',
-                    outlineOffset: 0,
                   }}
                 >
                   <div className="flex items-center justify-between text-[13px]">
@@ -820,10 +669,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                     <b style={{ ...TABULAR, color: INK }}>{s.pct}%</b>
                   </div>
                   <div className="mt-2 h-[5px] w-full overflow-hidden rounded-full" style={{ background: TRACK }}>
-                    <span
-                      className="block h-full rounded-full"
-                      style={{ width: `${s.pct}%`, background: s.c, transition: BAR_TRANS }}
-                    />
+                    <span className="block h-full rounded-full" style={{ width: `${s.pct}%`, background: s.c, transition: BAR_TRANS }} />
                   </div>
                   <div className="mt-1.5 flex items-center justify-between text-[11.5px] text-neutral-500" style={TABULAR}>
                     <span>{fmtM(s.cur)}</span>
@@ -836,27 +682,13 @@ export default function DashboardPage({ onNavigate }: Props) {
         </div>
       </section>
 
-      {/* ── Section 5: Channel Mix ──────────────────────────────────── */}
+      {/* ── 5) Channel Mix — two side-by-side donuts ───────────────── */}
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-2" style={enter(4)} data-testid="channel-mix">
-        <InteractiveDonut
-          title="All Channels"
-          headerRight="% of Net Sales YTD"
-          data={DONUT_ALL}
-          testId="donut-all"
-          emphasizeName={emphasizeName}
-          centerTitle="YTD"
-        />
-        <InteractiveDonut
-          title="B2B Combined"
-          headerRight="% of Net Sales YTD"
-          data={DONUT_B2B}
-          testId="donut-b2b"
-          emphasizeName={emphasizeB2B}
-          centerTitle="YTD"
-        />
+        <Donut title="All Channels" headerRight="% of Net Sales YTD" data={DONUT_ALL} testId="donut-all" emphasizeName={emphasizeName} />
+        <Donut title="B2B Combined" headerRight="% of Net Sales YTD" data={DONUT_B2B} testId="donut-b2b" emphasizeName={emphasizeB2B} />
       </section>
 
-      {/* ── Section 6: Sales vs Goal ────────────────────────────────── */}
+      {/* ── 6) Sales vs Goal — table ───────────────────────────────── */}
       <section
         className="rounded-3xl bg-white p-8"
         style={{ border: `1px solid ${BORDER}`, ...enter(5) }}
@@ -869,8 +701,8 @@ export default function DashboardPage({ onNavigate }: Props) {
             <div className="mt-3 flex items-center gap-2">
               <button
                 data-testid="svg-export-excel"
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-neutral-600 transition hover:text-neutral-900"
-                style={{ border: `1px solid transparent` }}
+                className="inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1 text-[11.5px] font-semibold text-neutral-600 transition hover:text-neutral-900"
+                style={{ border: '1px solid transparent' }}
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = BORDER)}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
               >
@@ -878,8 +710,8 @@ export default function DashboardPage({ onNavigate }: Props) {
               </button>
               <button
                 data-testid="svg-export-pdf"
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-neutral-600 transition hover:text-neutral-900"
-                style={{ border: `1px solid transparent` }}
+                className="inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1 text-[11.5px] font-semibold text-neutral-600 transition hover:text-neutral-900"
+                style={{ border: '1px solid transparent' }}
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = BORDER)}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
               >
@@ -984,7 +816,7 @@ export default function DashboardPage({ onNavigate }: Props) {
         </div>
       </section>
 
-      {/* ── Section 7: Top Accounts + Top Items ─────────────────────── */}
+      {/* ── 7) Top Accounts + Top Items — vertical numbered lists ──── */}
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-2" style={enter(6)}>
         {/* Top Accounts */}
         <div
@@ -1007,11 +839,11 @@ export default function DashboardPage({ onNavigate }: Props) {
               return (
                 <li
                   key={a.name}
-                  className="grid grid-cols-[22px_minmax(0,1fr)_72px_auto_auto] items-center gap-3 -mx-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(15,17,20,0.02)]"
+                  className="grid grid-cols-[22px_minmax(0,1fr)_auto_auto_auto] items-center gap-3 -mx-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(15,17,20,0.02)]"
                   data-testid={`top-acct-${i}`}
                 >
                   <span
-                    className="grid h-[22px] w-[22px] place-items-center rounded-full text-[11px] font-bold"
+                    className="grid h-[22px] w-[22px] place-items-center rounded-[6px] text-[11px] font-bold"
                     style={{ background: isFirst ? CORAL_SOFT : TRACK, color: isFirst ? '#fff' : '#3d3f3c' }}
                   >
                     {i + 1}
@@ -1029,7 +861,9 @@ export default function DashboardPage({ onNavigate }: Props) {
                       />
                     </div>
                   </div>
-                  <Spark data={a.spark} stroke={stroke} gradId={`spark-acct-${i}`} width={72} height={20} />
+                  <div className="px-2">
+                    <Spark data={a.spark} stroke={stroke} gradId={`spark-acct-${i}`} width={72} height={20} />
+                  </div>
                   <b className="text-right text-[13.5px]" style={{ ...TABULAR, color: INK }}>{fmtM(a.net)}</b>
                   <DeltaPill v={a.yoy} />
                 </li>
@@ -1062,7 +896,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                   data-testid={`top-item-${i}`}
                 >
                   <span
-                    className="grid h-[22px] w-[22px] place-items-center rounded-full text-[11px] font-bold"
+                    className="grid h-[22px] w-[22px] place-items-center rounded-[6px] text-[11px] font-bold"
                     style={{ background: isFirst ? CORAL_SOFT : TRACK, color: isFirst ? '#fff' : '#3d3f3c' }}
                   >
                     {i + 1}
@@ -1095,5 +929,18 @@ export default function DashboardPage({ onNavigate }: Props) {
         </div>
       </section>
     </div>
+  );
+}
+
+// Net Sales hero anchor (bigger)
+function NetSalesValue({ target }: { target: number }) {
+  const v = useCountUp(target, 700);
+  return (
+    <p
+      className="text-[54px] font-bold leading-none tracking-tight sm:text-[64px] xl:text-[72px]"
+      style={{ ...TABULAR, letterSpacing: '-0.035em', color: INK }}
+    >
+      {usd0(Math.max(0, v))}
+    </p>
   );
 }

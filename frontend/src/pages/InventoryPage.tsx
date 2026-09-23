@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Page, Kpi, Card, Badge } from './_shared';
+import DateRangePicker from '../components/DateRangePicker';
+import { usePageRange } from '../lib/pageRange';
 
 const KPIS = [
   { label: 'SKUs Active', value: '184', sublabel: 'across 5 categories' },
@@ -56,8 +59,9 @@ const STACK = CATS.map((c) => {
 });
 
 export default function InventoryPage() {
+  const [range, setRange] = usePageRange('inventory');
   return (
-    <Page title="Inventory" subtitle="Stock position across SKUs and categories, with reorder alerts." testId="inventory-page">
+    <Page title="Inventory" subtitle="Stock position across SKUs and categories, with reorder alerts." testId="inventory-page" actions={<DateRangePicker value={range} onChange={setRange} testId="inventory-range" />}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {KPIS.map((k) => <Kpi key={k.label} {...k} deltaTone={k.tone as any} testId={`kpi-${k.label.toLowerCase().replace(/\s+/g, '-')}`} />)}
       </div>

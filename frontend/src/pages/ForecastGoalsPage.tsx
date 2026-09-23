@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Page, Card, Badge, usd } from './_shared';
+import DateRangePicker from '../components/DateRangePicker';
+import { usePageRange } from '../lib/pageRange';
 
 type Goal = { title: string; target: string; current: string; pct: number; status: 'On Track' | 'At Risk' | 'Behind'; category: string };
 
@@ -19,13 +21,14 @@ const tone: Record<Goal['status'], 'green' | 'amber' | 'red'> = { 'On Track': 'g
 
 export default function ForecastGoalsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [range, setRange] = usePageRange('forecast-goals');
 
   return (
     <Page
       title="Forecast Goals"
       subtitle="Track progress against FY 2026 targets across revenue, growth, margin and operations."
       testId="forecast-goals-page"
-      actions={<button onClick={() => setDialogOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3.5 py-2 text-sm font-semibold text-white hover:bg-neutral-700" data-testid="add-goal-btn"><Plus size={15} /> Add Goal</button>}
+      actions={<><DateRangePicker value={range} onChange={setRange} testId="forecast-goals-range" /><button onClick={() => setDialogOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3.5 py-2 text-sm font-semibold text-white hover:bg-neutral-700" data-testid="add-goal-btn"><Plus size={15} /> Add Goal</button></>}
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {GOALS.map((g) => (

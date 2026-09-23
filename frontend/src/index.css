@@ -47,13 +47,13 @@ button { font: inherit; border: 0; cursor: pointer; }
 }
 
 /* topbar date range picker */
-.date-range-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; background: #fff; border: 1px solid rgb(232 236 240); border-radius: 999px; color: #21241f; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; transition: background .15s ease, border-color .15s ease, box-shadow .15s ease; cursor: pointer; }
+.date-range-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; background: #fff; border: 1px solid rgb(232 236 240); border-radius: 10px; color: #21241f; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; transition: background .15s ease, border-color .15s ease, box-shadow .15s ease; cursor: pointer; }
 .date-range-btn:hover { background: #fafbf8; border-color: #d5d9d2; box-shadow: 0 1px 2px rgba(28,35,30,.04); }
 .date-range-btn svg { color: #FC7460; }
 .date-range-chev { color: #9aa09b; transition: transform .18s ease; }
 .date-range-btn.is-open .date-range-chev { transform: rotate(180deg); }
 .date-range-pop-overlay { position: fixed; inset: 0; z-index: 65; }
-.date-range-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: 80; min-width: 220px; padding: 6px; background: #fff; border: 1px solid rgb(232 236 240); border-radius: 14px; box-shadow: 0 16px 42px rgba(30,35,30,.14); display: flex; flex-direction: column; gap: 2px; animation: dashFadeSlideUp .18s ease-out both; }
+.date-range-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: 80; min-width: 220px; padding: 6px; background: #fff; border: 1px solid rgb(232 236 240); border-radius: 10px; box-shadow: 0 16px 42px rgba(30,35,30,.14); display: flex; flex-direction: column; gap: 2px; animation: dashFadeSlideUp .18s ease-out both; }
 .date-range-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 36px; padding: 0 12px; border-radius: 8px; background: transparent; color: #4a504b; font-size: 13px; font-weight: 500; text-align: left; transition: background .13s ease, color .13s ease; cursor: pointer; }
 .date-range-option:hover { background: #f4f6f1; color: #17191a; }
 .date-range-option.active { color: #17191a; font-weight: 600; }

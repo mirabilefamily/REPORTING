@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Page, Card, Badge, usd } from './_shared';
+import DateRangePicker from '../components/DateRangePicker';
+import { usePageRange } from '../lib/pageRange';
 
 type Row = { date: string; order: string; customer: string; channel: string; units: number; revenue: number; margin: number; status: 'Invoiced' | 'Shipped' | 'Delivered' };
 
@@ -37,12 +39,13 @@ const ROWS = gen();
 const tone: Record<Row['status'], 'green' | 'blue' | 'amber'> = { Invoiced: 'amber', Shipped: 'blue', Delivered: 'green' };
 
 export default function SalesHistoryPage() {
+  const [pageRange, setPageRange] = usePageRange('sales-history');
   const [channel, setChannel] = useState('All channels');
   const [region, setRegion] = useState('All regions');
   const [range, setRange] = useState('Last 30 days');
 
   return (
-    <Page title="Sales History" subtitle="All invoiced orders across channels and regions." testId="sales-history-page">
+    <Page title="Sales History" subtitle="All invoiced orders across channels and regions." testId="sales-history-page" actions={<DateRangePicker value={pageRange} onChange={setPageRange} testId="sales-history-range" />}>
       <Card testId="sales-filters">
         <div className="flex flex-wrap items-center gap-3">
           <select value={range} onChange={(e) => setRange(e.target.value)} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm" data-testid="filter-range">

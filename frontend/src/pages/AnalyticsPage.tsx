@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Page, Kpi, Card, usdM, MONTHS } from './_shared';
+import DateRangePicker from '../components/DateRangePicker';
+import { usePageRange } from '../lib/pageRange';
 
 const KPIS = [
   { label: 'Total Revenue', value: '$11.57M', delta: '−14.7%', tone: 'down' as const, sublabel: 'vs prior year' },
@@ -35,8 +38,9 @@ const CHANNELS = [
 ];
 
 export default function AnalyticsPage() {
+  const [range, setRange] = usePageRange('analytics');
   return (
-    <Page title="Analytics" subtitle="Cross-channel revenue, units and sell-through — last 12 months." testId="analytics-page">
+    <Page title="Analytics" subtitle="Cross-channel revenue, units and sell-through — last 12 months." testId="analytics-page" actions={<DateRangePicker value={range} onChange={setRange} testId="analytics-range" />}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {KPIS.map((k) => <Kpi key={k.label} {...k} deltaTone={k.tone} testId={`kpi-${k.label.toLowerCase().replace(/\s+/g, '-')}`} />)}
       </div>

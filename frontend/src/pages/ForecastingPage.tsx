@@ -1,5 +1,8 @@
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useState } from 'react';
 import { Page, Kpi, Card, Badge, usd, usdM } from './_shared';
+import DateRangePicker from '../components/DateRangePicker';
+import { usePageRange } from '../lib/pageRange';
 
 const SERIES = [
   { m: 'Oct 25', actual: 1_040_000 },
@@ -36,9 +39,10 @@ const SEG = [
 ];
 
 export default function ForecastingPage() {
+  const [range, setRange] = usePageRange('forecasting');
   const projStart = SERIES.findIndex((d) => d.forecast !== undefined);
   return (
-    <Page title="Forecasting" subtitle="Actuals through the current period plus a 6-month projection." testId="forecasting-page">
+    <Page title="Forecasting" subtitle="Actuals through the current period plus a 6-month projection." testId="forecasting-page" actions={<DateRangePicker value={range} onChange={setRange} testId="forecasting-range" />}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {KPIS.map((k) => <Kpi key={k.label} {...k} deltaTone={k.tone as any} testId={`kpi-${k.label.toLowerCase().replace(/\s+/g, '-')}`} />)}
         <div className="rounded-2xl border border-neutral-200 bg-white p-5" data-testid="kpi-confidence">

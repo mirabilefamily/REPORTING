@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Page, Card, usd } from './_shared';
+import DateRangePicker from '../components/DateRangePicker';
+import { usePageRange } from '../lib/pageRange';
 
 type Period = 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'FY';
 type Row = { label: string; current: number; prior: number; bold?: boolean; indent?: boolean; muted?: boolean };
@@ -40,10 +42,11 @@ const isPercentRow = (label: string) => label.includes('%');
 
 export default function PnlPage() {
   const [period, setPeriod] = useState<Period>('FY');
+  const [range, setRange] = usePageRange('pnl');
   const rows = DATA[period];
 
   return (
-    <Page title="P&L" subtitle="Income statement — current quarter vs prior year." testId="pnl-page">
+    <Page title="P&L" subtitle="Income statement — current quarter vs prior year." testId="pnl-page" actions={<DateRangePicker value={range} onChange={setRange} testId="pnl-range" />}>
       <Card>
         <div className="flex flex-wrap gap-1 rounded-xl border border-neutral-200 bg-neutral-50 p-1" role="tablist" aria-label="P&L period">
           {(['Q1', 'Q2', 'Q3', 'Q4', 'FY'] as Period[]).map((q) => (

@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Page, Kpi, Card, usd, usdM, MONTHS } from './_shared';
+import DateRangePicker from '../components/DateRangePicker';
+import { usePageRange } from '../lib/pageRange';
 
 const KPIS = [
   { label: 'Cash on Hand', value: '$8.42M', sublabel: 'As of Sep 21, 2026' },
@@ -27,8 +30,9 @@ const UPCOMING: FlowRow[] = [
 ];
 
 export default function CashFlowPage() {
+  const [range, setRange] = usePageRange('cash-flow');
   return (
-    <Page title="Cash Flow" subtitle="Working capital, monthly cash movement and 30-day outlook." testId="cash-flow-page">
+    <Page title="Cash Flow" subtitle="Working capital, monthly cash movement and 30-day outlook." testId="cash-flow-page" actions={<DateRangePicker value={range} onChange={setRange} testId="cash-flow-range" />}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {KPIS.map((k) => <Kpi key={k.label} {...k} deltaTone={k.tone as any} testId={`kpi-${k.label.toLowerCase().replace(/[^a-z]/g, '-')}`} />)}
       </div>
