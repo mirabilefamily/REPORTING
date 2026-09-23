@@ -32,29 +32,30 @@ type Props = { name?: string; onNavigate?: (label: string) => void };
 const CORAL = '#FC7460';
 const CORAL_LIGHT = '#FF9678';
 const CORAL_SOFT = '#FF8A76';
-const CORAL_DEEP = '#F45A44';
-const INK = '#0F172A';
-const INK_SOFT = '#1E293B';
-const TOTAL_NAVY = '#0F172A';
-const LY_GRAY = '#94A3B8';
-const BORDER = '#E2E8F0';
-const RULE = '#E2E8F0';
-const TRACK = '#F1F5F9';
-const MUTED = '#64748B';
-const BODY = '#1E293B';
-const FAINT = '#94A3B8';
-const CANVAS = '#FAFAF9';
+const CORAL_DEEP = '#EE5A44';
+const INK = '#0A0A0A';
+const INK_SOFT = '#171717';
+const TOTAL_NAVY = '#0A0A0A';
+const LY_GRAY = '#A3A3A3';
+const BORDER = '#E5E5E5';
+const RULE = '#E5E5E5';
+const TRACK = '#EFEFEF';
+const MUTED = '#525252';
+const BODY = '#171717';
+const FAINT = '#A3A3A3';
+const CANVAS = '#FAFAFA';
 const CARD_GRAD = 'linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%)';
 const CORAL_GRAD_V = `linear-gradient(180deg, ${CORAL} 0%, ${CORAL_DEEP} 100%)`;
+const CARD_SHADOW = '0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)';
 const INSET_TRACK = 'inset 0 1px 2px rgba(15,17,20,0.04)';
 
 // Segment palette
-const C_USW = '#0F172A';
-const C_DIST = '#334155';
-const C_RETAIL = '#64748B';
-const C_ECOM = '#94A3B8';
-const C_AMZN = '#CBD5E1';
-const C_OPEN = '#CBD5E1';
+const C_USW = '#0A0A0A';
+const C_DIST = '#404040';
+const C_RETAIL = '#737373';
+const C_ECOM = '#A3A3A3';
+const C_AMZN = '#D4D4D4';
+const C_OPEN = '#D4D4D4';
 
 const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
 const MONO = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } as const;
@@ -261,14 +262,10 @@ function DeltaPill({ v }: { v: number }) {
   const up = v >= 0;
   return (
     <span
-      className="inline-flex items-center gap-0.5 rounded-[8px] px-1.5 py-0.5 text-[11px] font-semibold transition-colors duration-150"
-      style={{
-        ...TABULAR,
-        background: up ? 'rgba(5,150,105,0.10)' : 'rgba(244,63,94,0.10)',
-        color: up ? '#047857' : '#BE123C',
-      }}
+      className="inline-flex items-center gap-0.5 text-[13px] font-semibold transition-colors duration-150 ease-out"
+      style={{ ...TABULAR, color: up ? '#059669' : '#DC2626' }}
     >
-      {up ? <ArrowUp size={10} strokeWidth={2.6} /> : <ArrowDown size={10} strokeWidth={2.6} />}
+      {up ? <ArrowUp size={11} strokeWidth={2.6} /> : <ArrowDown size={11} strokeWidth={2.6} />}
       {Math.abs(v).toFixed(1)}%
     </span>
   );
@@ -286,7 +283,7 @@ function Spark({ data, stroke = FAINT, gradId, width = 96, height = 24 }: { data
               <stop offset="100%" stopColor={stroke} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <Area type="monotone" dataKey="v" stroke={stroke} strokeWidth={1.5} fill={`url(#${gradId})`} isAnimationActive={false} dot={false} activeDot={false} />
+          <Area type="monotone" dataKey="v" stroke={stroke} strokeWidth={1.25} fill={`url(#${gradId})`} isAnimationActive={false} dot={false} activeDot={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -299,7 +296,7 @@ function HeroKPI({ label, target, sub, testId }: { label: string; target: number
     <div className="flex items-center justify-between gap-4 py-4" data-testid={testId} style={{ borderTop: `1px solid ${BORDER}` }}>
       <div className="min-w-0">
         <p className={EYEBROW} style={eyebrowStyle}>{label}</p>
-        <p className="mt-1 text-[32px] font-bold leading-none" style={{ ...TABULAR, letterSpacing: '-0.01em', color: INK }}>
+        <p className="mt-1 text-[26px] font-bold leading-none" style={{ ...TABULAR, letterSpacing: '-0.015em', color: BODY }}>
           {usd0(Math.max(0, v))}
         </p>
       </div>
@@ -350,8 +347,8 @@ function RevTooltip({ active, payload, label, monthly }: any) {
   return (
     <div
       style={{
-        background: '#FFFFFF', border: `1px solid ${BORDER}`, borderRadius: 10,
-        padding: '10px 14px', boxShadow: '0 8px 24px rgba(15,17,20,0.06)',
+        background: '#FFFFFF', border: 'none', borderRadius: 12,
+        padding: '14px', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 12px 28px rgba(0,0,0,0.08)',
         minWidth: 240, maxWidth: 320, ...TABULAR,
       }}
     >
@@ -488,6 +485,67 @@ function Swatch({ color, label, dashed = false, line = false, dim = false }: { c
   );
 }
 
+function MiniSegTabs({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const tabs = ['All', 'US Wholesale', 'Distributors'];
+  return (
+    <div
+      className="inline-flex items-center gap-[2px] rounded-xl p-0.5"
+      role="tablist"
+      style={{ background: '#EEEEEC' }}
+      data-testid="hero-mini-tabs"
+    >
+      {tabs.map((t) => {
+        const active = value === t;
+        return (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(t)}
+            data-testid={`hero-seg-${t.toLowerCase().replace(/\s+/g, '-')}`}
+            className="rounded-lg px-2.5 py-1 text-[11.5px] tracking-tight transition-colors duration-150 focus:outline-none"
+            style={
+              active
+                ? {
+                    background: '#FFFFFF',
+                    color: '#0F1214',
+                    fontWeight: 600,
+                    boxShadow: '0 1px 2px rgba(15,17,20,0.06)',
+                    border: '1px solid rgba(15,17,20,0.06)',
+                  }
+                : { color: '#52525B', fontWeight: 500, border: '1px solid transparent', background: 'transparent' }
+            }
+            onMouseEnter={(e) => { if (!active) { e.currentTarget.style.color = '#27272A'; } }}
+            onMouseLeave={(e) => { if (!active) { e.currentTarget.style.color = '#52525B'; } }}
+          >
+            {t}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MiniKPI({ label, target, delta, caption, testId }: { label: string; target: number; delta: React.ReactNode; caption: string; testId: string }) {
+  const v = useCountUp(target, 700);
+  return (
+    <div
+      className="rounded-2xl bg-white p-5"
+      style={{ boxShadow: CARD_SHADOW }}
+      data-testid={testId}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>{label}</p>
+        <span data-testid={`${testId}-delta`}>{delta}</span>
+      </div>
+      <p className="mt-3 text-[26px] font-bold leading-none" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>
+        {usd0(Math.max(0, v))}
+      </p>
+      <p className="mt-1.5 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>{caption}</p>
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────
 export default function DashboardPage({ onNavigate }: Props) {
   const [seg, setSeg] = useState<SegKey>('All');
@@ -588,120 +646,200 @@ export default function DashboardPage({ onNavigate }: Props) {
         </div>
       </header>
 
-      {/* ── 2) HERO — no card, full width ───────────────────────────── */}
-      <section className="grid grid-cols-1 gap-8 lg:grid-cols-[2fr_1fr] lg:gap-12" data-testid="hero-card" style={enter(1)}>
-        {/* Left: Net Sales anchor */}
-        <div data-testid="kpi-net-sales" className="pt-2">
-          <p className="text-[11px] font-semibold uppercase" style={{ ...eyebrowStyle, letterSpacing: '0.18em' }}>Net Sales · {rLabel}</p>
-          <div className="mt-4">
-            <NetSalesValue target={netSalesYTD} />
+      {/* ── 2) HERO — Net Sales card + Annual Goal card ─────────────── */}
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" data-testid="hero-card" style={enter(1)}>
+        {/* Left: Net Sales hero card with full-width area sparkline */}
+        <div
+          className="rounded-2xl p-6"
+          style={{
+            background: 'linear-gradient(135deg, rgba(252,116,96,0.04) 0%, #FFFFFF 60%)',
+            boxShadow: CARD_SHADOW,
+          }}
+          data-testid="kpi-net-sales"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} aria-hidden="true" />
+              <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>
+                Net Sales · {rLabel}
+              </p>
+            </div>
+            <MiniSegTabs value={seg} onChange={(v) => setSeg(v as SegKey)} />
           </div>
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <span className="block h-[4px] w-12 rounded-full" style={{ background: CORAL_GRAD_V }} />
+          <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+            <NetSalesValue target={netSalesYTD} />
             <span
-              className="inline-flex items-center gap-0.5 rounded-[8px] px-2 py-1 text-[12px] font-semibold transition-colors duration-150"
-              style={{ ...TABULAR, background: 'rgba(5,150,105,0.10)', color: '#047857' }}
+              className="inline-flex items-center gap-0.5 rounded-md px-2.5 py-1 text-[13px] font-semibold"
+              style={{ ...TABULAR, background: 'rgba(5,150,105,0.10)', color: '#059669' }}
+              data-testid="net-sales-delta"
             >
               <ArrowUp size={11} strokeWidth={2.6} />25.6% YoY
             </span>
           </div>
-          <p className="mt-4 text-[12px] font-medium leading-snug" style={{ color: MUTED }}>After discounts, returns &amp; tax · shipping included</p>
-        </div>
-        {/* Right: three stacked KPIs */}
-        <div className="flex flex-col">
-          <HeroKPI
-            label="Open Orders"
-            target={openOrders}
-            sub={<span className="inline-flex items-center gap-1" style={{ color: '#047857' }}><ArrowUp size={11} strokeWidth={2.6} />+12.4%<span style={{ color: MUTED, fontWeight: 500 }}> vs prior 30d</span></span>}
-            testId="kpi-open-orders"
-          />
-          <HeroKPI
-            label="Total"
-            target={total}
-            sub={<span className="inline-flex items-center gap-1" style={{ color: '#047857' }}><ArrowUp size={11} strokeWidth={2.6} />+8.1%<span style={{ color: MUTED, fontWeight: 500 }}> vs LY</span></span>}
-            testId="kpi-total"
-          />
-          <HeroKPI
-            label="Forecast"
-            target={forecastVal}
-            sub={<span className="inline-flex items-center gap-1" style={{ color: '#B45309' }}>⚠<span style={{ fontWeight: 600 }}>Trailing</span><span style={{ color: MUTED, fontWeight: 500 }}> vs pace</span></span>}
-            testId="kpi-forecast"
-          />
-        </div>
-      </section>
-
-      {/* Annual Goal Progress strip — no card */}
-      <section
-        className="grid grid-cols-1 gap-6 py-6 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] md:items-center md:gap-8"
-        style={{ borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}
-        data-testid="annual-goal"
-      >
-        <div>
-          <p className={EYEBROW} style={eyebrowStyle}>Annual Goal Progress</p>
-          <div className="mt-2 flex items-baseline gap-3">
-            <p className="text-[20px] font-bold leading-none" style={{ ...TABULAR, color: INK }}>{goalPct}%</p>
-            <span className="text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>
-              {fmtM(goalValue)} of {fmtM(goalMax)}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold" style={{ ...TABULAR, color: '#059669' }}>
+              <ArrowUp size={10} strokeWidth={2.6} />8.2% <span className="ml-0.5" style={{ color: MUTED, fontWeight: 500 }}>MoM</span>
+            </span>
+            <span className="text-[12px]" style={{ color: FAINT }}>·</span>
+            <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold" style={{ ...TABULAR, color: '#059669' }}>
+              <ArrowUp size={10} strokeWidth={2.6} />12.4% <span className="ml-0.5" style={{ color: MUTED, fontWeight: 500 }}>QoQ</span>
+            </span>
+            <span className="text-[12px]" style={{ color: FAINT }}>·</span>
+            <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold" style={{ ...TABULAR, color: '#059669' }}>
+              <ArrowUp size={10} strokeWidth={2.6} />25.6% <span className="ml-0.5" style={{ color: MUTED, fontWeight: 500 }}>YoY</span>
             </span>
           </div>
+          <p className="mt-3 text-[12px] font-medium leading-snug" style={{ color: MUTED }}>After discounts, returns &amp; tax · shipping included</p>
+          <div className="mt-5" data-testid="hero-sparkline">
+            <div style={{ height: 140 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={monthlyData} margin={{ top: 6, right: 0, bottom: 0, left: 0 }}>
+                  <defs>
+                    <linearGradient id="heroSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={CORAL} stopOpacity={0.16} />
+                      <stop offset="100%" stopColor={CORAL} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="total" stroke={CORAL} strokeWidth={2} fill="url(#heroSparkGrad)" isAnimationActive animationDuration={500} dot={false} activeDot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-1.5 flex text-[10px] font-medium" style={{ color: FAINT, letterSpacing: '0.06em' }}>
+              {monthlyData.map((d) => (
+                <span key={d.m} style={{ flex: 1, textAlign: 'center' }}>{d.m}</span>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="h-[12px] w-full overflow-hidden rounded-full" style={{ background: TRACK, boxShadow: INSET_TRACK }} data-testid="goal-bar">
-          <span
-            className="block h-full rounded-full"
-            style={{ width: `${goalPct}%`, background: CORAL_GRAD_V, transition: BAR_TRANS }}
-          />
-        </div>
-        <div className="flex flex-col items-start gap-1.5 md:items-end">
-          <span
-            className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-[11px] font-semibold"
-            style={{ background: onPace ? 'rgba(5,150,105,0.12)' : 'rgba(217,119,6,0.12)', color: onPace ? '#047857' : '#B45309' }}
-            data-testid="behind-pace-pill"
-          >
-            {onPace ? 'On pace' : 'Behind pace'}
-          </span>
-          <span className="inline-flex items-center gap-1 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>
-            <i className="h-1.5 w-1.5 rounded-full" style={{ background: MUTED }} /> Pace {pace}%
-          </span>
+
+        {/* Right: Annual Goal card */}
+        <div
+          className="rounded-2xl p-6"
+          style={{
+            background: onPace ? '#FFFFFF' : 'linear-gradient(135deg, rgba(252,116,96,0.03) 0%, #FFFFFF 60%)',
+            boxShadow: CARD_SHADOW,
+          }}
+          data-testid="annual-goal"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>Annual Goal</p>
+            <span
+              className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-bold"
+              style={{ ...TABULAR, background: 'rgba(5,150,105,0.10)', color: '#059669' }}
+              data-testid="annual-goal-pct-pill"
+            >
+              {goalPct}%
+            </span>
+          </div>
+          <p className="mt-4 text-[28px] font-extrabold leading-none" style={{ ...TABULAR, letterSpacing: '-0.02em', color: INK }} data-testid="annual-goal-amount">
+            {fmtM(goalValue)}
+          </p>
+          <p className="mt-1.5 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>
+            of {fmtM(goalMax)} · {fmtM(Math.max(0, goalMax - goalValue))} to go
+          </p>
+          <div className="relative mt-8">
+            <span
+              className="absolute -top-4 whitespace-nowrap text-[10px] font-semibold uppercase"
+              style={{ ...TABULAR, color: MUTED, letterSpacing: '0.10em', left: `${pace}%`, transform: 'translateX(-100%)', paddingRight: 4 }}
+            >
+              Pace {pace}%
+            </span>
+            <div className="relative h-2 w-full overflow-hidden rounded-full" style={{ background: '#EFEFEF' }} data-testid="goal-bar">
+              <span
+                className="absolute inset-y-0 left-0"
+                style={{ width: `${Math.min(goalPct, pace)}%`, background: CORAL, transition: BAR_TRANS }}
+              />
+              {goalPct < pace && (
+                <span
+                  className="absolute inset-y-0"
+                  style={{ left: `${goalPct}%`, width: `${pace - goalPct}%`, background: 'rgba(252,116,96,0.35)', transition: BAR_TRANS }}
+                />
+              )}
+              {goalPct > pace && (
+                <span
+                  className="absolute inset-y-0"
+                  style={{ left: `${pace}%`, width: `${goalPct - pace}%`, background: CORAL, transition: BAR_TRANS }}
+                />
+              )}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 w-[2px]"
+                style={{ left: `${pace}%`, background: 'rgba(10,10,10,0.6)' }}
+              />
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-1.5" data-testid="behind-pace-pill">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: onPace ? '#059669' : '#D97706' }} aria-hidden="true" />
+            <span className="text-[12px] font-medium" style={{ ...TABULAR, color: onPace ? '#059669' : '#D97706' }}>
+              {onPace ? 'On pace' : `${Math.abs(pace - goalPct)} pts behind pace`}
+            </span>
+          </div>
+          <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
+            {[...segmentRowsScaled].sort((a, b) => b.cur - a.cur).slice(0, 2).map((s, i) => (
+              <div
+                key={s.key}
+                className="flex h-8 items-center gap-3"
+                style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}` }}
+                data-testid={`goal-seg-${s.key.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <span className="h-2 w-2 rounded-full shrink-0" style={{ background: s.c }} aria-hidden="true" />
+                <b className="min-w-0 flex-1 truncate text-[13px] font-semibold" style={{ color: BODY }}>{s.key}</b>
+                <span className="text-[13px] font-medium" style={{ ...TABULAR, color: INK }}>{fmtM(s.cur)}</span>
+                <span className="w-[76px] text-right text-[11px] font-medium" style={{ ...TABULAR, color: MUTED }}>{s.pct}% of goal</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ── 3) AI Assist meta line ──────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3 py-1" data-testid="ai-strip" style={enter(2)}>
-        <div className="flex min-w-0 items-center gap-2">
-          <Sparkles size={12} color={MUTED} strokeWidth={1.8} />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: MUTED }}>AI Assist</span>
-          <span className="text-[12px]" style={{ color: FAINT }}>·</span>
-          <p className="truncate text-[13px] font-medium" style={{ color: BODY }}>
-            <span className="font-semibold" style={{ color: INK }}>Claude</span> is analyzing your data…
-          </p>
-        </div>
-        <button
-          data-testid="ai-strip-view-insights"
-          className="inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold transition hover:opacity-80"
-          style={{ color: CORAL }}
-        >
-          View insights <ArrowUpRight size={13} />
-        </button>
-      </div>
+      {/* ── 2b) 3-KPI row: Open Orders / Total / Forecast ──────────── */}
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3" data-testid="kpi-row" style={enter(2)}>
+        <MiniKPI
+          label="Open Orders"
+          target={openOrders}
+          delta={<span className="inline-flex items-center gap-0.5 text-[13px] font-semibold" style={{ ...TABULAR, color: '#059669' }}><ArrowUp size={11} strokeWidth={2.6} />12.4%</span>}
+          caption="vs prior 30d"
+          testId="kpi-open-orders"
+        />
+        <MiniKPI
+          label="Total"
+          target={total}
+          delta={<span className="inline-flex items-center gap-0.5 text-[13px] font-semibold" style={{ ...TABULAR, color: '#059669' }}><ArrowUp size={11} strokeWidth={2.6} />8.1%</span>}
+          caption="vs LY"
+          testId="kpi-total"
+        />
+        <MiniKPI
+          label="Forecast"
+          target={forecastVal}
+          delta={<span className="inline-flex items-center gap-0.5 text-[13px] font-semibold" style={{ ...TABULAR, color: '#D97706' }}><ArrowDown size={11} strokeWidth={2.6} />Trailing</span>}
+          caption="attainment vs plan"
+          testId="kpi-forecast"
+        />
+      </section>
+
+      {/* ── 3) AI Assist meta line — moved to bottom (footer) ───────── */}
 
       {/* ── 4) Revenue by Month + Segments ──────────────────────────── */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" style={enter(3)}>
         <div
           className="rounded-2xl bg-white p-6"
-          style={{ border: `1px solid ${BORDER}` }}
+          style={{ boxShadow: CARD_SHADOW }}
           data-testid="rev-by-month"
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <p className={EYEBROW} style={eyebrowStyle}>Revenue by Month</p>
+            <div>
+              <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Revenue by month</h2>
+              <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>Twelve-month view · Total, Forecast, and vs LY overlay</p>
+            </div>
             <button
               data-testid="rev-export"
-              className="inline-flex items-center gap-1 text-[12px] font-semibold uppercase tracking-[0.08em] transition hover:opacity-80"
-              style={{ color: CORAL }}
+              className="inline-flex items-center gap-1 text-[13px] font-semibold transition hover:underline"
+              style={{ color: CORAL, textUnderlineOffset: 4 }}
             >
-              Export <ArrowUpRight size={12} />
+              Export <ArrowUpRight size={13} />
             </button>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
             <Swatch color={C_USW}      label="US Wholesale" dim={!isAll && seg !== 'US Wholesale'} />
             <Swatch color={C_DIST}     label="Distributors" dim={!isAll && seg !== 'Distributors'} />
             <Swatch color={C_RETAIL}   label="Retail"       dim={!isAll && seg !== 'Retail'} />
@@ -712,26 +850,26 @@ export default function DashboardPage({ onNavigate }: Props) {
             <Swatch color={LY_GRAY}    label="vs LY"    line dashed />
           </div>
 
-          <div className="mt-6 h-[240px] md:h-[340px]" style={TABULAR}>
+          <div className="mt-5 h-[240px] md:h-[340px]" style={TABULAR}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} barCategoryGap="35%">
-                <CartesianGrid stroke="#F1F5F9" vertical={false} strokeDasharray="4 4" />
-                <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: MUTED, fontWeight: 600 }} tickFormatter={(m: string) => m.toUpperCase()} />
+              <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} barCategoryGap="40%">
+                <CartesianGrid stroke="#EFEFEF" vertical={false} strokeDasharray="4 4" />
+                <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: FAINT, fontWeight: 600, letterSpacing: '0.06em' }} tickFormatter={(m: string) => m.toUpperCase()} />
                 <YAxis
                   ticks={yTicks} domain={[0, 5e6]}
                   tickFormatter={fmtMShort}
                   tickLine={false} axisLine={false}
-                  tick={{ fontSize: 11, fill: MUTED, fontWeight: 500 }} width={56}
+                  tick={{ fontSize: 10, fill: FAINT, fontWeight: 500 }} width={56}
                 />
                 <Tooltip content={<RevTooltip monthly={monthlyData} />} cursor={{ stroke: FAINT, strokeDasharray: '3 3', strokeWidth: 1 }} />
-                <Bar dataKey="usw"    stackId="s" fill={C_USW}    isAnimationActive animationDuration={400} />
-                <Bar dataKey="dist"   stackId="s" fill={C_DIST}   isAnimationActive animationDuration={400} />
-                <Bar dataKey="retail" stackId="s" fill={C_RETAIL} isAnimationActive animationDuration={400} />
-                <Bar dataKey="ecom"   stackId="s" fill={C_ECOM}   isAnimationActive animationDuration={400} />
-                <Bar dataKey="amzn"   stackId="s" fill={C_AMZN}   isAnimationActive animationDuration={400} />
-                <Bar dataKey="open"   stackId="s" fill={C_OPEN}   radius={[6, 6, 0, 0]} isAnimationActive animationDuration={400} />
+                <Bar dataKey="usw"    stackId="s" fill={C_USW}    fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="dist"   stackId="s" fill={C_DIST}   fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="retail" stackId="s" fill={C_RETAIL} fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="ecom"   stackId="s" fill={C_ECOM}   fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="amzn"   stackId="s" fill={C_AMZN}   fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="open"   stackId="s" fill={C_OPEN}   fillOpacity={1} radius={[4, 4, 0, 0]} isAnimationActive animationDuration={400} />
                 <Line type="monotone" dataKey="ly"       stroke={LY_GRAY}    strokeWidth={1.5} dot={false} strokeDasharray="3 3" isAnimationActive animationDuration={400} />
-                <Line type="monotone" dataKey="total"    stroke={INK}        strokeWidth={2}   dot={false} isAnimationActive animationDuration={400} />
+                <Line type="monotone" dataKey="total"    stroke={INK}        strokeWidth={2.5}   dot={false} isAnimationActive animationDuration={400} />
                 <Line type="monotone" dataKey="forecast" stroke={CORAL}      strokeWidth={1.5} dot={false} strokeDasharray="6 4" isAnimationActive animationDuration={400} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -740,10 +878,10 @@ export default function DashboardPage({ onNavigate }: Props) {
 
         <div
           className="rounded-2xl bg-white p-6"
-          style={{ border: `1px solid ${BORDER}` }}
+          style={{ boxShadow: CARD_SHADOW }}
           data-testid="segment-panel"
         >
-          <p className={EYEBROW} style={eyebrowStyle}>Segments</p>
+          <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Segments</h2>
           <ul className="mt-4">
             {[...segmentRowsScaled].sort((a, b) => b.pct - a.pct).map((s, idx) => {
               const active = highlightSegRow(s.key);
@@ -751,7 +889,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                 <li
                   key={s.key}
                   data-testid={`seg-row-${s.key.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="flex items-center justify-between py-3.5 transition-colors hover:bg-[rgba(15,23,42,0.02)] -mx-3 rounded-lg px-3"
+                  className="group flex h-10 items-center justify-between"
                   style={{
                     opacity: active ? 1 : 0.4,
                     transition: 'opacity 250ms ease',
@@ -759,13 +897,16 @@ export default function DashboardPage({ onNavigate }: Props) {
                   }}
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <i className="h-2 w-2 rounded-full shrink-0" style={{ background: s.c }} />
+                    <i className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: s.c }} />
                     <div className="min-w-0">
-                      <b className="block text-[14px] font-semibold" style={{ color: INK }}>{s.key}</b>
-                      <p className="mt-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>{fmtM(s.cur)} of {fmtM(s.tgt)}</p>
+                      <b className="block text-[14px] font-semibold" style={{ color: BODY }}>{s.key}</b>
+                      <p className="mt-0.5 text-[11px] font-medium" style={{ ...TABULAR, color: MUTED }}>{fmtM(s.cur)} of {fmtM(s.tgt)} target</p>
                     </div>
                   </div>
-                  <b className="text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{s.pct}%</b>
+                  <div className="flex items-center gap-2">
+                    <b className="text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{s.pct}%</b>
+                    <span className="text-[14px] opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: FAINT }}>›</span>
+                  </div>
                 </li>
               );
             })}
@@ -776,11 +917,11 @@ export default function DashboardPage({ onNavigate }: Props) {
       {/* ── 5) Channel Mix — horizontal stacked bar ─────────────────── */}
       <section
         className="rounded-2xl bg-white p-6"
-        style={{ border: `1px solid ${BORDER}`, ...enter(4) }}
+        style={{ boxShadow: CARD_SHADOW, ...enter(4) }}
         data-testid="channel-mix"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className={EYEBROW} style={eyebrowStyle}>Channel Mix</p>
+          <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Channel mix</h2>
           <SegTabs tabs={['All Channels', 'B2B Combined']} value={mixTab} onChange={(v: any) => setMixTab(v)} testId="mix-tabs" slugPrefix="mix" />
         </div>
         {(() => {
@@ -788,7 +929,7 @@ export default function DashboardPage({ onNavigate }: Props) {
           const totalV = slices.reduce((sum, s) => sum + s.v, 0) || 1;
           return (
             <>
-              <div className="mt-6 flex h-10 w-full overflow-hidden rounded-lg" style={{ background: TRACK }}>
+              <div className="mt-6 flex h-8 w-full overflow-hidden rounded-lg" style={{ background: TRACK }}>
                 {slices.map((s, i) => {
                   const w = (s.v / totalV) * 100;
                   const dim = emphasizeName && s.name !== emphasizeName && !(mixTab === 'B2B Combined' && emphasizeB2B === s.name);
@@ -800,7 +941,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                       style={{
                         width: `${w}%`,
                         background: s.c,
-                        borderRight: i < slices.length - 1 ? '2px solid #FFFFFF' : 'none',
+                        borderRight: i < slices.length - 1 ? '3px solid #FFFFFF' : 'none',
                         opacity: dim ? 0.35 : 1,
                       }}
                       data-testid={`mix-slice-${s.name.toLowerCase().replace(/\s+/g, '-')}`}
@@ -808,21 +949,28 @@ export default function DashboardPage({ onNavigate }: Props) {
                   );
                 })}
               </div>
-              <div className={`mt-6 grid gap-4 ${slices.length === 5 ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
-                {slices.map((s) => {
+              <ul className="mt-6">
+                {slices.map((s, i) => {
                   const share = (s.v / totalV) * 100;
                   return (
-                    <div key={s.name} data-testid={`mix-legend-${s.name.toLowerCase().replace(/\s+/g, '-')}`}>
-                      <div className="flex items-center gap-2">
+                    <li
+                      key={s.name}
+                      className="flex h-10 items-center justify-between gap-3"
+                      style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}` }}
+                      data-testid={`mix-legend-${s.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <div className="flex min-w-0 items-center gap-2.5">
                         <i className="h-2 w-2 rounded-full shrink-0" style={{ background: s.c }} />
-                        <span className="truncate text-[13px] font-medium" style={{ color: BODY }}>{s.name}</span>
+                        <span className="truncate text-[14px] font-medium" style={{ color: BODY }}>{s.name}</span>
                       </div>
-                      <p className="mt-1 text-[18px] font-bold leading-none" style={{ ...TABULAR, color: INK }}>{fmtM(s.v)}</p>
-                      <p className="mt-1 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>{share.toFixed(1)}%</p>
-                    </div>
+                      <span className="shrink-0 text-[14px] font-medium" style={{ ...TABULAR, color: BODY }}>
+                        <b style={{ color: INK }}>{fmtM(s.v)}</b>
+                        <span style={{ color: MUTED }}> · {share.toFixed(1)}%</span>
+                      </span>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             </>
           );
         })()}
@@ -831,18 +979,13 @@ export default function DashboardPage({ onNavigate }: Props) {
       {/* ── 6) Sales vs Goal — table ───────────────────────────────── */}
       <section
         className="rounded-2xl bg-white p-6"
-        style={{ border: `1px solid ${BORDER}`, ...enter(5) }}
+        style={{ boxShadow: CARD_SHADOW, ...enter(5) }}
         data-testid="sales-vs-goal"
       >
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
-            <p className={EYEBROW} style={eyebrowStyle}>Sales vs Goal</p>
-            <p className="mt-1 text-[12px] font-medium" style={{ color: MUTED }}>{svgSubtitle}</p>
-            <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: CORAL }}>
-              <button data-testid="svg-export-excel" className="hover:opacity-80">Export as Excel</button>
-              <span style={{ color: FAINT }}> · </span>
-              <button data-testid="svg-export-pdf" className="hover:opacity-80">PDF</button>
-            </p>
+            <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Sales vs goal</h2>
+            <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>{svgSubtitle}</p>
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3 md:gap-x-8" data-testid="svg-kpis">
             <div className="text-right">
@@ -864,6 +1007,13 @@ export default function DashboardPage({ onNavigate }: Props) {
               <p className={EYEBROW} style={eyebrowStyle}>% to Goal</p>
               <p className="mt-1.5 text-[20px] font-bold" style={{ ...TABULAR, color: CORAL }}>{svgTotalScaled.pct}%</p>
             </div>
+            <button
+              data-testid="svg-export"
+              className="inline-flex items-center gap-1 text-[13px] font-semibold transition hover:underline"
+              style={{ color: CORAL, textUnderlineOffset: 4 }}
+            >
+              Export <ArrowUpRight size={13} />
+            </button>
           </div>
         </div>
 
@@ -886,57 +1036,49 @@ export default function DashboardPage({ onNavigate }: Props) {
           {svgVisibleRows.map((r) => (
             <div
               key={r.name}
-              className="grid min-w-[820px] grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 h-11 text-[14px] transition-colors duration-150 hover:bg-[rgba(15,17,20,0.02)]"
+              className="group grid min-w-[820px] grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 h-11 text-[14px] transition-colors duration-150 ease-out hover:bg-[rgba(10,10,10,0.02)]"
               style={{ borderBottom: `1px solid ${BORDER}` }}
               data-testid={`svg-row-${r.name.toLowerCase().replace(/\s+/g, '-')}`}
               title={`${r.pct}% to goal (${fmtM(r.net)} of ${fmtM(r.goal)})`}
             >
               <span className="svg-sticky-col flex min-w-0 items-center gap-2">
-                <i className="h-2 w-2 rounded-full" style={{ background: r.c }} />
-                <b className="truncate font-semibold" style={{ color: INK }}>{r.name}</b>
+                <i className="h-1.5 w-1.5 rounded-full" style={{ background: r.c }} />
+                <b className="truncate font-semibold" style={{ color: BODY }}>{r.name}</b>
               </span>
               <b className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(r.net)}</b>
-              <span className="text-right font-medium" style={{ ...TABULAR, color: '#4B5058' }}>{fmtM(r.goal)}</span>
-              <span className="text-right font-semibold text-rose-600" style={TABULAR}>{fmtM(r.variance)}</span>
-              <span className="flex items-center gap-3">
-                <span className="relative h-[10px] flex-1 overflow-hidden rounded-full" style={{ background: '#F0F1F2', boxShadow: INSET_TRACK }}>
+              <span className="text-right font-medium" style={{ ...TABULAR, color: BODY }}>{fmtM(r.goal)}</span>
+              <span className="text-right font-semibold" style={{ ...TABULAR, color: r.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(r.variance)}</span>
+              <div className="flex flex-col items-end gap-1">
+                <b className="text-[13px] font-semibold" style={{ ...TABULAR, color: CORAL }}>{r.pct}%</b>
+                <span className="relative h-[4px] w-full overflow-hidden rounded-full" style={{ background: TRACK, boxShadow: INSET_TRACK }}>
                   <span
                     className="absolute left-0 top-0 h-full rounded-full"
-                    style={{
-                      width: `${r.pct}%`,
-                      background: CORAL_GRAD_V,
-                      transition: BAR_TRANS,
-                    }}
+                    style={{ width: `${r.pct}%`, background: CORAL_GRAD_V, transition: BAR_TRANS }}
                   />
                 </span>
-                <b className="w-10 text-right text-[13px] font-bold" style={{ ...TABULAR, color: CORAL }}>{r.pct}%</b>
-              </span>
+              </div>
               <span className="text-right font-medium" style={{ ...TABULAR, color: BODY }}>{fmtM(r.annual)}</span>
             </div>
           ))}
           <div
-            className="grid min-w-[820px] grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 h-11 text-[14px] font-bold"
-            style={{ borderTop: `1px solid ${BORDER}` }}
+            className="grid min-w-[820px] grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 h-14 text-[14px] font-bold"
+            style={{ borderTop: `2px solid ${INK}` }}
             data-testid="svg-total-row"
           >
-            <span className="svg-sticky-col" style={{ color: INK }}>Total</span>
-            <b className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.net)}</b>
-            <span className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.goal)}</span>
-            <span className="text-right text-rose-600" style={TABULAR}>{fmtM(svgTotalScaled.variance)}</span>
-            <span className="flex items-center gap-3">
-              <span className="relative h-[10px] flex-1 overflow-hidden rounded-full" style={{ background: '#F0F1F2', boxShadow: INSET_TRACK }}>
+            <span className="svg-sticky-col text-[16px] font-bold" style={{ color: INK }}>Total</span>
+            <b className="text-right text-[26px] font-extrabold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.net)}</b>
+            <span className="text-right text-[26px] font-extrabold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.goal)}</span>
+            <span className="text-right text-[26px] font-extrabold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: svgTotalScaled.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(svgTotalScaled.variance)}</span>
+            <div className="flex flex-col items-end gap-1">
+              <b className="text-[20px] font-bold" style={{ ...TABULAR, color: CORAL }}>{svgTotalScaled.pct}%</b>
+              <span className="relative h-[4px] w-full overflow-hidden rounded-full" style={{ background: TRACK, boxShadow: INSET_TRACK }}>
                 <span
                   className="absolute left-0 top-0 h-full rounded-full"
-                  style={{
-                    width: `${svgTotalScaled.pct}%`,
-                    background: CORAL_GRAD_V,
-                    transition: BAR_TRANS,
-                  }}
+                  style={{ width: `${svgTotalScaled.pct}%`, background: CORAL_GRAD_V, transition: BAR_TRANS }}
                 />
               </span>
-              <b className="w-10 text-right text-[13px] font-bold" style={{ ...TABULAR, color: CORAL }}>{svgTotalScaled.pct}%</b>
-            </span>
-            <span className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.annual)}</span>
+            </div>
+            <span className="text-right text-[26px] font-extrabold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.annual)}</span>
           </div>
         </div>
       </section>
@@ -946,12 +1088,12 @@ export default function DashboardPage({ onNavigate }: Props) {
         {/* Top Accounts */}
         <div
           className="rounded-2xl bg-white p-6"
-          style={{ border: `1px solid ${BORDER}` }}
+          style={{ boxShadow: CARD_SHADOW }}
           data-testid="top-accounts"
         >
           <div className="flex items-start justify-between">
-            <p className={EYEBROW} style={eyebrowStyle}>Top Accounts</p>
-            <span className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: MUTED }}>Net Sales · YTD</span>
+            <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Top accounts</h2>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Net Sales · YTD</span>
           </div>
           <ol className="mt-4">
             {topAccountsScaled.map((a, i) => {
@@ -959,15 +1101,16 @@ export default function DashboardPage({ onNavigate }: Props) {
               return (
                 <li
                   key={a.name}
-                  className="flex h-14 items-center gap-3 transition-colors hover:bg-[rgba(15,23,42,0.02)] -mx-3 rounded-lg px-3"
+                  className="group flex h-12 items-center gap-3 transition-colors duration-150 ease-out hover:bg-[rgba(10,10,10,0.02)] -mx-3 rounded-lg px-3"
                   style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}` }}
                   data-testid={`top-acct-${i}`}
                 >
-                  <span className="w-6 text-right text-[12px] font-medium tabular-nums" style={{ ...MONO, color: MUTED }}>{i + 1}.</span>
-                  <b className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: INK }}>{a.name}</b>
-                  <Spark data={a.spark} stroke={stroke} gradId={`spark-acct-${i}`} width={96} height={24} />
+                  <span className="w-7 text-right text-[11px] font-medium tracking-wider tabular-nums" style={{ ...MONO, color: FAINT }}>{String(i + 1).padStart(2, '0')}</span>
+                  <b className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: BODY }}>{a.name}</b>
+                  <Spark data={a.spark} stroke={stroke} gradId={`spark-acct-${i}`} width={112} height={28} />
                   <DeltaPill v={a.yoy} />
-                  <b className="w-[96px] text-right text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{fmtM(a.net)}</b>
+                  <b className="w-[96px] text-right text-[26px] font-bold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(a.net)}</b>
+                  <span className="w-3 text-[14px] opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: FAINT }}>›</span>
                 </li>
               );
             })}
@@ -977,27 +1120,28 @@ export default function DashboardPage({ onNavigate }: Props) {
         {/* Top Items */}
         <div
           className="rounded-2xl bg-white p-6"
-          style={{ border: `1px solid ${BORDER}` }}
+          style={{ boxShadow: CARD_SHADOW }}
           data-testid="top-items"
         >
           <div className="flex items-start justify-between">
-            <p className={EYEBROW} style={eyebrowStyle}>Top Items</p>
-            <span className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: MUTED }}>Revenue · YTD</span>
+            <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Top items</h2>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Revenue · YTD</span>
           </div>
           <ol className="mt-4">
             {topItemsScaled.map((it, i) => (
               <li
                 key={it.sku}
-                className="flex flex-col justify-center py-2.5 transition-colors hover:bg-[rgba(15,23,42,0.02)] -mx-3 rounded-lg px-3"
-                style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`, minHeight: 60 }}
+                className="group flex flex-col justify-center py-2 transition-colors duration-150 ease-out hover:bg-[rgba(10,10,10,0.02)] -mx-3 rounded-lg px-3"
+                style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`, minHeight: 52 }}
                 data-testid={`top-item-${i}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-6 text-right text-[12px] font-medium tabular-nums" style={{ ...MONO, color: MUTED }}>{i + 1}.</span>
-                  <b className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: INK }}>{it.name}</b>
-                  <b className="text-right text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{fmtM(it.rev)}</b>
+                  <span className="w-7 text-right text-[11px] font-medium tracking-wider tabular-nums" style={{ ...MONO, color: FAINT }}>{String(i + 1).padStart(2, '0')}</span>
+                  <b className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: BODY }}>{it.name}</b>
+                  <b className="text-right text-[26px] font-bold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(it.rev)}</b>
+                  <span className="w-3 text-[14px] opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: FAINT }}>›</span>
                 </div>
-                <div className="mt-1 flex items-center gap-3 pl-9">
+                <div className="mt-0.5 flex items-center gap-3 pl-10">
                   <span className="text-[12px] font-medium" style={{ color: MUTED }}>{it.variant}</span>
                   <span className="min-w-0 flex-1 truncate text-[10px] font-medium uppercase tracking-[0.14em]" style={{ ...MONO, color: FAINT }}>{it.sku}</span>
                   <span className="text-right text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>{it.units.toLocaleString('en-US')} units</span>
@@ -1007,6 +1151,21 @@ export default function DashboardPage({ onNavigate }: Props) {
           </ol>
         </div>
       </section>
+
+      {/* ── AI Assist meta footer ──────────────────────────────────── */}
+      <div className="flex items-center justify-end gap-2 pt-2" data-testid="ai-strip">
+        <Sparkles size={10} color={FAINT} strokeWidth={1.8} />
+        <span className="text-[12px] font-medium" style={{ color: MUTED }}>
+          <span className="font-semibold" style={{ color: BODY }}>Claude</span> is analyzing your data…
+        </span>
+        <button
+          data-testid="ai-strip-view-insights"
+          className="inline-flex items-center gap-0.5 text-[12px] font-semibold transition hover:underline"
+          style={{ color: CORAL, textUnderlineOffset: 3 }}
+        >
+          View insights <ArrowUpRight size={12} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -1017,7 +1176,7 @@ function NetSalesValue({ target }: { target: number }) {
   return (
     <p
       className="font-extrabold"
-      style={{ ...TABULAR, fontSize: 'clamp(56px, 7vw, 96px)', lineHeight: 0.9, letterSpacing: '-0.03em', color: INK }}
+      style={{ ...TABULAR, fontSize: 'clamp(44px, 4.5vw, 56px)', lineHeight: 1, letterSpacing: '-0.03em', color: INK }}
     >
       {usd0(Math.max(0, v))}
     </p>
