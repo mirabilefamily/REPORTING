@@ -168,7 +168,6 @@ function StaffApp() {
                 >
                   <Icon size={21} strokeWidth={1.8} />
                   {!sidebarCollapsed && <span>{label}</span>}
-                  {activeNav === label && <span className="nav-active-dot" aria-hidden="true" />}
                 </button>
               ))}
             </div>
@@ -184,7 +183,6 @@ function StaffApp() {
           >
             <Settings size={21} />
             <span className={sidebarCollapsed ? 'sr-only' : ''}>Settings</span>
-            {activeNav === 'Settings' && <span className="nav-active-dot" aria-hidden="true" />}
           </button>
         </div>
         <button className="collapse-button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label="Toggle sidebar"><PanelLeftClose size={16} /></button>
@@ -244,12 +242,12 @@ function StaffApp() {
           </div>
           <div className="top-actions">
             <button
-              className="topbar-ai-btn"
+              className="ai-assist-btn"
               onClick={() => { /* placeholder — no-op */ }}
               aria-label="AI Assist"
               data-testid="ai-assist-btn"
             >
-              <Sparkles size={13} style={{ color: '#FC7460' }} />
+              <Sparkles size={15} strokeWidth={1.9} style={{ color: '#FC7460' }} />
               <span>AI Assist</span>
             </button>
             <div className="notification-wrap">

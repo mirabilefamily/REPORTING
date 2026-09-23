@@ -92,8 +92,6 @@ button { font: inherit; border: 0; cursor: pointer; }
 .brand-textmark-sub { font-family: 'Outfit', 'DM Sans', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.22em; color: #cfd3d0; text-transform: uppercase; }
 .sidebar-collapsed .brand-textmark { display: none !important; }
 .nav-item { position: relative; }
-.nav-active-dot { position: absolute; right: 14px; top: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #00d4a1); transform: translateY(-50%); box-shadow: 0 0 0 3px rgba(0, 212, 161, 0.18); }
-.sidebar-collapsed .nav-active-dot { display: none; }
 
 /* ---- Phase 2: sidebar coral accent + 300px lock + new logo sizing ---- */
 :root { --goorin-coral: #FC7460; }
@@ -113,21 +111,12 @@ button { font: inherit; border: 0; cursor: pointer; }
   .main-content:not(.main-collapsed) { margin-left: 300px !important; }
 }
 
-/* Sidebar-only coral accent (does NOT modify --accent so the rest of the app keeps its palette). */
-.sidebar .nav-item.active { color: #fff; }
+/* Sidebar accent — port the source repo's original nav-item styles verbatim; only override the accent color to coral. */
 .sidebar .nav-item.active::before { background: var(--goorin-coral); }
-.sidebar .nav-item.active > svg { color: var(--goorin-coral); }
-.sidebar .nav-item:hover::before { content: ''; width: 3px; height: 24px; border-radius: 0 3px 3px 0; background: var(--goorin-coral); opacity: 0.45; position: absolute; left: 0; }
-.sidebar .nav-item.active:hover::before { opacity: 1; }
-.sidebar .nav-active-dot { background: var(--goorin-coral); box-shadow: 0 0 0 3px rgba(255, 106, 77, 0.22); }
 .sidebar-collapsed .nav-item.active { color: var(--goorin-coral); }
 .sidebar-collapsed .nav-item.active::before { background: var(--goorin-coral); }
+.nav-active-dot { display: none !important; }
 
-/* Topbar AI Assist pill (visible on all pages) */
-.topbar-ai-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; margin-right: 6px; background: #17191a; color: #fff; border: 1px solid #17191a; border-radius: 9px; font-size: 12px; font-weight: 600; letter-spacing: -.01em; box-shadow: 0 1px 2px rgba(28,35,30,.06); transition: background .16s ease, transform .1s ease, box-shadow .16s ease; }
-.topbar-ai-btn:hover { background: #2d3030; box-shadow: 0 4px 12px rgba(28,35,30,.16); }
-.topbar-ai-btn:active { transform: scale(.97); }
-@media (max-width: 760px) { .topbar-ai-btn span { display: none; } .topbar-ai-btn { width: 36px; height: 36px; padding: 0; justify-content: center; border-radius: 10px; } }
 
 
 
