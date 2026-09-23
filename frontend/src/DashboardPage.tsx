@@ -32,20 +32,26 @@ type Props = { name?: string; onNavigate?: (label: string) => void };
 const CORAL = '#FC7460';
 const CORAL_LIGHT = '#FF9678';
 const CORAL_SOFT = '#FF8A76';
+const CORAL_DEEP = '#F45A44';
 const INK = '#0F1214';
-const TOTAL_NAVY = '#1E3A8A';
-const LY_GRAY = 'rgb(160,170,180)';
-const BORDER = 'rgb(232 236 240)';
-const RULE = '#EDEEEA';
+const INK_SOFT = '#27272A';
+const TOTAL_NAVY = '#111827';
+const LY_GRAY = '#A1A1AA';
+const BORDER = '#E9EAEC';
+const RULE = '#EDEDEE';
 const TRACK = '#F0F1F2';
-const MUTED = '#8A8E93';
+const MUTED = '#71717A';
+const BODY = '#3F3F46';
+const CARD_GRAD = 'linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%)';
+const CORAL_GRAD_V = `linear-gradient(180deg, ${CORAL} 0%, ${CORAL_DEEP} 100%)`;
+const INSET_TRACK = 'inset 0 1px 2px rgba(15,17,20,0.04)';
 
 // Segment palette
-const C_USW = '#22C55E';
-const C_DIST = '#3B82F6';
-const C_RETAIL = '#F59E0B';
-const C_ECOM = '#8B5CF6';
-const C_AMZN = '#EC4899';
+const C_USW = '#059669';
+const C_DIST = '#2563EB';
+const C_RETAIL = '#EA580C';
+const C_ECOM = '#7C3AED';
+const C_AMZN = '#DB2777';
 const C_OPEN = '#86EFAC';
 
 const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
@@ -194,18 +200,18 @@ function SegTabs({ tabs, value, onChange, testId, slugPrefix }: { tabs: readonly
             aria-selected={active}
             onClick={() => onChange(t)}
             data-testid={`${slugPrefix}-${t.toLowerCase().replace(/\s+/g, '-')}`}
-            className="rounded-[10px] px-4 py-2 text-[14px] tracking-tight transition focus:outline-none"
+            className="rounded-[10px] px-4 py-2 text-[14px] tracking-tight transition-colors duration-150 focus:outline-none"
             style={
               active
                 ? {
                     background: '#FFFFFF',
                     color: '#0F1214',
                     fontWeight: 600,
-                    boxShadow: '0 1px 2px rgba(15,17,20,0.06), 0 2px 6px rgba(15,17,20,0.04)',
+                    boxShadow: '0 1px 2px rgba(15,17,20,0.06), 0 2px 8px rgba(15,17,20,0.04)',
                     border: '1px solid rgba(15,17,20,0.06)',
                   }
                 : {
-                    color: '#8A8E93',
+                    color: '#52525B',
                     fontWeight: 500,
                     border: '1px solid transparent',
                     background: 'transparent',
@@ -213,8 +219,8 @@ function SegTabs({ tabs, value, onChange, testId, slugPrefix }: { tabs: readonly
             }
             onFocus={(e) => { e.currentTarget.style.outline = '2px solid rgba(252,116,96,0.35)'; e.currentTarget.style.outlineOffset = '2px'; }}
             onBlur={(e) => { e.currentTarget.style.outline = ''; e.currentTarget.style.outlineOffset = ''; }}
-            onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = '#4B5058'; }}
-            onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = '#8A8E93'; }}
+            onMouseEnter={(e) => { if (!active) { e.currentTarget.style.color = '#27272A'; e.currentTarget.style.background = 'rgba(15,17,20,0.02)'; } }}
+            onMouseLeave={(e) => { if (!active) { e.currentTarget.style.color = '#52525B'; e.currentTarget.style.background = 'transparent'; } }}
           >
             {t}
           </button>
@@ -228,11 +234,11 @@ function DeltaPill({ v }: { v: number }) {
   const up = v >= 0;
   return (
     <span
-      className="inline-flex items-center gap-0.5 rounded-[8px] px-1.5 py-0.5 text-[11px] font-semibold"
+      className="inline-flex items-center gap-0.5 rounded-[8px] px-1.5 py-0.5 text-[11px] font-semibold transition-colors duration-150"
       style={{
         ...TABULAR,
-        background: up ? 'rgba(16,185,129,0.10)' : 'rgba(244,63,94,0.10)',
-        color: up ? '#059669' : '#E11D48',
+        background: up ? 'rgba(5,150,105,0.10)' : 'rgba(244,63,94,0.10)',
+        color: up ? '#047857' : '#BE123C',
       }}
     >
       {up ? <ArrowUp size={10} strokeWidth={2.6} /> : <ArrowDown size={10} strokeWidth={2.6} />}
@@ -310,16 +316,16 @@ function Donut({ title, headerRight, data, testId, emphasizeName }: { title: str
   const centerData = centerIdx >= 0 ? data[centerIdx] : null;
   return (
     <div
-      className="rounded-3xl bg-white p-8"
-      style={{ border: `1px solid ${BORDER}` }}
+      className="rounded-3xl bg-white p-6 md:p-8"
+      style={{ border: `1px solid ${BORDER}`, backgroundImage: CARD_GRAD }}
       data-testid={testId}
     >
       <div className="flex items-start justify-between gap-3">
         <p className={EYEBROW} style={eyebrowStyle}>Channel Mix — {title}</p>
         {headerRight && <span className="text-[12px] font-medium uppercase tracking-[0.12em]" style={{ color: MUTED }}>{headerRight}</span>}
       </div>
-      <div className="mt-6 flex items-center gap-8">
-        <div className="relative h-[200px] w-[200px] shrink-0">
+      <div className="mt-6 flex flex-col items-center gap-6 md:flex-row md:gap-8">
+        <div className="relative h-[200px] w-[200px] shrink-0" style={{ borderRadius: '50%', boxShadow: 'inset 0 1px 6px rgba(15,17,20,0.03)' }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -461,14 +467,18 @@ export default function DashboardPage({ onNavigate }: Props) {
   return (
     <div className="min-h-full space-y-8 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
       {/* ── 1) Segment tabs + Date range ───────────────────────────── */}
-      <header className="flex h-11 flex-wrap items-center justify-between gap-3" data-testid="dashboard-header" style={enter(0)}>
-        <SegTabs tabs={SEGMENTS} value={seg} onChange={(v: any) => setSeg(v as SegKey)} testId="segment-tabs" slugPrefix="seg" />
-        <DateRangePicker value={range} onChange={setRange} testId="dashboard-range" />
+      <header className="flex flex-col gap-3 md:h-11 md:flex-row md:flex-wrap md:items-center md:justify-between" data-testid="dashboard-header" style={enter(0)}>
+        <div className="-mx-4 overflow-x-auto no-scrollbar px-4 md:mx-0 md:overflow-visible md:px-0">
+          <SegTabs tabs={SEGMENTS} value={seg} onChange={(v: any) => setSeg(v as SegKey)} testId="segment-tabs" slugPrefix="seg" />
+        </div>
+        <div className="w-full md:w-auto [&_.date-range-wrap]:w-full md:[&_.date-range-wrap]:w-auto [&_.date-range-btn]:w-full md:[&_.date-range-btn]:w-auto">
+          <DateRangePicker value={range} onChange={setRange} testId="dashboard-range" />
+        </div>
       </header>
 
       {/* ── 2) Light Hero Card (4 KPIs + Annual Goal) ───────────────── */}
       <section
-        className="relative overflow-hidden rounded-3xl bg-white p-6 sm:p-8"
+        className="relative overflow-hidden rounded-3xl bg-white p-5 sm:p-8 md:p-10"
         style={{
           border: `1px solid ${BORDER}`,
           backgroundImage: 'linear-gradient(135deg, rgba(252,116,96,0.03) 0%, rgba(252,116,96,0) 60%)',
@@ -476,22 +486,22 @@ export default function DashboardPage({ onNavigate }: Props) {
         }}
         data-testid="hero-card"
       >
-        <div className="grid grid-cols-2 gap-8 xl:grid-cols-4 xl:gap-10">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 xl:grid-cols-4 xl:gap-10">
           {/* Net Sales YTD (anchor) */}
           <div
             data-testid="kpi-net-sales"
             className="relative xl:border-r xl:pr-8"
             style={{ borderColor: BORDER }}
           >
-            <p className={EYEBROW} style={eyebrowStyle}>Net Sales YTD</p>
+            <p className="text-[11px] font-semibold uppercase" style={{ ...eyebrowStyle, letterSpacing: '0.18em' }}>Net Sales · YTD</p>
             <div className="mt-3">
               <NetSalesValue target={netSalesYTD} />
             </div>
-            <div className="mt-3 flex items-center gap-3">
-              <span className="block h-[2px] w-10 rounded-full" style={{ background: 'rgba(252,116,96,0.7)' }} />
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <span className="block h-[3px] w-12 rounded-full" style={{ background: CORAL_GRAD_V }} />
               <span
-                className="inline-flex items-center gap-0.5 rounded-[8px] px-2 py-0.5 text-[12px] font-semibold"
-                style={{ ...TABULAR, background: 'rgba(16,185,129,0.10)', color: '#059669' }}
+                className="inline-flex items-center gap-0.5 rounded-[8px] px-2 py-0.5 text-[12px] font-semibold transition-colors duration-150"
+                style={{ ...TABULAR, background: 'rgba(5,150,105,0.10)', color: '#047857' }}
               >
                 <ArrowUp size={11} strokeWidth={2.6} />25.6% YoY
               </span>
@@ -537,12 +547,12 @@ export default function DashboardPage({ onNavigate }: Props) {
               </span>
             </div>
           </div>
-          <div className="mt-4 h-[8px] w-full overflow-hidden rounded-full" style={{ background: TRACK }} data-testid="goal-bar">
+          <div className="mt-4 h-[14px] w-full overflow-hidden rounded-full" style={{ background: '#EDEEEA', boxShadow: INSET_TRACK }} data-testid="goal-bar">
             <span
               className="block h-full rounded-full"
               style={{
                 width: `${goalPct}%`,
-                background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)`,
+                background: CORAL_GRAD_V,
                 transition: BAR_TRANS,
               }}
             />
@@ -553,28 +563,30 @@ export default function DashboardPage({ onNavigate }: Props) {
 
       {/* ── 3) AI Assist Strip ──────────────────────────────────────── */}
       <section
-        className="rounded-3xl bg-white px-6 py-3.5"
-        style={{ border: `1px solid ${BORDER}`, ...enter(2) }}
+        className="bg-white px-4 py-3.5 sm:px-6"
+        style={{ borderTop: `1px solid ${RULE}`, borderBottom: `1px solid ${RULE}`, ...enter(2) }}
         data-testid="ai-strip"
       >
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <span
-              className="grid h-6 w-6 place-items-center rounded-full"
-              style={{ border: `1.5px solid ${CORAL}`, background: 'transparent' }}
+              className="grid h-6 w-6 place-items-center rounded-full shrink-0"
+              style={{ border: `1.5px solid ${CORAL}`, background: 'rgba(252,116,96,0.06)' }}
             >
-              <Sparkles size={13} color={CORAL} strokeWidth={2} />
+              <Sparkles size={14} color={CORAL} strokeWidth={2} />
             </span>
-            <p className="text-[14px] font-medium" style={{ color: '#4B5058' }}>
+            <p className="truncate text-[14px] font-medium" style={{ color: BODY }}>
               <span className="font-semibold" style={{ color: INK }}>Claude</span> is analyzing your data…
             </p>
           </div>
           <button
             data-testid="ai-strip-view-insights"
-            className="inline-flex items-center gap-1 text-[13px] font-semibold transition hover:underline"
-            style={{ color: CORAL }}
+            className="inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold transition hover:underline"
+            style={{ color: CORAL, textUnderlineOffset: 4 }}
           >
-            View insights <ArrowUpRight size={14} />
+            <span className="hidden sm:inline">View insights</span>
+            <span className="sm:hidden">Insights</span>
+            <ArrowUpRight size={14} className="hidden sm:inline" />
           </button>
         </div>
       </section>
@@ -582,8 +594,8 @@ export default function DashboardPage({ onNavigate }: Props) {
       {/* ── 4) Revenue by Month + Segments ──────────────────────────── */}
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,2.15fr)_minmax(0,1fr)]" style={enter(3)}>
         <div
-          className="rounded-3xl bg-white p-8"
-          style={{ border: `1px solid ${BORDER}` }}
+          className="rounded-3xl bg-white p-6 md:p-8"
+          style={{ border: `1px solid ${BORDER}`, backgroundImage: CARD_GRAD }}
           data-testid="rev-by-month"
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -611,9 +623,9 @@ export default function DashboardPage({ onNavigate }: Props) {
             </div>
           </div>
 
-          <div className="mt-6 h-[340px]" style={TABULAR}>
+          <div className="mt-6 h-[240px] md:h-[340px]" style={TABULAR}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} barCategoryGap="30%">
                 <CartesianGrid stroke="rgb(240 242 244)" vertical={false} strokeDasharray="4 4" />
                 <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: MUTED, fontWeight: 500 }} tickFormatter={(m: string) => m.toUpperCase()} />
                 <YAxis
@@ -623,23 +635,23 @@ export default function DashboardPage({ onNavigate }: Props) {
                   tick={{ fontSize: 11, fill: MUTED, fontWeight: 500 }} width={56}
                 />
                 <Tooltip content={<RevTooltip />} cursor={{ stroke: 'rgb(160,170,180)', strokeDasharray: '3 3', strokeWidth: 1 }} />
-                <Bar dataKey="usw"    stackId="s" fill={C_USW}    isAnimationActive animationDuration={400} />
-                <Bar dataKey="dist"   stackId="s" fill={C_DIST}   isAnimationActive animationDuration={400} />
-                <Bar dataKey="retail" stackId="s" fill={C_RETAIL} isAnimationActive animationDuration={400} />
-                <Bar dataKey="ecom"   stackId="s" fill={C_ECOM}   isAnimationActive animationDuration={400} />
-                <Bar dataKey="amzn"   stackId="s" fill={C_AMZN}   isAnimationActive animationDuration={400} />
-                <Bar dataKey="open"   stackId="s" fill={C_OPEN}   radius={[4, 4, 0, 0]} isAnimationActive animationDuration={400} />
+                <Bar dataKey="usw"    stackId="s" fill={C_USW}    fillOpacity={0.92} stroke={C_USW}    strokeWidth={0.6} isAnimationActive animationDuration={400} />
+                <Bar dataKey="dist"   stackId="s" fill={C_DIST}   fillOpacity={0.92} stroke={C_DIST}   strokeWidth={0.6} isAnimationActive animationDuration={400} />
+                <Bar dataKey="retail" stackId="s" fill={C_RETAIL} fillOpacity={0.92} stroke={C_RETAIL} strokeWidth={0.6} isAnimationActive animationDuration={400} />
+                <Bar dataKey="ecom"   stackId="s" fill={C_ECOM}   fillOpacity={0.92} stroke={C_ECOM}   strokeWidth={0.6} isAnimationActive animationDuration={400} />
+                <Bar dataKey="amzn"   stackId="s" fill={C_AMZN}   fillOpacity={0.92} stroke={C_AMZN}   strokeWidth={0.6} isAnimationActive animationDuration={400} />
+                <Bar dataKey="open"   stackId="s" fill={C_OPEN}   fillOpacity={0.92} stroke={C_OPEN}   strokeWidth={0.6} radius={[6, 6, 0, 0]} isAnimationActive animationDuration={400} />
                 <Line type="monotone" dataKey="ly"       stroke={LY_GRAY}    strokeWidth={1.5} dot={false} strokeDasharray="4 4" isAnimationActive animationDuration={400} />
-                <Line type="monotone" dataKey="total"    stroke={INK}        strokeWidth={2}   dot={false} isAnimationActive animationDuration={400} />
-                <Line type="monotone" dataKey="forecast" stroke={CORAL}      strokeWidth={1.5} dot={false} strokeDasharray="5 4" isAnimationActive animationDuration={400} />
+                <Line type="monotone" dataKey="total"    stroke={TOTAL_NAVY} strokeWidth={2.5} dot={false} isAnimationActive animationDuration={400} />
+                <Line type="monotone" dataKey="forecast" stroke={CORAL}      strokeWidth={2}   dot={false} strokeDasharray="6 4" isAnimationActive animationDuration={400} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div
-          className="rounded-3xl bg-white p-6"
-          style={{ border: `1px solid ${BORDER}` }}
+          className="rounded-3xl bg-white p-5 md:p-6"
+          style={{ border: `1px solid ${BORDER}`, backgroundImage: CARD_GRAD }}
           data-testid="segment-panel"
         >
           <p className={EYEBROW} style={eyebrowStyle}>Segments</p>
@@ -664,7 +676,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                     </span>
                     <b className="text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{s.pct}%</b>
                   </div>
-                  <div className="mt-2.5 h-[4px] w-full overflow-hidden rounded-full" style={{ background: '#F5F6F5' }}>
+                  <div className="mt-2.5 h-[8px] w-full overflow-hidden rounded-full" style={{ background: '#F0F1F2', boxShadow: INSET_TRACK }}>
                     <span className="block h-full rounded-full" style={{ width: `${s.pct}%`, background: s.c, transition: BAR_TRANS }} />
                   </div>
                   <div className="mt-2 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>
@@ -685,8 +697,8 @@ export default function DashboardPage({ onNavigate }: Props) {
 
       {/* ── 6) Sales vs Goal — table ───────────────────────────────── */}
       <section
-        className="rounded-3xl bg-white p-8"
-        style={{ border: `1px solid ${BORDER}`, ...enter(5) }}
+        className="rounded-3xl bg-white p-6 sm:p-8 md:p-10"
+        style={{ border: `1px solid ${BORDER}`, backgroundImage: CARD_GRAD, ...enter(5) }}
         data-testid="sales-vs-goal"
       >
         <div className="flex flex-wrap items-start justify-between gap-6">
@@ -738,12 +750,12 @@ export default function DashboardPage({ onNavigate }: Props) {
           <SegTabs tabs={['By Class', 'By Month']} value={svgTab} onChange={(v: any) => setSvgTab(v)} testId="svg-tabs" slugPrefix="svg-tab" />
         </div>
 
-        <div className="mt-6 overflow-x-auto">
+        <div className="mt-6 svg-scroll-wrap overflow-x-auto">
           <div
-            className={`grid grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 pb-2.5 ${EYEBROW}`}
+            className={`grid min-w-[820px] grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 pb-2.5 ${EYEBROW}`}
             style={{ ...eyebrowStyle, borderBottom: `1px solid ${BORDER}` }}
           >
-            <span>Class</span>
+            <span className="svg-sticky-col">Class</span>
             <span className="text-right">Net Sales YTD</span>
             <span className="text-right">Goal YTD</span>
             <span className="text-right">Variance</span>
@@ -753,12 +765,12 @@ export default function DashboardPage({ onNavigate }: Props) {
           {svgVisibleRows.map((r) => (
             <div
               key={r.name}
-              className="grid grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 h-11 text-[14px] transition-colors hover:bg-[rgba(15,17,20,0.02)]"
+              className="grid min-w-[820px] grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 h-11 text-[14px] transition-colors duration-150 hover:bg-[rgba(15,17,20,0.02)]"
               style={{ borderBottom: `1px solid ${BORDER}` }}
               data-testid={`svg-row-${r.name.toLowerCase().replace(/\s+/g, '-')}`}
               title={`${r.pct}% to goal (${fmtM(r.net)} of ${fmtM(r.goal)})`}
             >
-              <span className="flex min-w-0 items-center gap-2">
+              <span className="svg-sticky-col flex min-w-0 items-center gap-2">
                 <i className="h-2 w-2 rounded-full" style={{ background: r.c }} />
                 <b className="truncate font-semibold" style={{ color: INK }}>{r.name}</b>
               </span>
@@ -766,37 +778,37 @@ export default function DashboardPage({ onNavigate }: Props) {
               <span className="text-right font-medium" style={{ ...TABULAR, color: '#4B5058' }}>{fmtM(r.goal)}</span>
               <span className="text-right font-semibold text-rose-600" style={TABULAR}>{fmtM(r.variance)}</span>
               <span className="flex items-center gap-3">
-                <span className="relative h-[6px] flex-1 overflow-hidden rounded-full" style={{ background: '#F5F6F5' }}>
+                <span className="relative h-[10px] flex-1 overflow-hidden rounded-full" style={{ background: '#F0F1F2', boxShadow: INSET_TRACK }}>
                   <span
                     className="absolute left-0 top-0 h-full rounded-full"
                     style={{
                       width: `${r.pct}%`,
-                      background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)`,
+                      background: CORAL_GRAD_V,
                       transition: BAR_TRANS,
                     }}
                   />
                 </span>
                 <b className="w-10 text-right text-[13px] font-bold" style={{ ...TABULAR, color: CORAL }}>{r.pct}%</b>
               </span>
-              <span className="text-right font-medium" style={{ ...TABULAR, color: '#4B5058' }}>{fmtM(r.annual)}</span>
+              <span className="text-right font-medium" style={{ ...TABULAR, color: BODY }}>{fmtM(r.annual)}</span>
             </div>
           ))}
           <div
-            className="grid grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 h-11 text-[14px] font-bold"
+            className="grid min-w-[820px] grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 h-11 text-[14px] font-bold"
             style={{ borderTop: `1px solid ${BORDER}` }}
             data-testid="svg-total-row"
           >
-            <span style={{ color: INK }}>Total</span>
+            <span className="svg-sticky-col" style={{ color: INK }}>Total</span>
             <b className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.net)}</b>
             <span className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.goal)}</span>
             <span className="text-right text-rose-600" style={TABULAR}>{fmtM(svgTotalScaled.variance)}</span>
             <span className="flex items-center gap-3">
-              <span className="relative h-[6px] flex-1 overflow-hidden rounded-full" style={{ background: '#F5F6F5' }}>
+              <span className="relative h-[10px] flex-1 overflow-hidden rounded-full" style={{ background: '#F0F1F2', boxShadow: INSET_TRACK }}>
                 <span
                   className="absolute left-0 top-0 h-full rounded-full"
                   style={{
                     width: `${svgTotalScaled.pct}%`,
-                    background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)`,
+                    background: CORAL_GRAD_V,
                     transition: BAR_TRANS,
                   }}
                 />
@@ -812,8 +824,8 @@ export default function DashboardPage({ onNavigate }: Props) {
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-2" style={enter(6)}>
         {/* Top Accounts */}
         <div
-          className="rounded-3xl bg-white p-8"
-          style={{ border: `1px solid ${BORDER}` }}
+          className="rounded-3xl bg-white p-5 md:p-8"
+          style={{ border: `1px solid ${BORDER}`, backgroundImage: CARD_GRAD }}
           data-testid="top-accounts"
         >
           <div className="flex items-start justify-between">
@@ -837,8 +849,8 @@ export default function DashboardPage({ onNavigate }: Props) {
                 >
                   <div className="flex items-center gap-3">
                     <span
-                      className="grid h-[22px] w-[22px] place-items-center rounded-[6px] text-[11px] font-bold shrink-0"
-                      style={{ background: isFirst ? CORAL_SOFT : TRACK, color: isFirst ? '#fff' : '#3d3f3c' }}
+                      className="grid h-[22px] w-[22px] place-items-center rounded-[6px] text-[11px] font-bold shrink-0 transition-colors duration-150"
+                      style={{ background: isFirst ? CORAL_SOFT : '#F1F2F4', color: isFirst ? '#fff' : '#27272A', boxShadow: 'inset 0 0 0 1px rgba(15,17,20,0.06)' }}
                     >
                       {i + 1}
                     </span>
@@ -847,12 +859,12 @@ export default function DashboardPage({ onNavigate }: Props) {
                     <DeltaPill v={a.yoy} />
                     <b className="w-[92px] text-right text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{fmtM(a.net)}</b>
                   </div>
-                  <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full" style={{ background: '#F5F6F5' }}>
+                  <div className="mt-1.5 h-[6px] w-full overflow-hidden rounded-full" style={{ background: '#F0F1F2', boxShadow: INSET_TRACK }}>
                     <span
                       className="block h-full rounded-full"
                       style={{
                         width: `${share}%`,
-                        background: `linear-gradient(90deg, ${INK} 0%, ${CORAL} 100%)`,
+                        background: `linear-gradient(90deg, ${INK_SOFT} 0%, ${CORAL} 100%)`,
                         transition: BAR_TRANS,
                       }}
                     />
@@ -865,8 +877,8 @@ export default function DashboardPage({ onNavigate }: Props) {
 
         {/* Top Items */}
         <div
-          className="rounded-3xl bg-white p-8"
-          style={{ border: `1px solid ${BORDER}` }}
+          className="rounded-3xl bg-white p-5 md:p-8"
+          style={{ border: `1px solid ${BORDER}`, backgroundImage: CARD_GRAD }}
           data-testid="top-items"
         >
           <div className="flex items-start justify-between">
@@ -889,8 +901,8 @@ export default function DashboardPage({ onNavigate }: Props) {
                 >
                   <div className="flex items-start gap-3">
                     <span
-                      className="mt-0.5 grid h-[22px] w-[22px] place-items-center rounded-[6px] text-[11px] font-bold shrink-0"
-                      style={{ background: isFirst ? CORAL_SOFT : TRACK, color: isFirst ? '#fff' : '#3d3f3c' }}
+                      className="mt-0.5 grid h-[22px] w-[22px] place-items-center rounded-[6px] text-[11px] font-bold shrink-0 transition-colors duration-150"
+                      style={{ background: isFirst ? CORAL_SOFT : '#F1F2F4', color: isFirst ? '#fff' : '#27272A', boxShadow: 'inset 0 0 0 1px rgba(15,17,20,0.06)' }}
                     >
                       {i + 1}
                     </span>
@@ -899,19 +911,19 @@ export default function DashboardPage({ onNavigate }: Props) {
                         <b className="text-[14px] font-semibold" style={{ color: INK }}>{it.name}</b>
                         <span className="text-[12px] font-medium" style={{ color: MUTED }}>· {it.variant}</span>
                       </div>
-                      <p className="mt-1 text-[11px] tracking-[0.05em] text-neutral-400" style={{ ...MONO, ...TABULAR }}>{it.sku}</p>
+                      <p className="mt-1 text-[11px] tracking-[0.05em]" style={{ ...MONO, ...TABULAR, color: '#A1A1AA' }}>{it.sku}</p>
                     </div>
                     <div className="text-right">
                       <b className="block text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{fmtM(it.rev)}</b>
                       <span className="text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>{it.units.toLocaleString('en-US')} units</span>
                     </div>
                   </div>
-                  <div className="mt-2 h-[3px] w-full overflow-hidden rounded-full" style={{ background: '#F5F6F5' }}>
+                  <div className="mt-2 h-[6px] w-full overflow-hidden rounded-full" style={{ background: '#F0F1F2', boxShadow: INSET_TRACK }}>
                     <span
                       className="block h-full rounded-full"
                       style={{
                         width: `${share}%`,
-                        background: `linear-gradient(90deg, ${INK} 0%, ${CORAL} 100%)`,
+                        background: `linear-gradient(90deg, ${INK_SOFT} 0%, ${CORAL} 100%)`,
                         transition: BAR_TRANS,
                       }}
                     />

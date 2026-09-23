@@ -3,10 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-family: var(--font-sans); color: #17191a; background: #f5f6f3; font-synthesis: none; --ink: #17191a; --muted: #747a78; --line: #e7e9e4; --accent: #00d4a1; --nav: #17191a; }
+:root { --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-family: var(--font-sans); color: #17191a; background: #F8F8F6; font-synthesis: none; --ink: #17191a; --muted: #747a78; --line: #e7e9e4; --accent: #00d4a1; --nav: #17191a; }
 * { box-sizing: border-box; }
 html, body, input, textarea, select, button { font-family: var(--font-sans); }
-body { margin: 0; min-width: 320px; background: #f5f6f3; }
+body { margin: 0; min-width: 320px; background: #F8F8F6; }
 button { font: inherit; border: 0; cursor: pointer; }
 .app-shell { min-height: 100vh; display: flex; }
 .sidebar-backdrop { display: none; }
@@ -38,7 +38,7 @@ button { font: inherit; border: 0; cursor: pointer; }
 .profile-account-meta dt { font-size: 12px; color: #686e73; font-weight: 500; }
 .profile-account-meta dd { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: #121415; }
 .profile-account-meta dd .account-badge { margin-left: 0; }.reliability-summary p { margin: 0 0 13px; color: #919692; font-size: 11px; font-weight: 700; letter-spacing: .15em; }.reliability-total { display: flex; align-items: baseline; gap: 6px; }.reliability-total strong { color: #3f9a67; font-size: 22px; letter-spacing: -.04em; background: linear-gradient(100deg, #2f875b, #78ba69); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }.reliability-total span { color: #888d89; font-size: 14px; }.reliability-progress { height: 9px; margin: 14px 0 13px; border-radius: 999px; background: #dcefe1; overflow: hidden; }.reliability-progress span { display: block; width: 99.8%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #31905f 0%, #61b56d 55%, #a1cf70 100%); }.reliability-detail { display: flex; justify-content: space-between; gap: 12px; color: #7f8580; font-size: 11px; }.reliability-detail strong { color: #3c433e; font-size: 11px; }.profile-menu-section { padding: 7px 12px; border-top: 1px solid #eceeeb; }.profile-menu-item { width: 100%; height: 44px; padding: 0 9px; display: flex; align-items: center; gap: 14px; background: transparent; color: #252826; border-radius: 8px; text-align: left; transition: background .16s ease, color .16s ease; }.profile-menu-item:hover { background: #f4f5f3; }.profile-menu-item svg { color: #686e69; stroke-width: 1.8; }.profile-menu-item span { font-size: 12px; font-weight: 500; }.profile-menu-item.logout-item { color: #d7332f; }.profile-menu-item.logout-item svg { color: #d7332f; }.profile-menu-item.logout-item:hover { background: #fff1f0; }@keyframes profile-menu-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-.page-content { padding: 28px 38px 60px; flex: 1; overflow-y: auto; background: #F4F5F2; }
+.page-content { padding: 28px 38px 60px; flex: 1; overflow-y: auto; background: #F8F8F6; }
 
 /* dashboard mount + tab-change animations */
 @keyframes dashFadeSlideUp {
@@ -1138,4 +1138,80 @@ button { font: inherit; border: 0; cursor: pointer; }
   .fd-r-rec { grid-column: 1 / -1; }
 }
 
+
+
+/* ─── Mobile responsiveness pass ─── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Sidebar becomes off-canvas below lg (1024px) */
+@media (max-width: 1023px) {
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    transform: translateX(-100%);
+    width: 300px !important;
+    min-width: 300px !important;
+    max-width: 300px !important;
+    flex-basis: 300px !important;
+    box-shadow: 8px 0 30px rgba(0,0,0,.18);
+    z-index: 50;
+    transition: transform .28s cubic-bezier(.2,.7,.2,1);
+  }
+  .sidebar-mobile-open { transform: translateX(0) !important; }
+  .main-content, .main-content.main-collapsed { margin-left: 0 !important; }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    background: rgba(15,17,20,0.4);
+    backdrop-filter: blur(1px);
+    animation: canvas-fade .18s ease;
+  }
+  .mobile-menu {
+    display: grid;
+    place-items: center;
+    width: 40px; height: 40px;
+    color: #5f6761;
+    background: transparent;
+    padding: 5px;
+    border-radius: 10px;
+    margin-right: 4px;
+  }
+  .mobile-menu:hover { background: #f0f3ef; color: #17191a; }
+  .collapse-button { display: none; }
+}
+
+@keyframes canvas-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Tighter topbar + gutter below md (768px) */
+@media (max-width: 767px) {
+  .topbar { height: 52px !important; padding: 0 16px !important; }
+  .ai-assist-btn span { display: none; }
+  .ai-assist-btn { width: 40px !important; padding: 0 !important; margin-right: 0 !important; border: none !important; background: transparent !important; box-shadow: none !important; }
+  .search-wrap { max-width: 40px !important; }
+  .search-bar { width: 40px !important; height: 40px !important; padding: 0 !important; justify-content: center !important; background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+  .search-bar input, .search-bar kbd { display: none !important; }
+  .user-copy, .user-profile > svg.profile-chevron { display: none !important; }
+  .page-content { padding: 16px 16px 40px !important; }
+  .top-divider { display: none !important; }
+}
+
+/* Sales-vs-Goal scroll shadow container (mobile) */
+.svg-scroll-wrap { position: relative; }
+.svg-scroll-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 32px;
+  pointer-events: none;
+  background: linear-gradient(to left, rgba(15,17,20,0.06), transparent);
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+@media (max-width: 767px) {
+  .svg-scroll-wrap::after { opacity: 1; }
+  .svg-sticky-col { position: sticky; left: 0; background: #FFFFFF; z-index: 2; }
+}
 
