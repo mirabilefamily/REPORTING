@@ -1021,9 +1021,9 @@ export default function DashboardPage({ onNavigate }: Props) {
           <SegTabs tabs={['By Class', 'By Month']} value={svgTab} onChange={(v: any) => setSvgTab(v)} testId="svg-tabs" slugPrefix="svg-tab" />
         </div>
 
-        <div className="mt-6 svg-scroll-wrap overflow-x-auto">
+        <div className="mt-6 svg-scroll-wrap overflow-x-auto md:overflow-visible">
           <div
-            className={`grid min-w-[820px] grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 pb-2.5 ${EYEBROW}`}
+            className={`grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 pb-2.5 ${EYEBROW}`}
             style={{ ...eyebrowStyle, borderBottom: `1px solid ${BORDER}` }}
           >
             <span className="svg-sticky-col">Class</span>
@@ -1036,7 +1036,7 @@ export default function DashboardPage({ onNavigate }: Props) {
           {svgVisibleRows.map((r) => (
             <div
               key={r.name}
-              className="group grid min-w-[820px] grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 h-11 text-[14px] transition-colors duration-150 ease-out hover:bg-[rgba(10,10,10,0.02)]"
+              className="group grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 h-11 text-[14px] transition-colors duration-150 ease-out hover:bg-[rgba(10,10,10,0.02)]"
               style={{ borderBottom: `1px solid ${BORDER}` }}
               data-testid={`svg-row-${r.name.toLowerCase().replace(/\s+/g, '-')}`}
               title={`${r.pct}% to goal (${fmtM(r.net)} of ${fmtM(r.goal)})`}
@@ -1045,40 +1045,40 @@ export default function DashboardPage({ onNavigate }: Props) {
                 <i className="h-1.5 w-1.5 rounded-full" style={{ background: r.c }} />
                 <b className="truncate font-semibold" style={{ color: BODY }}>{r.name}</b>
               </span>
-              <b className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(r.net)}</b>
-              <span className="text-right font-medium" style={{ ...TABULAR, color: BODY }}>{fmtM(r.goal)}</span>
-              <span className="text-right font-semibold" style={{ ...TABULAR, color: r.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(r.variance)}</span>
+              <b className="text-right whitespace-nowrap" style={{ ...TABULAR, color: INK }}>{fmtM(r.net)}</b>
+              <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: BODY }}>{fmtM(r.goal)}</span>
+              <span className="text-right font-semibold whitespace-nowrap" style={{ ...TABULAR, color: r.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(r.variance)}</span>
               <div className="flex flex-col items-end gap-1">
                 <b className="text-[13px] font-semibold" style={{ ...TABULAR, color: CORAL }}>{r.pct}%</b>
-                <span className="relative h-[4px] w-full overflow-hidden rounded-full" style={{ background: TRACK, boxShadow: INSET_TRACK }}>
+                <span className="relative h-[6px] w-full overflow-hidden rounded-full" style={{ background: TRACK, boxShadow: INSET_TRACK }}>
                   <span
                     className="absolute left-0 top-0 h-full rounded-full"
                     style={{ width: `${r.pct}%`, background: CORAL_GRAD_V, transition: BAR_TRANS }}
                   />
                 </span>
               </div>
-              <span className="text-right font-medium" style={{ ...TABULAR, color: BODY }}>{fmtM(r.annual)}</span>
+              <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: BODY }}>{fmtM(r.annual)}</span>
             </div>
           ))}
           <div
-            className="grid min-w-[820px] grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 h-14 text-[14px] font-bold"
-            style={{ borderTop: `2px solid ${INK}` }}
+            className="grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 h-14 text-[14px] font-bold rounded-b-xl"
+            style={{ borderTop: `1px solid ${BORDER}`, background: '#FAFAFA' }}
             data-testid="svg-total-row"
           >
-            <span className="svg-sticky-col text-[16px] font-bold" style={{ color: INK }}>Total</span>
-            <b className="text-right text-[26px] font-extrabold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.net)}</b>
-            <span className="text-right text-[26px] font-extrabold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.goal)}</span>
-            <span className="text-right text-[26px] font-extrabold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: svgTotalScaled.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(svgTotalScaled.variance)}</span>
+            <span className="svg-sticky-col pl-3 text-[16px] font-bold" style={{ color: INK }}>Total</span>
+            <b className="text-right text-[26px] font-extrabold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.net)}</b>
+            <span className="text-right text-[26px] font-extrabold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.goal)}</span>
+            <span className="text-right text-[26px] font-extrabold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: svgTotalScaled.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(svgTotalScaled.variance)}</span>
             <div className="flex flex-col items-end gap-1">
-              <b className="text-[20px] font-bold" style={{ ...TABULAR, color: CORAL }}>{svgTotalScaled.pct}%</b>
-              <span className="relative h-[4px] w-full overflow-hidden rounded-full" style={{ background: TRACK, boxShadow: INSET_TRACK }}>
+              <b className="text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, color: CORAL }}>{svgTotalScaled.pct}%</b>
+              <span className="relative h-[6px] w-full overflow-hidden rounded-full" style={{ background: TRACK, boxShadow: INSET_TRACK }}>
                 <span
                   className="absolute left-0 top-0 h-full rounded-full"
                   style={{ width: `${svgTotalScaled.pct}%`, background: CORAL_GRAD_V, transition: BAR_TRANS }}
                 />
               </span>
             </div>
-            <span className="text-right text-[26px] font-extrabold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.annual)}</span>
+            <span className="text-right text-[26px] font-extrabold whitespace-nowrap pr-3" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.annual)}</span>
           </div>
         </div>
       </section>
