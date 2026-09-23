@@ -4,6 +4,7 @@ import {
   BarChart2,
   Bell,
   Boxes,
+  Calendar as CalendarIcon,
   CheckCircle2,
   ChevronDown,
   ClipboardList,
@@ -96,6 +97,10 @@ function StaffApp() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState<'Last 30d' | 'QTD' | 'YTD' | 'Custom'>('YTD');
+  const [rangeMenuOpen, setRangeMenuOpen] = useState(false);
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
 
   useEffect(() => {
     document.querySelector('.page-content')?.scrollTo({ top: 0 });
@@ -236,6 +241,63 @@ function StaffApp() {
                       </button>
                     ))}
                   </div>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="date-range-wrap" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: 8, marginRight: 4 }} data-testid="date-range-wrap">
+            <button
+              className={`date-range-btn ${rangeMenuOpen ? 'is-open' : ''}`}
+              onClick={() => setRangeMenuOpen((o) => !o)}
+              aria-haspopup="menu"
+              aria-expanded={rangeMenuOpen}
+              aria-label="Date range"
+              data-testid="date-range-button"
+            >
+              <CalendarIcon size={14} strokeWidth={1.9} />
+              <span className="date-range-label">
+                {dateRange === 'Custom' && customFrom && customTo ? `${customFrom} → ${customTo}` : dateRange}
+              </span>
+              <ChevronDown size={12} className="date-range-chev" />
+            </button>
+            {rangeMenuOpen && (
+              <>
+                <div className="date-range-pop-overlay" onClick={() => setRangeMenuOpen(false)} />
+                <div className="date-range-pop" role="menu" data-testid="date-range-menu">
+                  {(['Last 30d', 'QTD', 'YTD', 'Custom'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      role="menuitem"
+                      className={`date-range-option ${dateRange === opt ? 'active' : ''}`}
+                      onClick={() => {
+                        setDateRange(opt);
+                        if (opt !== 'Custom') setRangeMenuOpen(false);
+                      }}
+                      data-testid={`date-range-${opt.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <span>{opt}</span>
+                    </button>
+                  ))}
+                  {dateRange === 'Custom' && (
+                    <div className="date-range-custom">
+                      <label htmlFor="date-range-from">From</label>
+                      <input
+                        id="date-range-from"
+                        type="date"
+                        value={customFrom}
+                        onChange={(e) => setCustomFrom(e.target.value)}
+                        data-testid="date-range-from"
+                      />
+                      <label htmlFor="date-range-to">To</label>
+                      <input
+                        id="date-range-to"
+                        type="date"
+                        value={customTo}
+                        onChange={(e) => setCustomTo(e.target.value)}
+                        data-testid="date-range-to"
+                      />
+                    </div>
+                  )}
                 </div>
               </>
             )}

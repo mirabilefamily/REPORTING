@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Area,
+  AreaChart,
   Bar,
   CartesianGrid,
   Cell,
@@ -16,9 +18,11 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpRight,
+  CheckCircle2,
   Download,
   FileSpreadsheet,
   FileText,
+  Link2,
   Sparkles,
 } from 'lucide-react';
 
@@ -29,8 +33,9 @@ const CORAL_LIGHT = '#FF9678';
 const CORAL_SOFT = '#FF8A76';
 const INK = '#0F1214';
 const TOTAL_NAVY = '#1E3A8A';
+const LY_GRAY = 'rgb(160,170,180)';
 
-// Softer, more executive-feeling segment colors
+// Softer segment palette
 const C_USW = '#22C55E';
 const C_DIST = '#3B82F6';
 const C_RETAIL = '#F59E0B';
@@ -41,6 +46,7 @@ const C_OPEN = '#86EFAC';
 const BORDER = 'rgb(232 236 240)';
 const TRACK = '#F0F1F2';
 const MUTED = '#8A8E93';
+const BAR_TRANS = 'width 700ms cubic-bezier(0.22, 1, 0.36, 1)';
 
 const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
 const MONO = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } as const;
@@ -61,16 +67,37 @@ const fmtMShort = (n: number) => {
   return `${sign}$${Math.round(a)}`;
 };
 
-// ─── Data (from user spec, verbatim) ─────────────────────────────────
+// ─── Data (spec-verbatim) ─────────────────────────────────────────────
 const SEGMENTS = ['All', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'] as const;
+type SegKey = typeof SEGMENTS[number];
+
+const SEG_SCALE: Record<SegKey, number> = {
+  'All': 1.0,
+  'US Wholesale': 0.559,
+  'Distributors': 0.451,
+  'Retail': 0.040,
+  'Ecommerce': 0.393,
+  'Amazon': 0.068,
+};
+
+const SEG_KEY: Record<SegKey, string> = {
+  'All': 'all',
+  'US Wholesale': 'usw',
+  'Distributors': 'dist',
+  'Retail': 'retail',
+  'Ecommerce': 'ecom',
+  'Amazon': 'amzn',
+};
 
 const SHARE = { usw: 0.37, dist: 0.30, ecom: 0.26, amzn: 0.05, retail: 0.02 };
 const MONTH_TOTAL_M = [1.35, 2.45, 1.55, 1.75, 1.90, 1.85, 2.45, 2.65, 1.55, 1.30, 2.30, 2.10];
 const OPEN_TAIL_M   = [0,    0,    0,    0,    0,    0,    0,    0,    0,    0.35, 0.55, 0.70];
 const FORECAST_M    = [1.50, 2.55, 1.70, 1.90, 2.10, 2.30, 3.00, 2.80, 1.90, 1.70, 2.60, 2.50];
+// vs LY: peaks in Nov (different from Aug), ~12% lower on average
+const LY_M          = [1.55, 2.10, 1.40, 1.62, 1.70, 1.60, 2.05, 2.15, 1.40, 1.60, 2.75, 2.35];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const MONTHLY = MONTHS.map((m, i) => {
+const MONTHLY_BASE = MONTHS.map((m, i) => {
   const total = MONTH_TOTAL_M[i] * 1e6;
   return {
     m,
@@ -82,6 +109,7 @@ const MONTHLY = MONTHS.map((m, i) => {
     open: OPEN_TAIL_M[i] * 1e6,
     total,
     forecast: FORECAST_M[i] * 1e6,
+    ly: LY_M[i] * 1e6,
   };
 });
 
@@ -116,12 +144,18 @@ const SVG_ROWS = [
 ];
 const SVG_TOTAL = { net: 17_510_000, goal: 19_690_000, variance: -2_170_000, pct: 89, annual: 25_980_000 };
 
+// Sparkline data per KPI + per account (12 mock monthly points)
+const SPARK_NET      = [1.0, 1.1, 1.05, 1.18, 1.25, 1.22, 1.35, 1.42, 1.30, 1.48, 1.55, 1.62];
+const SPARK_OPEN     = [0.90, 0.92, 0.95, 0.94, 0.98, 1.02, 1.05, 1.03, 1.10, 1.14, 1.18, 1.22];
+const SPARK_TOTAL    = [0.95, 1.05, 1.02, 1.15, 1.20, 1.19, 1.32, 1.38, 1.28, 1.46, 1.52, 1.60];
+const SPARK_FORECAST = [1.10, 1.15, 1.22, 1.30, 1.35, 1.42, 1.50, 1.58, 1.62, 1.68, 1.72, 1.80];
+
 const TOP_ACCOUNTS = [
-  { name: 'Lids',                            net: 2_720_000, yoy: -24.8 },
-  { name: 'SASAtrend',                       net: 1_460_000, yoy:  -4.7 },
-  { name: 'Industrias Mercury, S.A.',        net: 1_030_000, yoy:  53.7 },
-  { name: 'Nordstrom Accounts Payable',      net:   726_000, yoy: -20.2 },
-  { name: 'Buckle Inc., The',                net:   617_000, yoy: -54.8 },
+  { name: 'Lids',                       net: 2_720_000, yoy: -24.8, spark: [1.85, 1.70, 1.58, 1.42, 1.30, 1.18, 1.22, 1.05, 0.95, 0.82, 0.75, 0.68], trend: 'down' as const },
+  { name: 'SASAtrend',                  net: 1_460_000, yoy:  -4.7, spark: [1.20, 1.15, 1.18, 1.12, 1.10, 1.08, 1.05, 1.02, 1.00, 0.98, 0.95, 0.98], trend: 'down' as const },
+  { name: 'Industrias Mercury, S.A.',   net: 1_030_000, yoy:  53.7, spark: [0.55, 0.60, 0.62, 0.68, 0.72, 0.80, 0.85, 0.90, 0.95, 1.00, 1.08, 1.14], trend: 'up' as const },
+  { name: 'Nordstrom Accounts Payable', net:   726_000, yoy: -20.2, spark: [0.95, 0.92, 0.88, 0.84, 0.80, 0.78, 0.75, 0.72, 0.68, 0.66, 0.62, 0.60], trend: 'down' as const },
+  { name: 'Buckle Inc., The',           net:   617_000, yoy: -54.8, spark: [1.38, 1.25, 1.10, 0.95, 0.82, 0.74, 0.70, 0.64, 0.58, 0.52, 0.48, 0.45], trend: 'down' as const },
 ];
 
 const TOP_ITEMS = [
@@ -131,6 +165,28 @@ const TOP_ITEMS = [
   { name: 'Suede Colorful Rooster',     variant: 'Dust White / Void Black · One Size',  sku: '101-3849-WHT02/BLK01-O/S',      rev: 103_000, units:  6_058 },
   { name: 'The Alpha Dog',              variant: 'Void · One Size',                     sku: '101-1666-VOI01-O/S',            rev:  77_000, units:  4_826 },
 ];
+
+// ─── Hooks ────────────────────────────────────────────────────────────
+function useCountUp(target: number, duration = 700) {
+  const [v, setV] = useState(0);
+  const prev = useRef(0);
+  useEffect(() => {
+    let raf = 0;
+    const start = performance.now();
+    const from = prev.current;
+    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const val = from + (target - from) * ease(t);
+      setV(val);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else prev.current = target;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return v;
+}
 
 // ─── Reusable atoms ───────────────────────────────────────────────────
 const EYEBROW = 'text-[11px] font-semibold uppercase tracking-[0.14em]';
@@ -200,23 +256,127 @@ function DeltaPill({ v }: { v: number }) {
   );
 }
 
-function HeroKPI({ label, value, sub, testId }: { label: string; value: string; sub?: string; testId: string }) {
+// Reusable mini sparkline
+function Spark({ data, stroke = CORAL, gradId, width = 140, height = 28 }: { data: number[]; stroke?: string; gradId: string; width?: number; height?: number }) {
+  const rows = useMemo(() => data.map((v, i) => ({ i, v })), [data]);
+  return (
+    <div style={{ width, height }} aria-hidden="true">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={rows} margin={{ top: 1, right: 0, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={stroke} stopOpacity={0.22} />
+              <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <Area type="monotone" dataKey="v" stroke={stroke} strokeWidth={1.6} fill={`url(#${gradId})`} isAnimationActive={false} dot={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// Hero KPI cell with count-up + sparkline
+function HeroKPI({
+  label,
+  target,
+  sub,
+  delta,
+  accent,
+  spark,
+  sparkGradId,
+  testId,
+}: {
+  label: string;
+  target: number;
+  sub?: string;
+  delta?: number;
+  accent?: boolean;
+  spark?: number[];
+  sparkGradId: string;
+  testId: string;
+}) {
+  const v = useCountUp(target, 700);
   return (
     <div className="flex flex-col gap-2" data-testid={testId}>
       <p className={EYEBROW} style={eyebrowStyle}>{label}</p>
-      <p
-        className="text-[32px] font-bold leading-none tracking-tight"
-        style={{ ...TABULAR, letterSpacing: '-0.03em', color: INK }}
-      >
-        {value}
-      </p>
+      <div className="flex items-baseline gap-2">
+        <p
+          className={`${accent ? 'text-[54px] sm:text-[60px] xl:text-[64px]' : 'text-[30px] xl:text-[34px]'} font-bold leading-none tracking-tight`}
+          style={{ ...TABULAR, letterSpacing: '-0.035em', color: INK }}
+        >
+          {usd0(Math.max(0, v))}
+        </p>
+        {typeof delta === 'number' && (
+          <span
+            className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[12px] font-semibold"
+            style={{ ...TABULAR, background: 'rgba(16,185,129,0.10)', color: '#059669' }}
+          >
+            <ArrowUp size={11} strokeWidth={2.6} />{delta.toFixed(1)}%
+          </span>
+        )}
+      </div>
+      {accent && (
+        <span className="mt-1 block h-[2px] w-9 rounded-full" style={{ background: 'rgba(252,116,96,0.6)' }} />
+      )}
       {sub && <p className="text-[11.5px] leading-snug text-neutral-500" style={TABULAR}>{sub}</p>}
     </div>
   );
 }
 
-function Donut({ title, headerRight, data, testId }: { title: string; headerRight?: string; data: typeof DONUT_ALL; testId: string }) {
+// Custom Revenue-by-Month tooltip
+function RevTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const nameMap: Record<string, string> = {
+    usw: 'US Wholesale', dist: 'Distributors', retail: 'Retail', ecom: 'Ecommerce',
+    amzn: 'Amazon', open: 'Open Orders', total: 'Total', forecast: 'Forecast', ly: 'vs LY',
+  };
+  const visible = payload.filter((p: any) => p.value != null && p.value !== 0);
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: `1px solid ${BORDER}`,
+        borderRadius: 16,
+        padding: '10px 14px',
+        boxShadow: '0 4px 12px rgba(15,17,20,0.05)',
+        minWidth: 172,
+        ...TABULAR,
+      }}
+    >
+      <p style={{ color: CORAL, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 6 }}>{label}</p>
+      {visible.map((p: any, idx: number) => (
+        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#374151', padding: '2px 0' }}>
+          <span style={{ width: 8, height: 8, borderRadius: 4, background: p.color || p.stroke }} />
+          <span style={{ flex: 1 }}>{nameMap[p.dataKey] || p.dataKey}</span>
+          <b style={{ color: INK }}>{fmtM(p.value)}</b>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Donut with hover interactivity
+function InteractiveDonut({
+  title,
+  headerRight,
+  data,
+  testId,
+  emphasizeName,
+  centerTitle,
+}: {
+  title: string;
+  headerRight?: string;
+  data: typeof DONUT_ALL;
+  testId: string;
+  emphasizeName?: string | null;
+  centerTitle: string;
+}) {
+  const [hovered, setHovered] = useState<number | null>(null);
   const total = data.reduce((s, d) => s + d.v, 0);
+  const centerIdx = hovered ?? (emphasizeName ? data.findIndex((d) => d.name === emphasizeName) : -1);
+  const centerData = centerIdx >= 0 ? data[centerIdx] : null;
+
   return (
     <div
       className="rounded-3xl bg-white p-8"
@@ -228,50 +388,93 @@ function Donut({ title, headerRight, data, testId }: { title: string; headerRigh
           <p className={EYEBROW} style={eyebrowStyle}>Channel Mix</p>
           <h3 className="mt-1.5 text-[16px] font-bold tracking-tight" style={{ color: INK }}>{title}</h3>
         </div>
-        {headerRight && (
-          <span className={EYEBROW} style={eyebrowStyle}>{headerRight}</span>
-        )}
+        {headerRight && <span className={EYEBROW} style={eyebrowStyle}>{headerRight}</span>}
       </div>
 
       <div className="mt-5 flex items-center gap-7">
         <div className="relative h-[196px] w-[196px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={data} dataKey="v" innerRadius={64} outerRadius={92} paddingAngle={2} stroke="none" isAnimationActive={false}>
-                {data.map((d, i) => <Cell key={i} fill={d.c} />)}
+              <Pie
+                data={data}
+                dataKey="v"
+                innerRadius={64}
+                outerRadius={92}
+                paddingAngle={2}
+                stroke="none"
+                isAnimationActive
+                animationDuration={400}
+                onMouseEnter={(_: any, idx: number) => setHovered(idx)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                {data.map((d, i) => {
+                  const isEmphasized = emphasizeName ? d.name === emphasizeName : true;
+                  const isHovered = hovered === i;
+                  const dimmed = (hovered != null && !isHovered) || (emphasizeName && !isEmphasized && hovered == null);
+                  return (
+                    <Cell
+                      key={i}
+                      fill={d.c}
+                      opacity={dimmed ? 0.4 : 1}
+                      style={{ transition: 'opacity 200ms ease' }}
+                    />
+                  );
+                })}
               </Pie>
-              <Tooltip formatter={(v: number) => fmtM(v)} contentStyle={{ borderRadius: 12, border: `1px solid ${BORDER}`, fontSize: 12 }} />
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <div className="text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: MUTED }}>YTD</p>
-              <p className="mt-1 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: INK }}>{fmtM(total)}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                {centerData ? centerData.name : centerTitle}
+              </p>
+              <p className="mt-1 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: INK }}>
+                {centerData ? fmtM(centerData.v) : fmtM(total)}
+              </p>
+              {centerData && (
+                <p className="text-[11px] font-semibold" style={{ ...TABULAR, color: CORAL }}>{centerData.share.toFixed(1)}%</p>
+              )}
             </div>
           </div>
         </div>
         <ul className="flex-1 space-y-3">
-          {data.map((d) => (
-            <li key={d.name} className="flex items-center gap-2.5 text-[13px]" data-testid={`${testId}-item-${d.name.toLowerCase().replace(/\s+/g, '-')}`}>
-              <i className="h-2.5 w-2.5 rounded-full" style={{ background: d.c }} />
-              <span className="min-w-0 flex-1 truncate text-neutral-700">{d.name}</span>
-              <b className="text-neutral-900" style={TABULAR}>{fmtM(d.v)}</b>
-              <span className="w-12 text-right text-[11.5px] font-semibold text-neutral-500" style={TABULAR}>{d.share.toFixed(1)}%</span>
-            </li>
-          ))}
+          {data.map((d, i) => {
+            const isEmphasized = emphasizeName ? d.name === emphasizeName : true;
+            const dimmed = (hovered != null && hovered !== i) || (emphasizeName && !isEmphasized && hovered == null);
+            return (
+              <li
+                key={d.name}
+                className="flex items-center gap-2.5 text-[13px]"
+                style={{ opacity: dimmed ? 0.4 : 1, transition: 'opacity 200ms ease' }}
+                data-testid={`${testId}-item-${d.name.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <i className="h-2.5 w-2.5 rounded-full" style={{ background: d.c }} />
+                <span className="min-w-0 flex-1 truncate text-neutral-700">{d.name}</span>
+                <b className="text-neutral-900" style={TABULAR}>{fmtM(d.v)}</b>
+                <span className="w-12 text-right text-[11.5px] font-semibold text-neutral-500" style={TABULAR}>{d.share.toFixed(1)}%</span>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
   );
 }
 
-function Swatch({ color, label, dashed = false, line = false }: { color: string; label: string; dashed?: boolean; line?: boolean }) {
+// Legend swatch
+function Swatch({ color, label, dashed = false, line = false, dashSize = '5 4', dim = false }: { color: string; label: string; dashed?: boolean; line?: boolean; dashSize?: string; dim?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-600" style={TABULAR}>
+    <span
+      className="inline-flex items-center gap-1.5 text-[11px] text-neutral-600"
+      style={{ ...TABULAR, opacity: dim ? 0.35 : 1, transition: 'opacity 200ms ease' }}
+    >
       {line ? (
         <span
           className="inline-block h-[2px] w-5 rounded"
-          style={{ background: dashed ? 'transparent' : color, borderTop: dashed ? `2px dashed ${color}` : 'none' }}
+          style={{
+            background: dashed ? 'transparent' : color,
+            borderTop: dashed ? `2px dashed ${color}` : 'none',
+          }}
         />
       ) : (
         <i className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
@@ -283,85 +486,158 @@ function Swatch({ color, label, dashed = false, line = false }: { color: string;
 
 // ─── Page ──────────────────────────────────────────────────────────────
 export default function DashboardPage({ onNavigate }: Props) {
-  const [seg, setSeg] = useState<string>('All');
+  const [seg, setSeg] = useState<SegKey>('All');
   const [svgTab, setSvgTab] = useState<'By Class' | 'By Month'>('By Class');
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
 
-  const netSalesYTD = 9_166_708;
-  const openOrders = 26_679_135;
-  const total = 26_679_135;
-  const forecast = 25_980_800;
+  const scale = SEG_SCALE[seg];
+  const segKey = SEG_KEY[seg];
+  const isAll = seg === 'All';
+
+  // Base values
+  const netSalesYTD = 9_166_708 * scale;
+  const openOrders = 26_679_135 * scale;
+  const total = 26_679_135 * scale;
+  const forecastVal = 25_980_800 * scale;
+  const goalValue = 17_510_000 * scale;
+  const goalMax = 25_980_000 * scale;
+  const goalPct = Math.round((goalValue / goalMax) * 100);
+
+  // Filtered monthly data (only show selected segment bars when not All)
+  const monthlyData = useMemo(() => {
+    return MONTHLY_BASE.map((row) => {
+      const scaled: any = { m: row.m };
+      const segFields = ['usw', 'dist', 'retail', 'ecom', 'amzn'];
+      if (isAll) {
+        segFields.forEach((k) => { scaled[k] = (row as any)[k]; });
+        scaled.open = row.open;
+      } else {
+        segFields.forEach((k) => { scaled[k] = (k === segKey) ? (row as any)[k] : 0; });
+        scaled.open = (segKey === 'usw' || segKey === 'dist') ? row.open : 0;
+      }
+      scaled.total = row.total * scale;
+      scaled.forecast = row.forecast * scale;
+      scaled.ly = row.ly * scale;
+      return scaled;
+    });
+  }, [seg, isAll, segKey, scale]);
+
+  // Which segments to emphasize
+  const highlightSegRow = (rowKey: string) => isAll || rowKey === seg;
+  const emphasizeName = isAll ? null : seg;
+  const emphasizeB2B = seg === 'US Wholesale' || seg === 'Distributors' ? 'B2B' : (isAll ? null : seg);
+
+  // Filtered SVG rows
+  const svgVisibleRows = useMemo(() => (isAll ? SVG_ROWS : SVG_ROWS.filter((r) => r.name === seg)), [seg, isAll]);
+  const svgTotalScaled = useMemo(() => ({
+    net: SVG_TOTAL.net * scale,
+    goal: SVG_TOTAL.goal * scale,
+    variance: SVG_TOTAL.variance * scale,
+    pct: SVG_TOTAL.pct,
+    annual: SVG_TOTAL.annual * scale,
+  }), [scale]);
 
   const topAcctMax = TOP_ACCOUNTS[0].net;
   const topItemMax = TOP_ITEMS[0].rev;
   const yTicks = useMemo(() => [0, 1.3e6, 2.5e6, 3.8e6, 5e6], []);
 
+  // Copy digest link
+  const copyDigest = async () => {
+    const slug = seg.toLowerCase().replace(/\s+/g, '-');
+    const url = `${window.location.origin}/digest/wk40-2026-${slug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      if (toastTimer.current) window.clearTimeout(toastTimer.current);
+      setToast('Link copied');
+      toastTimer.current = window.setTimeout(() => setToast(null), 1400);
+    } catch {
+      setToast('Copy failed');
+      toastTimer.current = window.setTimeout(() => setToast(null), 1400);
+    }
+  };
+
+  useEffect(() => () => { if (toastTimer.current) window.clearTimeout(toastTimer.current); }, []);
+
+  // Stagger animation helper
+  const enter = (i: number) => ({
+    animation: 'dashFadeSlideUp 400ms ease-out both',
+    animationDelay: `${i * 60}ms`,
+  }) as React.CSSProperties;
+
   return (
     <div className="min-h-full space-y-8 p-1" data-testid="dashboard-page" style={TABULAR}>
-      {/* ── Section 1: Segment Tabs (first content element) ─────────── */}
-      <header className="flex flex-wrap items-center justify-end gap-4" data-testid="dashboard-header">
-        <SegTabs tabs={SEGMENTS} value={seg} onChange={setSeg} testId="segment-tabs" slugPrefix="seg" />
+      {/* ── Section 1: Segment Tabs + Copy digest ───────────────────── */}
+      <header className="flex flex-wrap items-center justify-end gap-3" data-testid="dashboard-header" style={enter(0)}>
+        <button
+          onClick={copyDigest}
+          data-testid="copy-digest"
+          className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 transition hover:border-neutral-300 hover:text-neutral-900"
+          style={{ border: `1px solid ${BORDER}` }}
+        >
+          <Link2 size={13} style={{ color: CORAL }} />
+          Copy weekly digest link
+        </button>
+        <SegTabs tabs={SEGMENTS} value={seg} onChange={(v: any) => setSeg(v as SegKey)} testId="segment-tabs" slugPrefix="seg" />
       </header>
 
-      {/* ── Section 2: LIGHT Hero Card (4 KPIs + Annual Goal) ───────── */}
+      {/* ── Section 2: Light Hero Card ──────────────────────────────── */}
       <section
         className="relative overflow-hidden rounded-3xl bg-white p-6 sm:p-8"
         style={{
           border: `1px solid ${BORDER}`,
           backgroundImage: 'linear-gradient(135deg, rgba(252,116,96,0.05) 0%, rgba(252,116,96,0) 55%)',
+          ...enter(1),
         }}
         data-testid="hero-card"
       >
-        {/* 4 KPIs */}
         <div className="grid grid-cols-2 gap-6 xl:grid-cols-4 xl:gap-8">
-          {/* Net Sales YTD (with coral accent bar + delta pill + caption) */}
           <div
             data-testid="kpi-net-sales"
             className="relative xl:border-r xl:pr-8"
             style={{ borderColor: BORDER }}
           >
-            <p className={EYEBROW} style={eyebrowStyle}>Net Sales YTD</p>
-            <div className="mt-3 flex items-baseline gap-3">
-              <p
-                className="text-[64px] font-bold leading-none tracking-tight"
-                style={{ ...TABULAR, letterSpacing: '-0.035em', color: INK }}
-              >
-                {usd0(netSalesYTD)}
-              </p>
-              <span
-                className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[12px] font-semibold"
-                style={{ ...TABULAR, background: 'rgba(16,185,129,0.10)', color: '#059669' }}
-              >
-                <ArrowUp size={11} strokeWidth={2.6} />25.6%
-              </span>
-            </div>
-            <span
-              className="mt-3 block h-[2px] w-9 rounded-full"
-              style={{ background: 'rgba(252,116,96,0.6)' }}
+            <HeroKPI
+              label="Net Sales YTD"
+              target={netSalesYTD}
+              delta={25.6}
+              accent
+              spark={SPARK_NET.map((n) => n * scale)}
+              sparkGradId="spark-net"
+              sub="After discounts, returns & tax · shipping included"
+              testId="kpi-net-sales-inner"
             />
-            <p className="mt-3 text-[12px] leading-snug text-neutral-500">After discounts, returns &amp; tax · shipping included</p>
           </div>
-
-          <div
-            className="xl:border-r xl:pr-8"
-            style={{ borderColor: BORDER }}
-          >
-            <HeroKPI label="Open Orders" value={usd0(openOrders)} testId="kpi-open-orders" />
+          <div className="xl:border-r xl:pr-8" style={{ borderColor: BORDER }}>
+            <HeroKPI
+              label="Open Orders"
+              target={openOrders}
+              spark={SPARK_OPEN.map((n) => n * scale)}
+              sparkGradId="spark-open"
+              testId="kpi-open-orders"
+            />
           </div>
-          <div
-            className="xl:border-r xl:pr-8"
-            style={{ borderColor: BORDER }}
-          >
-            <HeroKPI label="Total" value={usd0(total)} sub="Net Sales + Open Orders" testId="kpi-total" />
+          <div className="xl:border-r xl:pr-8" style={{ borderColor: BORDER }}>
+            <HeroKPI
+              label="Total"
+              target={total}
+              sub="Net Sales + Open Orders"
+              spark={SPARK_TOTAL.map((n) => n * scale)}
+              sparkGradId="spark-total"
+              testId="kpi-total"
+            />
           </div>
-          <HeroKPI label="Forecast" value={usd0(forecast)} testId="kpi-forecast" />
+          <HeroKPI
+            label="Forecast"
+            target={forecastVal}
+            spark={SPARK_FORECAST.map((n) => n * scale)}
+            sparkGradId="spark-fcst"
+            testId="kpi-forecast"
+          />
         </div>
 
         {/* Annual Goal Progress */}
-        <div
-          className="mt-8 pt-6"
-          style={{ borderTop: `1px solid ${BORDER}` }}
-          data-testid="annual-goal"
-        >
+        <div className="mt-8 pt-6" style={{ borderTop: `1px solid ${BORDER}` }} data-testid="annual-goal">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className={EYEBROW} style={eyebrowStyle}>Annual Goal Progress</p>
@@ -370,9 +646,11 @@ export default function DashboardPage({ onNavigate }: Props) {
                   className="text-[42px] font-bold leading-none tracking-tight"
                   style={{ ...TABULAR, letterSpacing: '-0.03em', color: INK }}
                 >
-                  67%
+                  {goalPct}%
                 </p>
-                <span className="text-[13px] text-neutral-500" style={TABULAR}>$17.51M of $25.98M</span>
+                <span className="text-[13px] text-neutral-500" style={TABULAR}>
+                  {fmtM(goalValue)} of {fmtM(goalMax)}
+                </span>
               </div>
             </div>
             <div className="flex flex-col items-end gap-1.5">
@@ -395,16 +673,33 @@ export default function DashboardPage({ onNavigate }: Props) {
           >
             <span
               className="block h-full rounded-full"
-              style={{ width: '67%', background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)` }}
+              style={{
+                width: `${goalPct}%`,
+                background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)`,
+                transition: BAR_TRANS,
+              }}
             />
           </div>
         </div>
+
+        {/* Local toast (rendered inside hero-card region) */}
+        {toast && (
+          <div
+            className="pointer-events-none absolute right-6 top-6 inline-flex items-center gap-2 rounded-full bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg"
+            role="status"
+            data-testid="copy-toast"
+            style={{ animation: 'dashFadeSlideUp 200ms ease-out both' }}
+          >
+            <CheckCircle2 size={13} style={{ color: CORAL_LIGHT }} />
+            {toast}
+          </div>
+        )}
       </section>
 
       {/* ── Section 3: AI Assist Strip ──────────────────────────────── */}
       <section
         className="rounded-3xl bg-white px-6 py-3.5"
-        style={{ border: `1px solid ${BORDER}` }}
+        style={{ border: `1px solid ${BORDER}`, ...enter(2) }}
         data-testid="ai-strip"
       >
         <div className="flex items-center justify-between gap-4">
@@ -430,7 +725,7 @@ export default function DashboardPage({ onNavigate }: Props) {
       </section>
 
       {/* ── Section 4: Revenue by Month + Segments panel ────────────── */}
-      <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,2.15fr)_minmax(0,1fr)]">
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,2.15fr)_minmax(0,1fr)]" style={enter(3)}>
         <div
           className="rounded-3xl bg-white p-8"
           style={{ border: `1px solid ${BORDER}` }}
@@ -442,14 +737,15 @@ export default function DashboardPage({ onNavigate }: Props) {
               <h2 className="mt-1.5 text-[16px] font-bold tracking-tight" style={{ color: INK }}>Revenue by Month</h2>
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Swatch color={C_USW}      label="US Wholesale" />
-              <Swatch color={C_DIST}     label="Distributors" />
-              <Swatch color={C_RETAIL}   label="Retail" />
-              <Swatch color={C_ECOM}     label="Ecommerce" />
-              <Swatch color={C_AMZN}     label="Amazon" />
-              <Swatch color={C_OPEN}     label="Open Orders" />
+              <Swatch color={C_USW}      label="US Wholesale" dim={!isAll && seg !== 'US Wholesale'} />
+              <Swatch color={C_DIST}     label="Distributors" dim={!isAll && seg !== 'Distributors'} />
+              <Swatch color={C_RETAIL}   label="Retail"       dim={!isAll && seg !== 'Retail'} />
+              <Swatch color={C_ECOM}     label="Ecommerce"    dim={!isAll && seg !== 'Ecommerce'} />
+              <Swatch color={C_AMZN}     label="Amazon"       dim={!isAll && seg !== 'Amazon'} />
+              <Swatch color={C_OPEN}     label="Open Orders"  dim={!isAll && seg !== 'US Wholesale' && seg !== 'Distributors'} />
               <Swatch color={TOTAL_NAVY} label="Total"    line />
               <Swatch color={CORAL}      label="Forecast" line dashed />
+              <Swatch color={LY_GRAY}    label="vs LY"    line dashed dashSize="4 4" />
               <button
                 data-testid="rev-export"
                 className="ml-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-neutral-700 transition hover:bg-neutral-50"
@@ -462,7 +758,7 @@ export default function DashboardPage({ onNavigate }: Props) {
 
           <div className="mt-6 h-[340px]" style={TABULAR}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={MONTHLY} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="rgb(240 242 244)" vertical={false} />
                 <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: MUTED }} />
                 <YAxis
@@ -474,15 +770,19 @@ export default function DashboardPage({ onNavigate }: Props) {
                   tick={{ fontSize: 11, fill: MUTED }}
                   width={56}
                 />
-                <Tooltip formatter={(v: number) => fmtM(v)} contentStyle={{ borderRadius: 12, border: `1px solid ${BORDER}`, fontSize: 12 }} />
-                <Bar dataKey="usw"    stackId="s" fill={C_USW}    isAnimationActive={false} />
-                <Bar dataKey="dist"   stackId="s" fill={C_DIST}   isAnimationActive={false} />
-                <Bar dataKey="retail" stackId="s" fill={C_RETAIL} isAnimationActive={false} />
-                <Bar dataKey="ecom"   stackId="s" fill={C_ECOM}   isAnimationActive={false} />
-                <Bar dataKey="amzn"   stackId="s" fill={C_AMZN}   isAnimationActive={false} />
-                <Bar dataKey="open"   stackId="s" fill={C_OPEN}   radius={[4, 4, 0, 0]} isAnimationActive={false} />
-                <Line type="monotone" dataKey="total"    stroke={TOTAL_NAVY} strokeWidth={2} dot={false} isAnimationActive={false} />
-                <Line type="monotone" dataKey="forecast" stroke={CORAL}      strokeWidth={2} dot={false} strokeDasharray="5 4" isAnimationActive={false} />
+                <Tooltip
+                  content={<RevTooltip />}
+                  cursor={{ stroke: 'rgb(160,170,180)', strokeDasharray: '3 3', strokeWidth: 1 }}
+                />
+                <Bar dataKey="usw"    stackId="s" fill={C_USW}    isAnimationActive animationDuration={400} />
+                <Bar dataKey="dist"   stackId="s" fill={C_DIST}   isAnimationActive animationDuration={400} />
+                <Bar dataKey="retail" stackId="s" fill={C_RETAIL} isAnimationActive animationDuration={400} />
+                <Bar dataKey="ecom"   stackId="s" fill={C_ECOM}   isAnimationActive animationDuration={400} />
+                <Bar dataKey="amzn"   stackId="s" fill={C_AMZN}   isAnimationActive animationDuration={400} />
+                <Bar dataKey="open"   stackId="s" fill={C_OPEN}   radius={[4, 4, 0, 0]} isAnimationActive animationDuration={400} />
+                <Line type="monotone" dataKey="ly"       stroke={LY_GRAY}    strokeWidth={1.5} dot={false} strokeDasharray="4 4" isAnimationActive animationDuration={400} />
+                <Line type="monotone" dataKey="total"    stroke={TOTAL_NAVY} strokeWidth={2}   dot={false} isAnimationActive animationDuration={400} />
+                <Line type="monotone" dataKey="forecast" stroke={CORAL}      strokeWidth={2}   dot={false} strokeDasharray="5 4" isAnimationActive animationDuration={400} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -496,38 +796,70 @@ export default function DashboardPage({ onNavigate }: Props) {
           <p className={EYEBROW} style={eyebrowStyle}>Segments</p>
           <h2 className="mt-1.5 text-[16px] font-bold tracking-tight" style={{ color: INK }}>Attainment</h2>
           <ul className="mt-6 space-y-5">
-            {SEGMENT_ROWS.map((s) => (
-              <li key={s.key} data-testid={`seg-row-${s.key.toLowerCase().replace(/\s+/g, '-')}`}>
-                <div className="flex items-center justify-between text-[13px]">
-                  <span className="flex items-center gap-2">
-                    <i className="h-2.5 w-2.5 rounded-full" style={{ background: s.c }} />
-                    <b className="font-semibold text-neutral-800">{s.key}</b>
-                  </span>
-                  <b style={{ ...TABULAR, color: INK }}>{s.pct}%</b>
-                </div>
-                <div className="mt-2 h-[5px] w-full overflow-hidden rounded-full" style={{ background: TRACK }}>
-                  <span className="block h-full rounded-full" style={{ width: `${s.pct}%`, background: s.c }} />
-                </div>
-                <div className="mt-1.5 flex items-center justify-between text-[11.5px] text-neutral-500" style={TABULAR}>
-                  <span>{fmtM(s.cur)}</span>
-                  <span>of {fmtM(s.tgt)}</span>
-                </div>
-              </li>
-            ))}
+            {SEGMENT_ROWS.map((s) => {
+              const active = highlightSegRow(s.key);
+              return (
+                <li
+                  key={s.key}
+                  data-testid={`seg-row-${s.key.toLowerCase().replace(/\s+/g, '-')}`}
+                  style={{
+                    opacity: active ? 1 : 0.4,
+                    transition: 'opacity 250ms ease, box-shadow 200ms ease',
+                    padding: !isAll && s.key === seg ? '10px' : '0',
+                    margin: !isAll && s.key === seg ? '-10px' : '0',
+                    borderRadius: 12,
+                    outline: !isAll && s.key === seg ? `1px solid ${CORAL}` : 'none',
+                    outlineOffset: 0,
+                  }}
+                >
+                  <div className="flex items-center justify-between text-[13px]">
+                    <span className="flex items-center gap-2">
+                      <i className="h-2.5 w-2.5 rounded-full" style={{ background: s.c }} />
+                      <b className="font-semibold text-neutral-800">{s.key}</b>
+                    </span>
+                    <b style={{ ...TABULAR, color: INK }}>{s.pct}%</b>
+                  </div>
+                  <div className="mt-2 h-[5px] w-full overflow-hidden rounded-full" style={{ background: TRACK }}>
+                    <span
+                      className="block h-full rounded-full"
+                      style={{ width: `${s.pct}%`, background: s.c, transition: BAR_TRANS }}
+                    />
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-[11.5px] text-neutral-500" style={TABULAR}>
+                    <span>{fmtM(s.cur)}</span>
+                    <span>of {fmtM(s.tgt)}</span>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </section>
 
-      {/* ── Section 5: Channel Mix (2 donuts) ───────────────────────── */}
-      <section className="grid grid-cols-1 gap-8 lg:grid-cols-2" data-testid="channel-mix">
-        <Donut title="All Channels" headerRight="% of Net Sales YTD" data={DONUT_ALL} testId="donut-all" />
-        <Donut title="B2B Combined" headerRight="% of Net Sales YTD" data={DONUT_B2B} testId="donut-b2b" />
+      {/* ── Section 5: Channel Mix ──────────────────────────────────── */}
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-2" style={enter(4)} data-testid="channel-mix">
+        <InteractiveDonut
+          title="All Channels"
+          headerRight="% of Net Sales YTD"
+          data={DONUT_ALL}
+          testId="donut-all"
+          emphasizeName={emphasizeName}
+          centerTitle="YTD"
+        />
+        <InteractiveDonut
+          title="B2B Combined"
+          headerRight="% of Net Sales YTD"
+          data={DONUT_B2B}
+          testId="donut-b2b"
+          emphasizeName={emphasizeB2B}
+          centerTitle="YTD"
+        />
       </section>
 
       {/* ── Section 6: Sales vs Goal ────────────────────────────────── */}
       <section
         className="rounded-3xl bg-white p-8"
-        style={{ border: `1px solid ${BORDER}` }}
+        style={{ border: `1px solid ${BORDER}`, ...enter(5) }}
         data-testid="sales-vs-goal"
       >
         <div className="flex flex-wrap items-start justify-between gap-6">
@@ -537,7 +869,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             <div className="mt-3 flex items-center gap-2">
               <button
                 data-testid="svg-export-excel"
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
+                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold text-neutral-600 transition hover:text-neutral-900"
                 style={{ border: `1px solid transparent` }}
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = BORDER)}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
@@ -558,32 +890,30 @@ export default function DashboardPage({ onNavigate }: Props) {
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3 md:gap-x-8" data-testid="svg-kpis">
             <div className="text-right">
               <p className={EYEBROW} style={eyebrowStyle}>Net Sales YTD</p>
-              <p className="mt-1.5 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: INK }}>$17.51M</p>
+              <p className="mt-1.5 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.net)}</p>
             </div>
             <span className="hidden h-6 w-px md:block" style={{ background: BORDER }} aria-hidden="true" />
             <div className="text-right">
               <p className={EYEBROW} style={eyebrowStyle}>Goal YTD</p>
-              <p className="mt-1.5 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: INK }}>$19.69M</p>
+              <p className="mt-1.5 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.goal)}</p>
             </div>
             <span className="hidden h-6 w-px md:block" style={{ background: BORDER }} aria-hidden="true" />
             <div className="text-right">
               <p className={EYEBROW} style={eyebrowStyle}>Variance</p>
-              <p className="mt-1.5 text-[20px] font-bold tracking-tight text-rose-600" style={TABULAR}>-$2.17M</p>
+              <p className="mt-1.5 text-[20px] font-bold tracking-tight text-rose-600" style={TABULAR}>{fmtM(svgTotalScaled.variance)}</p>
             </div>
             <span className="hidden h-6 w-px md:block" style={{ background: BORDER }} aria-hidden="true" />
             <div className="text-right">
               <p className={EYEBROW} style={eyebrowStyle}>% to Goal</p>
-              <p className="mt-1.5 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: CORAL }}>89%</p>
+              <p className="mt-1.5 text-[20px] font-bold tracking-tight" style={{ ...TABULAR, color: CORAL }}>{svgTotalScaled.pct}%</p>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="mt-6" data-testid="svg-tabs-wrap">
-          <SegTabs tabs={['By Class', 'By Month']} value={svgTab} onChange={setSvgTab} testId="svg-tabs" slugPrefix="svg-tab" />
+          <SegTabs tabs={['By Class', 'By Month']} value={svgTab} onChange={(v: any) => setSvgTab(v)} testId="svg-tabs" slugPrefix="svg-tab" />
         </div>
 
-        {/* Table */}
         <div className="mt-4 overflow-x-auto">
           <div
             className={`grid grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 pb-2.5 ${EYEBROW}`}
@@ -596,12 +926,13 @@ export default function DashboardPage({ onNavigate }: Props) {
             <span>% to Goal</span>
             <span className="text-right">Annual Goal</span>
           </div>
-          {SVG_ROWS.map((r) => (
+          {svgVisibleRows.map((r) => (
             <div
               key={r.name}
-              className="grid grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 py-4 text-[13px] last:border-b-0 hover:bg-neutral-50/60"
+              className="grid grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 py-4 text-[13px] transition-colors hover:bg-[rgba(15,17,20,0.02)]"
               style={{ borderBottom: `1px solid ${BORDER}` }}
               data-testid={`svg-row-${r.name.toLowerCase().replace(/\s+/g, '-')}`}
+              title={`${r.pct}% to goal (${fmtM(r.net)} of ${fmtM(r.goal)})`}
             >
               <span className="flex min-w-0 items-center gap-2">
                 <i className="h-2.5 w-2.5 rounded-full" style={{ background: r.c }} />
@@ -614,7 +945,11 @@ export default function DashboardPage({ onNavigate }: Props) {
                 <span className="relative h-[6px] flex-1 overflow-hidden rounded-full" style={{ background: TRACK }}>
                   <span
                     className="absolute left-0 top-0 h-full rounded-full"
-                    style={{ width: `${r.pct}%`, background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)` }}
+                    style={{
+                      width: `${r.pct}%`,
+                      background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)`,
+                      transition: BAR_TRANS,
+                    }}
                   />
                 </span>
                 <b className="w-10 text-right text-[12px] font-bold" style={{ ...TABULAR, color: CORAL }}>{r.pct}%</b>
@@ -622,32 +957,35 @@ export default function DashboardPage({ onNavigate }: Props) {
               <span className="text-right text-neutral-700" style={TABULAR}>{fmtM(r.annual)}</span>
             </div>
           ))}
-          {/* Total row */}
           <div
             className="grid grid-cols-[minmax(180px,1.4fr)_120px_110px_110px_minmax(160px,1.2fr)_120px] items-center gap-x-4 py-4 text-[13.5px] font-bold"
             style={{ borderTop: `2px solid ${BORDER}` }}
             data-testid="svg-total-row"
           >
             <span style={{ color: INK }}>Total</span>
-            <b className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(SVG_TOTAL.net)}</b>
-            <span className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(SVG_TOTAL.goal)}</span>
-            <span className="text-right text-rose-600" style={TABULAR}>{fmtM(SVG_TOTAL.variance)}</span>
+            <b className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.net)}</b>
+            <span className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.goal)}</span>
+            <span className="text-right text-rose-600" style={TABULAR}>{fmtM(svgTotalScaled.variance)}</span>
             <span className="flex items-center gap-3">
               <span className="relative h-[6px] flex-1 overflow-hidden rounded-full" style={{ background: TRACK }}>
                 <span
                   className="absolute left-0 top-0 h-full rounded-full"
-                  style={{ width: `${SVG_TOTAL.pct}%`, background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)` }}
+                  style={{
+                    width: `${svgTotalScaled.pct}%`,
+                    background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_LIGHT} 100%)`,
+                    transition: BAR_TRANS,
+                  }}
                 />
               </span>
-              <b className="w-10 text-right text-[12px]" style={{ ...TABULAR, color: CORAL }}>{SVG_TOTAL.pct}%</b>
+              <b className="w-10 text-right text-[12px]" style={{ ...TABULAR, color: CORAL }}>{svgTotalScaled.pct}%</b>
             </span>
-            <span className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(SVG_TOTAL.annual)}</span>
+            <span className="text-right" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.annual)}</span>
           </div>
         </div>
       </section>
 
       {/* ── Section 7: Top Accounts + Top Items ─────────────────────── */}
-      <section className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-2" style={enter(6)}>
         {/* Top Accounts */}
         <div
           className="rounded-3xl bg-white p-8"
@@ -665,10 +1003,11 @@ export default function DashboardPage({ onNavigate }: Props) {
             {TOP_ACCOUNTS.map((a, i) => {
               const share = (a.net / topAcctMax) * 100;
               const isFirst = i === 0;
+              const stroke = a.trend === 'up' ? '#10B981' : '#F43F5E';
               return (
                 <li
                   key={a.name}
-                  className="grid grid-cols-[22px_minmax(0,1fr)_auto_auto] items-center gap-3 -mx-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(15,17,20,0.02)]"
+                  className="grid grid-cols-[22px_minmax(0,1fr)_72px_auto_auto] items-center gap-3 -mx-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(15,17,20,0.02)]"
                   data-testid={`top-acct-${i}`}
                 >
                   <span
@@ -682,10 +1021,15 @@ export default function DashboardPage({ onNavigate }: Props) {
                     <div className="mt-1.5 h-[4px] w-full overflow-hidden rounded-full" style={{ background: TRACK }}>
                       <span
                         className="block h-full rounded-full"
-                        style={{ width: `${share}%`, background: `linear-gradient(90deg, ${INK} 0%, ${CORAL} 100%)` }}
+                        style={{
+                          width: `${share}%`,
+                          background: `linear-gradient(90deg, ${INK} 0%, ${CORAL} 100%)`,
+                          transition: BAR_TRANS,
+                        }}
                       />
                     </div>
                   </div>
+                  <Spark data={a.spark} stroke={stroke} gradId={`spark-acct-${i}`} width={72} height={20} />
                   <b className="text-right text-[13.5px]" style={{ ...TABULAR, color: INK }}>{fmtM(a.net)}</b>
                   <DeltaPill v={a.yoy} />
                 </li>
@@ -732,7 +1076,11 @@ export default function DashboardPage({ onNavigate }: Props) {
                     <div className="mt-1.5 h-[4px] w-full overflow-hidden rounded-full" style={{ background: TRACK }}>
                       <span
                         className="block h-full rounded-full"
-                        style={{ width: `${share}%`, background: `linear-gradient(90deg, ${INK} 0%, ${CORAL} 100%)` }}
+                        style={{
+                          width: `${share}%`,
+                          background: `linear-gradient(90deg, ${INK} 0%, ${CORAL} 100%)`,
+                          transition: BAR_TRANS,
+                        }}
                       />
                     </div>
                   </div>
