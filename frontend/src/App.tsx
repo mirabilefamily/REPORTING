@@ -20,6 +20,7 @@ import {
   Search,
   Settings,
   Shield,
+  Sparkles,
   Target,
   TrendingUp,
   User,
@@ -242,6 +243,15 @@ function StaffApp() {
             )}
           </div>
           <div className="top-actions">
+            <button
+              className="topbar-ai-btn"
+              onClick={() => { /* placeholder — no-op */ }}
+              aria-label="AI Assist"
+              data-testid="ai-assist-btn"
+            >
+              <Sparkles size={13} style={{ color: '#FC7460' }} />
+              <span>AI Assist</span>
+            </button>
             <div className="notification-wrap">
               <button className="icon-button notification-button" onClick={() => { setNotificationsOpen(!notificationsOpen); setUserMenuOpen(false); }} aria-label="Notifications" aria-expanded={notificationsOpen} aria-haspopup="dialog" data-testid="notifications-button"><Bell size={17} />{!notificationDismissed && <span className="notification-dot" />}</button>
               {notificationsOpen && (

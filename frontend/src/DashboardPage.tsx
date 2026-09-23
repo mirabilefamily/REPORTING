@@ -1,311 +1,491 @@
 import { useMemo, useState } from 'react';
 import {
-  Area,
-  AreaChart,
   Bar,
   CartesianGrid,
+  Cell,
   ComposedChart,
   Line,
-  ReferenceLine,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
-import { ArrowUpRight, ChevronDown, Download, Info, Layers, MoveDownRight, MoveUpRight, Search, ShoppingBag, Target, TrendingUp } from 'lucide-react';
-import './ops.css';
-import './dashboard.css';
+import {
+  ArrowDown,
+  ArrowUp,
+  Command,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Search,
+  Sparkles,
+} from 'lucide-react';
 
-type Props = { name?: string; onNavigate: (label: string) => void };
-type Seg = 'all' | 'us' | 'dist';
+type Props = { name?: string; onNavigate?: (label: string) => void };
 
-const fmtFull = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
-const compact = (n: number) => {
+const CORAL = '#FC7460';
+const CORAL_SOFT = '#FF9678';
+const CHANNEL: Record<string, string> = {
+  us: '#16A37A',
+  dist: '#3B6EF6',
+  retail: '#F59F00',
+  ecom: '#A855F7',
+  amazon: '#EC4899',
+};
+const SEG_TABS = ['All', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'];
+
+const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
+const usdM = (n: number) => {
   const a = Math.abs(n);
-  if (a >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
-  if (a >= 1e3) return `$${(n / 1e3).toFixed(1)}K`;
-  return `$${Math.round(n)}`;
+  if (a >= 1e6) return `${n < 0 ? '-' : ''}$${(a / 1e6).toFixed(2)}M`;
+  if (a >= 1e3) return `${n < 0 ? '-' : ''}$${Math.round(a / 1e3)}K`;
+  return `${n < 0 ? '-' : ''}$${Math.round(a)}`;
 };
 
-const HEADER: Record<Seg, { invoiced: number; delta: number; open: number; total: number; forecast: number; goalPct: number; goalCur: number; goalTarget: number; pace: number }> = {
-  all: { invoiced: 11_572_416, delta: -14.7, open: 9_200_000, total: 20_700_000, forecast: 17_300_000, goalPct: 67, goalCur: 11_600_000, goalTarget: 17_300_000, pace: 75 },
-  us: { invoiced: 6_412_880, delta: -9.2, open: 5_100_000, total: 11_500_000, forecast: 9_400_000, goalPct: 72, goalCur: 6_400_000, goalTarget: 8_900_000, pace: 75 },
-  dist: { invoiced: 5_159_536, delta: -21.4, open: 4_100_000, total: 9_200_000, forecast: 7_900_000, goalPct: 61, goalCur: 5_100_000, goalTarget: 8_400_000, pace: 75 },
-};
+// ─── Revenue by month (mock) ────────────────────────────────────────────────
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const monthly = MONTHS.map((m, i) => {
+  const usB = [820, 940, 780, 990, 1_120, 1_180, 1_240, 1_190, 720, 0, 0, 0][i] * 1000;
+  const distB = [640, 700, 590, 780, 860, 940, 980, 890, 620, 0, 0, 0][i] * 1000;
+  const retB = [40, 45, 38, 52, 60, 66, 72, 68, 45, 0, 0, 0][i] * 1000;
+  const ecomB = [520, 540, 460, 620, 690, 760, 810, 770, 520, 0, 0, 0][i] * 1000;
+  const amzB = [86, 92, 78, 108, 120, 130, 138, 128, 84, 0, 0, 0][i] * 1000;
+  const openO = i >= 9 ? [0, 0, 0, 0, 0, 0, 0, 0, 0, 2_640_000, 3_120_000, 3_180_000][i] : 0;
+  const total = usB + distB + retB + ecomB + amzB + openO;
+  const forecast = [2_150_000, 2_360_000, 1_960_000, 2_580_000, 2_870_000, 3_100_000, 3_260_000, 3_060_000, 2_050_000, 2_720_000, 3_180_000, 3_260_000][i];
+  return { m, us: usB, dist: distB, retail: retB, ecom: ecomB, amazon: amzB, open: openO, total, forecast };
+});
 
-const SEG_LABELS: { id: Seg; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'us', label: 'US Wholesale' },
-  { id: 'dist', label: 'Distributors' },
+// ─── Channel mix (donut) ────────────────────────────────────────────────────
+const channelMix = [
+  { k: 'US Wholesale', v: 6_480_000, pct: 37.0, c: CHANNEL.us },
+  { k: 'Distributors', v: 5_240_000, pct: 29.9, c: CHANNEL.dist },
+  { k: 'Ecommerce', v: 4_550_000, pct: 26.0, c: CHANNEL.ecom },
+  { k: 'Amazon', v: 785_000, pct: 4.5, c: CHANNEL.amazon },
+  { k: 'Retail', v: 462_000, pct: 2.6, c: CHANNEL.retail },
+];
+const channelMixB2B = [
+  { k: 'B2B', v: 11_720_000, pct: 66.9, c: CHANNEL.us },
+  { k: 'Ecommerce', v: 4_550_000, pct: 26.0, c: CHANNEL.ecom },
+  { k: 'Amazon', v: 785_000, pct: 4.5, c: CHANNEL.amazon },
+  { k: 'Retail', v: 462_000, pct: 2.6, c: CHANNEL.retail },
 ];
 
-type MRow = { m: string; invoiced: number; open: number; forecast: number; total: number };
-const buildMonths = (scale: number): MRow[] => {
-  const base = [
-    { m: 'Jan', invoiced: 1_010_000, open: 0, forecast: 1_010_000 },
-    { m: 'Feb', invoiced: 1_555_000, open: 0, forecast: 1_500_000 },
-    { m: 'Mar', invoiced: 850_000, open: 0, forecast: 900_000 },
-    { m: 'Apr', invoiced: 1_150_000, open: 0, forecast: 1_120_000 },
-    { m: 'May', invoiced: 1_100_000, open: 6_400, forecast: 1_110_000 },
-    { m: 'Jun', invoiced: 1_255_000, open: 0, forecast: 1_170_000 },
-    { m: 'Jul', invoiced: 1_300_000, open: 0, forecast: 2_180_000 },
-    { m: 'Aug', invoiced: 1_300_000, open: 0, forecast: 1_520_000 },
-    { m: 'Sep', invoiced: 905_000, open: 0, forecast: 860_000 },
-    { m: 'Oct', invoiced: 0, open: 1_010_000, forecast: 1_020_000 },
-    { m: 'Nov', invoiced: 0, open: 2_240_000, forecast: 1_610_000 },
-    { m: 'Dec', invoiced: 0, open: 1_920_000, forecast: 2_520_000 },
-  ];
-  return base.map((r) => ({ ...r, invoiced: r.invoiced * scale, open: r.open * scale, forecast: r.forecast * scale, total: (r.invoiced + r.open) * scale }));
-};
-
-const SEGMENTS = [
-  { key: 'us', name: 'US Wholesale', color: '#16a37a', invoiced: 6_400_000, goal: 8_900_000, pct: 72, share: 55 },
-  { key: 'dist', name: 'Distributors', color: '#3b6ef6', invoiced: 5_100_000, goal: 8_400_000, pct: 61, share: 45 },
+// ─── Segments panel ─────────────────────────────────────────────────────────
+const segments = [
+  { name: 'US Wholesale', pct: 71, cur: 6_480_000, target: 9_180_000, color: CHANNEL.us },
+  { name: 'Distributors', pct: 62, cur: 5_240_000, target: 8_410_000, color: CHANNEL.dist },
+  { name: 'Retail', pct: 72, cur: 462_000, target: 640_000, color: CHANNEL.retail },
+  { name: 'Ecommerce', pct: 68, cur: 4_550_000, target: 6_730_000, color: CHANNEL.ecom },
+  { name: 'Amazon', pct: 77, cur: 785_000, target: 1_020_000, color: CHANNEL.amazon },
 ];
 
+// ─── Sales vs Goal ──────────────────────────────────────────────────────────
+const svg = [
+  { cls: 'US Wholesale', ytd: 6_480_000, goalYtd: 7_580_000, annual: 9_180_000 },
+  { cls: 'Distributors', ytd: 5_240_000, goalYtd: 5_758_000, annual: 8_410_000 },
+  { cls: 'Retail', ytd: 462_000, goalYtd: 484_000, annual: 640_000 },
+  { cls: 'Ecommerce', ytd: 4_550_000, goalYtd: 5_044_000, annual: 6_730_000 },
+  { cls: 'Amazon', ytd: 785_000, goalYtd: 827_000, annual: 1_020_000 },
+];
+const svgTotal = svg.reduce((a, r) => ({ ytd: a.ytd + r.ytd, goalYtd: a.goalYtd + r.goalYtd, annual: a.annual + r.annual }), { ytd: 0, goalYtd: 0, annual: 0 });
 
-type Acct = { id: string; name: string; segment: 'US Wholesale' | 'Distributors'; strategic?: boolean; invoiced: number; open: number; total: number; goal: number; vsGoal: number; yoy: number; priorYear: number; priorYtd: number };
-const ACCOUNTS: Acct[] = [
-  { id: 'lids', name: 'Lids', segment: 'US Wholesale', strategic: true, invoiced: 2_700_000, open: 1_744_320, total: 4_460_373, goal: 3_000_000, vsGoal: 48.7, yoy: -20.1, priorYear: 4_683_724, priorYtd: 3_400_000 },
-  { id: 'sasa', name: 'SASAtrend', segment: 'Distributors', strategic: true, invoiced: 1_400_000, open: 860_300, total: 2_200_000, goal: 2_200_000, vsGoal: 1.3, yoy: -10.4, priorYear: 2_460_000, priorYtd: 1_560_000 },
-  { id: 'buckle', name: 'Buckle Inc., The', segment: 'US Wholesale', strategic: true, invoiced: 616_600, open: 726_000, total: 1_300_000, goal: 1_000_000, vsGoal: 32.7, yoy: -54.8, priorYear: 1_365_000, priorYtd: 1_365_000 },
-  { id: 'dtlr', name: 'DTLR Inc.', segment: 'US Wholesale', invoiced: 569_400, open: 705_000, total: 1_300_000, goal: 810_000, vsGoal: 57.3, yoy: 267.7, priorYear: 346_000, priorYtd: 154_800 },
-  { id: '313srl', name: '313 SRL VAT 04640850238', segment: 'Distributors', invoiced: 603_800, open: 691_700, total: 1_300_000, goal: 1_800_000, vsGoal: -29.1, yoy: -11.3, priorYear: 1_460_000, priorYtd: 680_000 },
-  { id: 'mercury', name: 'Industrias Mercury, S.A.', segment: 'Distributors', invoiced: 1_000_000, open: 524_100, total: 1_600_000, goal: 1_100_000, vsGoal: 37.8, yoy: 62.6, priorYear: 984_000, priorYtd: 615_000 },
-  { id: 'fibelock', name: 'Fibelock Mills SA (Energy Brands)', segment: 'Distributors', invoiced: 508_600, open: 416_600, total: 925_100, goal: 514_100, vsGoal: 80.0, yoy: 57.6, priorYear: 587_000, priorYtd: 323_000 },
-  { id: 'gardea', name: 'Grupo Gardea SA DE CV', segment: 'Distributors', invoiced: 362_200, open: 365_400, total: 727_600, goal: 698_100, vsGoal: 4.2, yoy: 13.2, priorYear: 643_000, priorYtd: 320_000 },
-  { id: 'petek', name: 'Petek Tekstil San. VE Tc. A.S.', segment: 'Distributors', invoiced: 240_200, open: 335_500, total: 575_700, goal: 540_200, vsGoal: 6.6, yoy: -62.2, priorYear: 635_000, priorYtd: 635_000 },
-  { id: 'nordstrom', name: 'Nordstrom Accounts Payable', segment: 'US Wholesale', invoiced: 726_500, open: 298_000, total: 1_024_500, goal: 1_200_000, vsGoal: -14.6, yoy: -19.6, priorYear: 1_274_000, priorYtd: 903_000 },
-  { id: 'manhattan', name: 'Manhattan International Concepts Inc', segment: 'US Wholesale', invoiced: 210_400, open: 188_000, total: 398_400, goal: 360_000, vsGoal: 10.7, yoy: 8.4, priorYear: 367_000, priorYtd: 194_000 },
-  { id: 'zumiez', name: 'Zumiez Services LLC', segment: 'US Wholesale', invoiced: 184_900, open: 142_600, total: 327_500, goal: 420_000, vsGoal: -22.0, yoy: -4.1, priorYear: 341_000, priorYtd: 192_000 },
+// ─── Top Accounts / Top Items ───────────────────────────────────────────────
+const topAccts = [
+  { rank: 1, name: 'Lids', ytd: 2_720_000, delta: -24.8 },
+  { rank: 2, name: 'SASAtrend', ytd: 1_460_000, delta: -4.7 },
+  { rank: 3, name: 'Industrias Mercury, S.A.', ytd: 1_030_000, delta: 53.7 },
+  { rank: 4, name: 'Nordstrom Accounts Payable', ytd: 726_000, delta: -20.2 },
+  { rank: 5, name: 'Buckle Inc., The', ytd: 617_000, delta: -54.8 },
+];
+const topItems = [
+  { rank: 1, name: 'Panther Trucker', variant: 'Void · One Size', sku: '101-2450-VOI01-O/S', rev: 287_000, units: 25_132 },
+  { rank: 2, name: 'Suede Black Panther', variant: 'Dust / Void · One Size', sku: '101-2961-DUS02-O/S', rev: 120_000, units: 7_957 },
+  { rank: 3, name: 'Black Sheep Trucker', variant: 'Void · One Size', sku: '101-2457-VOI01-O/S', rev: 111_000, units: 7_521 },
+  { rank: 4, name: 'Suede Colorful Rooster', variant: 'Dust White / Void Black · One Size', sku: '101-3849-WHT02/BLK01-O/S', rev: 103_000, units: 6_058 },
+  { rank: 5, name: 'The Alpha Dog', variant: 'Void · One Size', sku: '101-1666-VOI01-O/S', rev: 77_000, units: 4_826 },
 ];
 
-const TOP5 = new Set([...ACCOUNTS].sort((a, b) => b.invoiced - a.invoiced).slice(0, 5).map((a) => a.id));
-const SORTED = [...ACCOUNTS].sort((a, b) => b.invoiced - a.invoiced);
-const initials = (name: string) => {
-  const parts = name.replace(/[^A-Za-z ]/g, '').trim().split(/\s+/).filter(Boolean);
-  return ((parts[0]?.[0] ?? name[0]) + (parts[1]?.[0] ?? '')).toUpperCase();
-};
-
-function Delta({ v, size = 13 }: { v: number; size?: number }) {
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function DeltaPill({ v }: { v: number }) {
   const up = v >= 0;
-  return <span className={`rv-yoy ${up ? 'up' : 'down'}`}>{up ? <MoveUpRight size={size} /> : <MoveDownRight size={size} />}{Math.abs(v).toFixed(1)}%</span>;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${up ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+      {up ? <ArrowUp size={11} /> : <ArrowDown size={11} />}{Math.abs(v).toFixed(1)}%
+    </span>
+  );
 }
 
-
-function RevTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  const row = payload[0].payload as MRow;
-  const items = [
-    { k: 'Invoiced', v: row.invoiced, c: '#0f8a66' },
-    { k: 'Open orders', v: row.open, c: '#3ecfb0' },
-    { k: 'Total', v: row.total, c: '#1e3a8a' },
-  ];
+function SmallDeltaPill({ v }: { v: number }) {
+  const up = v >= 0;
   return (
-    <div className="rv-tip" data-testid="revenue-tooltip">
-      <p className="rv-tip-h">{label.toUpperCase()}</p>
-      {items.map((it) => (
-        <div className="rv-tip-row" key={it.k}><span><i style={{ background: it.c }} />{it.k}</span><b>{compact(it.v)}</b></div>
-      ))}
+    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${up ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+      {up ? <ArrowUp size={10} /> : <ArrowDown size={10} />}{Math.abs(v).toFixed(1)}%
+    </span>
+  );
+}
+
+function HeroKpi({ label, value, delta, caption, coralAccent = false, testId }: { label: string; value: string; delta?: number; caption?: string; coralAccent?: boolean; testId?: string }) {
+  return (
+    <div className="min-w-0" data-testid={testId}>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-neutral-500">{label}</p>
+      <div className="mt-2 flex items-center gap-2">
+        <span className="text-[26px] font-bold leading-none text-white">{value}</span>
+        {delta !== undefined && <DeltaPill v={delta} />}
+      </div>
+      {coralAccent && <span className="mt-2 block h-[3px] w-14 rounded-full" style={{ background: `linear-gradient(90deg, ${CORAL}, ${CORAL_SOFT})` }} />}
+      {caption && <p className="mt-2 text-[11px] leading-snug text-neutral-500">{caption}</p>}
     </div>
   );
 }
 
-const RANGES: { id: 'ytd' | '12m' | 'q'; label: string }[] = [
-  { id: 'ytd', label: 'YTD' },
-  { id: '12m', label: '12M' },
-  { id: 'q', label: 'Quarter' },
-];
+// ─── Custom tooltip ────────────────────────────────────────────────────────
+function ChartTip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0].payload;
+  const parts = [
+    { k: 'US Wholesale', v: row.us, c: CHANNEL.us },
+    { k: 'Distributors', v: row.dist, c: CHANNEL.dist },
+    { k: 'Retail', v: row.retail, c: CHANNEL.retail },
+    { k: 'Ecommerce', v: row.ecom, c: CHANNEL.ecom },
+    { k: 'Amazon', v: row.amazon, c: CHANNEL.amazon },
+    { k: 'Open Orders', v: row.open, c: '#94a3b8' },
+  ].filter((p) => p.v > 0);
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-3 text-xs shadow-lg">
+      <p className="mb-1.5 font-semibold text-neutral-900">{label}</p>
+      {parts.map((p) => (
+        <div key={p.k} className="flex items-center gap-2 py-0.5"><i className="inline-block h-2 w-2 rounded-full" style={{ background: p.c }} /><span className="text-neutral-600 flex-1">{p.k}</span><b className="text-neutral-900">{usdM(p.v)}</b></div>
+      ))}
+      <div className="mt-1.5 flex items-center gap-2 border-t border-neutral-100 pt-1.5"><span className="text-neutral-600 flex-1">Total</span><b className="text-neutral-900">{usdM(row.total)}</b></div>
+    </div>
+  );
+}
 
-export default function DashboardPage({ onNavigate }: Props) {
-  const [seg, setSeg] = useState<Seg>('all');
-  const [range, setRange] = useState<'ytd' | '12m' | 'q'>('12m');
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const h = HEADER[seg];
-  const scale = seg === 'all' ? 1 : seg === 'us' ? 0.56 : 0.44;
-  const allMonths = useMemo(() => buildMonths(scale), [scale]);
-  const months = useMemo(() => (range === 'ytd' ? allMonths.slice(0, 9) : range === 'q' ? allMonths.slice(9) : allMonths), [allMonths, range]);
-  const chartMax = useMemo(() => Math.ceil(Math.max(...months.map((m) => Math.max(m.total, m.forecast, m.invoiced))) / 1_250_000) * 1_250_000, [months]);
-  
-  const rows = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q ? SORTED.filter((a) => a.name.toLowerCase().includes(q) || a.segment.toLowerCase().includes(q)) : SORTED;
-  }, [query]);
+// ─── Page ───────────────────────────────────────────────────────────────────
+export default function DashboardPage({ name = 'Ryan' }: Props) {
+  const [seg, setSeg] = useState('All');
+  const [svgMode, setSvgMode] = useState<'class' | 'month'>('class');
+  const topA = Math.max(...topAccts.map((a) => a.ytd));
+  const topI = Math.max(...topItems.map((a) => a.rev));
 
-  const exportCsv = () => {
-    const rowsCsv = months.map((m) => [m.m, m.invoiced, m.open, m.total, m.forecast].map(Math.round).join(','));
-    const blob = new Blob([['Month,Invoiced,Open,Total,Forecast', ...rowsCsv].join('\n')], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'goorin-revenue-by-month.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
-
-  const kpis = [
-    { k: 'Open orders', v: h.open, cap: 'booked, not yet invoiced', icon: <ShoppingBag size={16} />, testid: 'rv-tile-open' },
-    { k: 'Total', v: h.total, cap: 'invoiced + open orders', icon: <Layers size={16} />, testid: 'rv-tile-total' },
-    { k: 'Forecast', v: h.forecast, cap: 'full-year projection', icon: <TrendingUp size={16} />, testid: 'rv-tile-forecast' },
-  ];
-  const gap = h.goalPct - h.pace;
+  const netYtd = 9_166_708;
+  const openOrders = 26_679_135;
+  const total = 35_845_843;
+  const forecast = 25_980_800;
+  const goalCur = 17_510_000;
+  const goalTarget = 25_980_800;
+  const goalPct = Math.round((goalCur / goalTarget) * 100);
+  const pace = 75;
 
   return (
-    <div className="rv" data-testid="dashboard-page">
-      {/* HERO */}
-      <section className="rv-card rv-hero" data-testid="rv-hero">
-        <div className="rv-hero-left">
-          <div className="rv-hero-top">
-            <p className="rv-eyebrow"><span className="rv-live-dot" />Invoiced revenue · YTD</p>
-            <div className="rv-seg" role="tablist" aria-label="Revenue segment">
-              {SEG_LABELS.map((s) => (
-                <button key={s.id} role="tab" aria-selected={seg === s.id} className={seg === s.id ? 'active' : ''} onClick={() => setSeg(s.id)} data-testid={`rv-seg-${s.id}`}>{s.label}</button>
-              ))}
-            </div>
-          </div>
-          <div className="rv-figure">
-            <strong data-testid="rv-invoiced-ytd">{fmtFull(h.invoiced)}</strong>
-            <span className={`rv-delta ${h.delta >= 0 ? 'up' : 'down'}`} data-testid="rv-invoiced-delta">{h.delta >= 0 ? <MoveUpRight size={14} /> : <MoveDownRight size={14} />}{Math.abs(h.delta)}% vs LY</span>
-          </div>
-          <div className="rv-hero-chart">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={allMonths.slice(0, 9)} margin={{ top: 10, right: 12, left: 12, bottom: 0 }}>
-                <defs><linearGradient id="gHero" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#16a37a" stopOpacity={0.28} /><stop offset="100%" stopColor="#16a37a" stopOpacity={0} /></linearGradient></defs>
-                <XAxis dataKey="m" tickLine={false} axisLine={false} interval={0} tick={{ fill: '#7d8f86', fontSize: 11 }} dy={6} />
-                <Tooltip cursor={{ stroke: '#16a37a', strokeWidth: 1, strokeDasharray: '3 3' }} content={({ active, payload, label }: any) => active && payload?.length ? <div className="rv-tip rv-tip-sm"><p className="rv-tip-h">{label}</p><b>{compact(payload[0].value)}</b></div> : null} />
-                <Area type="monotone" dataKey="invoiced" stroke="#0f8a66" strokeWidth={2.5} fill="url(#gHero)" dot={false} activeDot={{ r: 5, fill: '#0f8a66', stroke: '#fff', strokeWidth: 2 }} isAnimationActive={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <aside className="rv-hero-goal" data-testid="rv-goal-card">
-          <div className="rv-goal-head"><p className="rv-eyebrow">Annual goal</p><span className="rv-goal-pct-big" data-testid="rv-goal-pct">{h.goalPct}%</span></div>
-          <div className="rv-goal-nums">
-            <strong>{compact(h.goalCur)}</strong>
-            <span>of {compact(h.goalTarget)} · {compact(h.goalTarget - h.goalCur)} to go</span>
-          </div>
-          <div className="rv-goal-stack" aria-hidden="true">
-            {SEGMENTS.map((sg) => <i key={sg.key} style={{ width: `${(sg.invoiced / h.goalTarget) * 100}%`, background: sg.color }} />)}
-            <u style={{ left: `${h.pace}%` }}><span>Pace {h.pace}%</span></u>
-          </div>
-          <p className={`rv-goal-status ${gap >= 0 ? 'ok' : 'behind'}`}><i />{gap >= 0 ? `${gap} pts ahead of pace` : `${Math.abs(gap)} pts behind pace`}</p>
-          <div className="rv-goal-split">
-            {SEGMENTS.map((sg) => (
-              <div className="rv-goal-split-row" key={sg.key} data-testid={`rv-segment-${sg.key}`}>
-                <span><i style={{ background: sg.color }} />{sg.name}</span>
-                <b>{compact(sg.invoiced)}</b>
-                <em>{sg.pct}%<small>of goal</small></em>
-              </div>
+    <div className="min-h-full space-y-5 bg-[#F5F6F3] p-6" data-testid="dashboard-page">
+      {/* ── Page header ─────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">Dashboard</h1>
+          <div className="ml-auto flex flex-wrap items-center gap-1 rounded-xl border border-neutral-200 bg-white p-1 shadow-sm" role="tablist" aria-label="Segment">
+            {SEG_TABS.map((t) => (
+              <button key={t} onClick={() => setSeg(t)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${seg === t ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-500 hover:text-neutral-800'}`} data-testid={`seg-tab-${t.toLowerCase().replace(/\s+/g, '-')}`}>{t}</button>
             ))}
           </div>
-        </aside>
-      </section>
+        </div>
+      </div>
 
-      {/* KPI STRIP */}
-      <section className="rv-card rv-strip">
-        {kpis.map((t) => {
-          return (
-            <div className="rv-kpi" key={t.k} data-testid={t.testid}>
-              <div className="rv-kpi-head"><span className="rv-chip">{t.icon}</span><span className="rv-kpi-k">{t.k}</span></div>
-              <div><strong className="rv-kpi-v">{compact(t.v)}</strong><small className="rv-kpi-cap">{t.cap}</small></div>
-            </div>
-          );
-        })}
-      </section>
+      {/* ── Hero KPI card ───────────────────────────────────────────── */}
+      <section className="rounded-2xl p-7 text-white shadow-lg" style={{ background: 'linear-gradient(135deg, #0A0A0A 0%, #141416 60%, #101013 100%)' }} data-testid="hero-card">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-4 md:gap-8">
+          <HeroKpi label="Net Sales YTD" value={usd(netYtd)} delta={25.6} caption="After discounts, returns & tax · shipping included" coralAccent testId="hero-net-sales" />
+          <HeroKpi label="Open Orders" value={usd(openOrders)} caption="Booked, not yet invoiced" testId="hero-open-orders" />
+          <HeroKpi label="Total (Net Sales + Open Orders)" value={usd(total)} caption="Full pipeline" testId="hero-total" />
+          <HeroKpi label="Forecast" value={usd(forecast)} caption="Full-year projection" testId="hero-forecast" />
+        </div>
 
-      {/* MID */}
-      <div className="rv-mid">
-        <section className="rv-card rv-chart-card" data-testid="rv-chart-card">
-          <div className="rv-card-head">
-            <div className="rv-card-title">
-              <h2>Revenue by month</h2>
-              <div className="rv-range" role="tablist" aria-label="Chart range">
-                {RANGES.map((r) => <button key={r.id} className={range === r.id ? 'active' : ''} onClick={() => setRange(r.id)} data-testid={`rv-range-${r.id}`}>{r.label}</button>)}
-              </div>
+        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-[1.4fr_1fr] md:items-end">
+          <div>
+            <div className="flex items-baseline gap-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">Annual Goal Progress</p>
             </div>
-            <div className="rv-head-right">
-              <div className="rv-legend">
-                <span><i className="dot" style={{ background: '#0f8a66' }} />Invoiced</span>
-                <span><i className="dot" style={{ background: '#3ecfb0' }} />Open orders</span>
-                <span><i className="line" style={{ background: '#1e3a8a' }} />Total</span>
-              </div>
-              <button className="rv-export" onClick={exportCsv} data-testid="rv-export-btn"><Download size={15} /> Export</button>
+            <div className="mt-2 flex items-baseline gap-3">
+              <strong className="text-4xl font-bold leading-none">{goalPct}%</strong>
+              <span className="text-sm text-neutral-400">{usdM(goalCur)} of {usdM(goalTarget)}</span>
+            </div>
+            <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-white/10" data-testid="hero-progress">
+              <div className="h-full rounded-full" style={{ width: `${goalPct}%`, background: `linear-gradient(90deg, ${CORAL} 0%, ${CORAL_SOFT} 100%)`, boxShadow: `0 0 12px ${CORAL}55` }} />
             </div>
           </div>
-          <div className="rv-chart" data-testid="rv-chart">
+          <div className="flex flex-wrap items-center gap-3 md:justify-end">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-300">Behind pace</span>
+            <span className="inline-flex items-center gap-1.5 text-xs text-neutral-400"><i className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Pace {pace}%</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── AI Assist strip ─────────────────────────────────────────── */}
+      <section className="flex items-center gap-4 rounded-2xl border border-neutral-200 bg-white px-5 py-4 shadow-sm" data-testid="ai-strip">
+        <span className="relative grid h-10 w-10 place-items-center rounded-full text-white" style={{ background: `linear-gradient(135deg, ${CORAL} 0%, ${CORAL_SOFT} 100%)`, boxShadow: `0 6px 18px ${CORAL}55` }}>
+          <Sparkles size={18} />
+          <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-white ai-pulse" />
+        </span>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-neutral-900">Claude is analyzing your data…</p>
+          <p className="text-xs text-neutral-500">Coral trends detected in Distributor segment. Insight ready in a moment.</p>
+        </div>
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">Live</span>
+        <style>{`@keyframes aip { 0%,100%{opacity:.35;transform:scale(1)} 50%{opacity:1;transform:scale(1.35)} } .ai-pulse{animation:aip 1.4s ease-in-out infinite}`}</style>
+      </section>
+
+      {/* ── Revenue + Segments ──────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm lg:col-span-2" data-testid="rev-by-month">
+          <div className="mb-4 flex items-start justify-between gap-2">
+            <div>
+              <h2 className="text-base font-semibold text-neutral-900">Revenue by Month</h2>
+              <p className="text-xs text-neutral-500">Stacked channels · total line · dashed forecast</p>
+            </div>
+            <button className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50" data-testid="rev-export"><Download size={13} /> Export</button>
+          </div>
+          <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-neutral-600">
+            <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full" style={{ background: CHANNEL.us }} />US Wholesale</span>
+            <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full" style={{ background: CHANNEL.dist }} />Distributors</span>
+            <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full" style={{ background: CHANNEL.retail }} />Retail</span>
+            <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full" style={{ background: CHANNEL.ecom }} />Ecommerce</span>
+            <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full" style={{ background: CHANNEL.amazon }} />Amazon</span>
+            <span className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-neutral-300" />Open Orders</span>
+            <span className="inline-flex items-center gap-1.5"><i className="inline-block h-[2px] w-4 rounded" style={{ background: '#1e3a8a' }} />Total</span>
+            <span className="inline-flex items-center gap-1.5"><i className="inline-block h-[2px] w-4 rounded" style={{ background: CORAL, backgroundImage: `repeating-linear-gradient(90deg, ${CORAL} 0 4px, transparent 4px 7px)` }} />Forecast</span>
+          </div>
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={months} margin={{ top: 16, right: 8, left: 4, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gInv" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#34b98f" /><stop offset="100%" stopColor="#0b6e50" /></linearGradient>
-                  <linearGradient id="gOpen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6fe3c9" /><stop offset="100%" stopColor="#2bb597" /></linearGradient>
-                  <linearGradient id="gTotal" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1e3a8a" stopOpacity={0.1} /><stop offset="100%" stopColor="#1e3a8a" stopOpacity={0} /></linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} stroke="#edf0ee" />
-                <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fill: '#8a938e', fontSize: 12 }} dy={8} />
-                <YAxis tickFormatter={(v) => compact(v)} tickLine={false} axisLine={false} tick={{ fill: '#a3aaa5', fontSize: 11 }} width={52} domain={[0, chartMax]} />
-                <Tooltip cursor={{ stroke: '#c5ccc8', strokeWidth: 1 }} content={<RevTooltip />} />
-                <Area type="monotone" dataKey="total" stroke="none" fill="url(#gTotal)" isAnimationActive={false} activeDot={false} />
-                <Bar dataKey="invoiced" stackId="rev" fill="url(#gInv)" maxBarSize={32} isAnimationActive={false} />
-                <Bar dataKey="open" stackId="rev" fill="url(#gOpen)" radius={[7, 7, 0, 0]} maxBarSize={32} isAnimationActive={false} />
-                <Line type="monotone" dataKey="total" stroke="#1e3a8a" strokeWidth={2.6} dot={false} activeDot={{ r: 5, fill: '#1e3a8a', stroke: '#fff', strokeWidth: 2 }} isAnimationActive={false} />
+              <ComposedChart data={monthly} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="#eef1ef" vertical={false} />
+                <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#8a938e' }} />
+                <YAxis tickFormatter={usdM} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#a3aaa5' }} width={60} />
+                <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+                <Bar dataKey="us" stackId="s" fill={CHANNEL.us} isAnimationActive={false} />
+                <Bar dataKey="dist" stackId="s" fill={CHANNEL.dist} isAnimationActive={false} />
+                <Bar dataKey="retail" stackId="s" fill={CHANNEL.retail} isAnimationActive={false} />
+                <Bar dataKey="ecom" stackId="s" fill={CHANNEL.ecom} isAnimationActive={false} />
+                <Bar dataKey="amazon" stackId="s" fill={CHANNEL.amazon} isAnimationActive={false} />
+                <Bar dataKey="open" stackId="s" fill="#cbd5e1" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                <Line type="monotone" dataKey="total" stroke="#1e3a8a" strokeWidth={2.6} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="forecast" stroke={CORAL} strokeWidth={2.4} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </section>
 
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-testid="segments-card">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-neutral-900">Segments</h2>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">% of goal</span>
+          </div>
+          <div className="space-y-4">
+            {segments.map((s) => (
+              <div key={s.name} data-testid={`seg-row-${s.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                <div className="flex items-center gap-2">
+                  <i className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+                  <span className="flex-1 text-sm font-medium text-neutral-800">{s.name}</span>
+                  <b className={`text-sm font-bold ${s.pct >= 70 ? 'text-emerald-600' : 'text-neutral-700'}`}>{s.pct}%</b>
+                </div>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                  <div className="h-full rounded-full" style={{ width: `${s.pct}%`, background: s.color }} />
+                </div>
+                <div className="mt-1 flex items-center justify-between text-[10px] text-neutral-500">
+                  <span>{usdM(s.cur)}</span><span>{usdM(s.target)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
-      {/* ACCOUNT DETAIL */}
-      <section className="rv-card rv-acct" data-testid="rv-account-detail">
-        <div className="rv-acct-head">
-          <div><h2>Accounts</h2><p>Ranked by invoiced · top 5 pinned · click a row to expand</p></div>
-          <div className="rv-acct-tools">
-            <label className="rv-acct-search"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search accounts..." data-testid="rv-account-search" /></label>
-            <span className="rv-acct-count">{query.trim() ? `${rows.length} of 220` : '220 accounts'}</span>
+      {/* ── Channel Mix donuts ──────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <DonutCard title="Channel Mix" data={channelMix} testId="donut-mix" />
+        <DonutCard title="Channel Mix — B2B Combined" data={channelMixB2B} testId="donut-mix-b2b" />
+      </div>
+
+      {/* ── Sales vs Goal ───────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-testid="sales-vs-goal">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-neutral-900">Sales vs Goal</h2>
+            <p className="text-xs text-neutral-500">2026 goal pacing through September</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-5">
+            <MiniKpi label="Net Sales YTD" value={usdM(svgTotal.ytd)} />
+            <MiniKpi label="Goal YTD" value={usdM(svgTotal.goalYtd)} />
+            <MiniKpi label="Variance" value={usdM(svgTotal.ytd - svgTotal.goalYtd)} tone="rose" />
+            <MiniKpi label="% to Goal" value={`${Math.round((svgTotal.ytd / svgTotal.goalYtd) * 100)}%`} tone="coral" />
+            <div className="flex items-center gap-1">
+              <button className="grid h-8 w-8 place-items-center rounded-lg border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50" title="Excel" data-testid="svg-excel"><FileSpreadsheet size={14} /></button>
+              <button className="grid h-8 w-8 place-items-center rounded-lg border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50" title="PDF" data-testid="svg-pdf"><FileText size={14} /></button>
+            </div>
           </div>
         </div>
-
-        <div className="rv-table" role="table">
-          <div className="rv-tr rv-th" role="row">
-            <span role="columnheader">Account</span><span role="columnheader">Invoiced</span><span role="columnheader">Open</span><span role="columnheader">Total</span><span role="columnheader">Goal</span><span role="columnheader">vs Goal</span><span role="columnheader">YoY</span><span aria-hidden="true" />
-          </div>
-          {rows.map((a) => {
-            const isOpen = expanded === a.id;
-            const barPct = Math.min(100, (a.invoiced / a.goal) * 100);
-            return (
-              <div key={a.id} className={`rv-row-wrap ${isOpen ? 'is-open' : ''}`}>
-                <div className="rv-tr rv-row" role="row" tabIndex={0} onClick={() => setExpanded(isOpen ? null : a.id)} onKeyDown={(e) => e.key === 'Enter' && setExpanded(isOpen ? null : a.id)} data-testid={`rv-account-row-${a.id}`}>
-                  <span className="rv-acct-name">
-                    <span className="rv-ava">{initials(a.name)}</span>
-                    <span className="rv-acct-nametext"><b>{a.name}{TOP5.has(a.id) && !query.trim() ? <em className="rv-strategic rv-top5">Top {SORTED.indexOf(a) + 1}</em> : a.strategic && <em className="rv-strategic">Strategic</em>}</b><small>{a.segment}</small></span>
-                  </span>
-                  <span className="rv-acct-inv"><b>{compact(a.invoiced)}</b><span className="rv-acct-track"><i className={a.vsGoal >= 0 ? 'ok' : 'warn'} style={{ width: `${Math.max(6, barPct)}%` }} /></span></span>
-                  <span className="rv-num rv-muted">{compact(a.open)}</span>
-                  <span className="rv-num rv-strong">{compact(a.total)}</span>
-                  <span className="rv-num rv-muted">{compact(a.goal)}</span>
-                  <span className="rv-num"><em className={`rv-vspill ${a.vsGoal >= 0 ? 'up' : 'down'}`}>{a.vsGoal >= 0 ? '+' : ''}{a.vsGoal.toFixed(1)}%</em></span>
-                  <span className="rv-num"><Delta v={a.yoy} /></span>
-                  <span className="rv-chev"><ChevronDown size={17} className={isOpen ? 'spin' : ''} /></span>
-                </div>
-                {isOpen && (
-                  <div className="rv-expand" data-testid={`rv-account-expand-${a.id}`}>
-                    <div className="rv-metrics">
-                      <div className="rv-metric"><small>Open pipeline</small><strong>{fmtFull(a.open)}</strong><span>in pipeline</span></div>
-                      <div className="rv-metric"><small>Conservative land <Info size={12} /></small><strong>{fmtFull(a.total)}</strong><span>invoiced + open</span></div>
-                      <div className="rv-metric"><small>Full-year forecast <Info size={12} /></small><strong className="rv-green">{fmtFull(a.total)}</strong><span>{a.total >= a.goal ? '+' : '-'}{compact(Math.abs(a.total - a.goal))} vs goal</span></div>
-                      <div className="rv-metric"><small>Annual goal</small><strong>{fmtFull(a.goal)}</strong><span>target</span></div>
-                      <div className="rv-metric"><small>Prior year</small><strong>{fmtFull(a.priorYear)}</strong><span>YTD {compact(a.priorYtd)} · {a.yoy >= 0 ? '+' : ''}{a.yoy.toFixed(1)}% YoY</span></div>
+        <div className="mt-4 flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-1 w-fit" role="tablist">
+          <button onClick={() => setSvgMode('class')} className={`rounded-md px-3 py-1 text-xs font-semibold ${svgMode === 'class' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'}`} data-testid="svg-by-class">By Class</button>
+          <button onClick={() => setSvgMode('month')} className={`rounded-md px-3 py-1 text-xs font-semibold ${svgMode === 'month' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'}`} data-testid="svg-by-month">By Month</button>
+        </div>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-widest text-neutral-500">
+                <th className="pb-2 font-semibold">Class</th>
+                <th className="pb-2 text-right font-semibold">Net Sales YTD</th>
+                <th className="pb-2 text-right font-semibold">Goal YTD</th>
+                <th className="pb-2 text-right font-semibold">Variance</th>
+                <th className="pb-2 text-right font-semibold w-[220px]">% to Goal</th>
+                <th className="pb-2 text-right font-semibold">Annual Goal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {svg.map((r) => {
+                const variance = r.ytd - r.goalYtd;
+                const pct = Math.round((r.ytd / r.goalYtd) * 100);
+                return (
+                  <tr key={r.cls} className="border-t border-neutral-100">
+                    <td className="py-3 font-medium text-neutral-800">{r.cls}</td>
+                    <td className="py-3 text-right text-neutral-900">{usdM(r.ytd)}</td>
+                    <td className="py-3 text-right text-neutral-600">{usdM(r.goalYtd)}</td>
+                    <td className="py-3 text-right font-semibold text-rose-600">{usdM(variance)}</td>
+                    <td className="py-3">
+                      <div className="flex items-center justify-end gap-3">
+                        <div className="h-1.5 w-32 overflow-hidden rounded-full bg-neutral-100">
+                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, pct)}%`, background: CORAL }} />
+                        </div>
+                        <span className="w-10 text-right text-xs font-semibold" style={{ color: CORAL }}>{pct}%</span>
+                      </div>
+                    </td>
+                    <td className="py-3 text-right text-neutral-600">{usdM(r.annual)}</td>
+                  </tr>
+                );
+              })}
+              <tr className="border-t-2 border-neutral-200 bg-neutral-50/50">
+                <td className="py-3 font-bold text-neutral-900">Total</td>
+                <td className="py-3 text-right font-bold text-neutral-900">{usdM(svgTotal.ytd)}</td>
+                <td className="py-3 text-right font-semibold text-neutral-800">{usdM(svgTotal.goalYtd)}</td>
+                <td className="py-3 text-right font-bold text-rose-600">{usdM(svgTotal.ytd - svgTotal.goalYtd)}</td>
+                <td className="py-3">
+                  <div className="flex items-center justify-end gap-3">
+                    <div className="h-1.5 w-32 overflow-hidden rounded-full bg-neutral-100">
+                      <div className="h-full rounded-full" style={{ width: `${Math.round((svgTotal.ytd / svgTotal.goalYtd) * 100)}%`, background: CORAL }} />
                     </div>
-                    <button className="rv-open-acct" onClick={() => onNavigate('Open Orders')} data-testid={`rv-open-account-${a.id}`}>Open account <ArrowUpRight size={15} /></button>
+                    <span className="w-10 text-right text-xs font-bold" style={{ color: CORAL }}>{Math.round((svgTotal.ytd / svgTotal.goalYtd) * 100)}%</span>
                   </div>
-                )}
-              </div>
-            );
-          })}
-          {rows.length === 0 && <div className="rv-empty" data-testid="rv-account-empty">No accounts match “{query}”.</div>}
+                </td>
+                <td className="py-3 text-right font-semibold text-neutral-800">{usdM(svgTotal.annual)}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
+
+      {/* ── Top Accounts + Top Items ────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-testid="top-accounts">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-neutral-900">Top Accounts</h2>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">Net Sales · YTD</span>
+          </div>
+          <ol className="space-y-4">
+            {topAccts.map((a) => (
+              <li key={a.name} className="grid grid-cols-[24px_1fr_auto] items-center gap-x-3 gap-y-1" data-testid={`top-account-${a.rank}`}>
+                <span className="text-sm font-bold text-neutral-400">{a.rank}</span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-neutral-900">{a.name}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-neutral-900">{usdM(a.ytd)}</span>
+                  <SmallDeltaPill v={a.delta} />
+                </div>
+                <span />
+                <div className="col-span-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                  <div className="h-full rounded-full" style={{ width: `${(a.ytd / topA) * 100}%`, background: `linear-gradient(90deg, #1a1d1c 0%, #2c312d 60%, ${CORAL} 100%)` }} />
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-testid="top-items">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-neutral-900">Top Items</h2>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">Revenue · YTD</span>
+          </div>
+          <ol className="space-y-4">
+            {topItems.map((it) => (
+              <li key={it.sku} className="grid grid-cols-[24px_1fr_auto] items-center gap-x-3 gap-y-1" data-testid={`top-item-${it.rank}`}>
+                <span className="text-sm font-bold text-neutral-400">{it.rank}</span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-neutral-900">{it.name} <span className="font-normal text-neutral-500">· {it.variant}</span></p>
+                  <p className="mt-0.5 truncate font-mono text-[11px] text-neutral-500">{it.sku}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-neutral-900">{usdM(it.rev)}</p>
+                  <p className="text-[11px] text-neutral-500">{it.units.toLocaleString('en-US')} units</p>
+                </div>
+                <span />
+                <div className="col-span-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                  <div className="h-full rounded-full" style={{ width: `${(it.rev / topI) * 100}%`, background: `linear-gradient(90deg, #1a1d1c 0%, #2c312d 60%, ${CORAL} 100%)` }} />
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </div>
     </div>
+  );
+}
+
+function MiniKpi({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'rose' | 'coral' }) {
+  const cls = tone === 'rose' ? 'text-rose-600' : tone === 'coral' ? '' : 'text-neutral-900';
+  const style = tone === 'coral' ? { color: CORAL } : undefined;
+  return (
+    <div className="min-w-[100px]">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-neutral-500">{label}</p>
+      <p className={`mt-0.5 text-base font-bold ${cls}`} style={style}>{value}</p>
+    </div>
+  );
+}
+
+function DonutCard({ title, data, testId }: { title: string; data: typeof channelMix; testId: string }) {
+  const total = useMemo(() => data.reduce((s, d) => s + d.v, 0), [data]);
+  return (
+    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-testid={testId}>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">% of Net Sales YTD</span>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[190px_1fr] md:items-center">
+        <div className="relative mx-auto h-[180px] w-[180px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={data} dataKey="v" nameKey="k" innerRadius={56} outerRadius={82} paddingAngle={2} stroke="none" isAnimationActive={false}>
+                {data.map((d) => <Cell key={d.k} fill={d.c} />)}
+              </Pie>
+              <Tooltip formatter={(v: number) => usdM(v)} contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-[10px] uppercase tracking-widest text-neutral-500">Total</span>
+            <strong className="text-xl font-bold text-neutral-900">{usdM(total)}</strong>
+          </div>
+        </div>
+        <ul className="space-y-2">
+          {data.map((d) => (
+            <li key={d.k} className="flex items-center gap-3 text-sm">
+              <i className="h-2.5 w-2.5 rounded-full" style={{ background: d.c }} />
+              <span className="flex-1 text-neutral-700">{d.k}</span>
+              <b className="text-neutral-900">{usdM(d.v)}</b>
+              <span className="w-12 text-right text-xs text-neutral-500">{d.pct.toFixed(1)}%</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
