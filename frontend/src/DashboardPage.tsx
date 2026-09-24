@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import DateRangePicker from './components/DateRangePicker';
 import { usePageRange } from './lib/pageRange';
+import AccountDrilldown from './AccountDrilldown';
 
 type Props = { name?: string; onNavigate?: (label: string) => void };
 
@@ -572,6 +573,7 @@ export default function DashboardPage({ onNavigate }: Props) {
   const [svgTab, setSvgTab] = useState<'By Class' | 'By Month'>('By Class');
   const [mixTab, setMixTab] = useState<'All Channels' | 'B2B Combined'>('All Channels');
   const [range, setRange] = usePageRange('dashboard');
+  const [drilldownIdx, setDrilldownIdx] = useState<number | null>(null);
 
   const scale = SEG_SCALE[seg];
   const segKey = SEG_KEY[seg];
@@ -644,6 +646,31 @@ export default function DashboardPage({ onNavigate }: Props) {
   const topAccountsScaled = useMemo(() => TOP_ACCOUNTS.map((a) => ({ ...a, net: a.net * combined })), [combined]);
   const topItemsScaled = useMemo(() => TOP_ITEMS.map((it) => ({ ...it, rev: it.rev * combined })), [combined]);
 
+  const drilldownData = useMemo(() => {
+    if (drilldownIdx == null) return null;
+    const a = topAccountsScaled[drilldownIdx];
+    const raw = TOP_ACCOUNTS[drilldownIdx];
+    const totalTop = topAccountsScaled.reduce((sum, x) => sum + x.net, 0);
+    const REPS = [
+      { name: 'Marta Ellison',   initials: 'ME' },
+      { name: 'Devon Park',      initials: 'DP' },
+      { name: 'Chris Iwazaki',   initials: 'CI' },
+      { name: 'Priya Rao',       initials: 'PR' },
+      { name: 'James Whittaker', initials: 'JW' },
+    ];
+    return {
+      name: a.name,
+      rank: drilldownIdx + 1,
+      net: a.net,
+      yoy: a.yoy,
+      spark: raw.spark,
+      shareOfTotal: totalTop > 0 ? (a.net / totalTop) * 100 : 0,
+      rep: REPS[drilldownIdx].name,
+      repInitials: REPS[drilldownIdx].initials,
+      repTitle: 'Senior AE',
+    };
+  }, [drilldownIdx, topAccountsScaled]);
+
   const topAcctMax = topAccountsScaled[0]?.net || 1;
   const topItemMax = topItemsScaled[0]?.rev || 1;
   const yTicks = useMemo(() => [0, 1.7e6, 3.3e6, 5e6], []);
@@ -711,7 +738,7 @@ export default function DashboardPage({ onNavigate }: Props) {
           </div>
           <p className="mt-3 text-[12px] font-medium leading-snug" style={{ color: MUTED }}>After discounts, returns &amp; tax · shipping included</p>
           <div className="mt-5" data-testid="hero-sparkline">
-            <div style={{ height: 140 }}>
+            <div style={{ height: 110 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlyData} margin={{ top: 6, right: 0, bottom: 0, left: 0 }}>
                   <defs>
@@ -906,18 +933,18 @@ export default function DashboardPage({ onNavigate }: Props) {
           data-testid="segment-panel"
         >
           <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Segments</h2>
-          <ul className="mt-4">
+          <ul className="mt-5">
             {[...segmentRowsScaled].sort((a, b) => b.pct - a.pct).map((s, idx) => {
               const active = highlightSegRow(s.key);
               return (
                 <li
                   key={s.key}
                   data-testid={`seg-row-${s.key.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="group flex h-10 items-center justify-between"
+                  className="group flex h-10 items-center justify-between -mx-3 rounded-lg px-3 hover:bg-[rgba(10,10,10,0.02)]"
                   style={{
                     opacity: active ? 1 : 0.4,
-                    transition: 'opacity 250ms ease',
-                    borderTop: idx === 0 ? 'none' : `1px solid ${BORDER}`,
+                    transition: 'opacity 250ms ease, background-color 150ms ease-out',
+                    borderTop: idx === 0 ? 'none' : `1px solid #EEEEEE`,
                   }}
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
@@ -931,7 +958,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                     <span className="text-[10px] font-bold leading-none" style={{ color: SEG_TREND[s.key] === 'up' ? '#059669' : '#DC2626' }} aria-hidden="true">{SEG_TREND[s.key] === 'up' ? '▲' : '▼'}</span>
                     <b className="text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{s.pct}%</b>
                     <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: s.pct >= 70 ? '#059669' : '#D97706' }} aria-hidden="true" />
-                    <span className="text-[14px] font-semibold opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: CORAL }}>›</span>
+                    <span className="text-[14px] font-medium opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: CORAL, lineHeight: 1 }}>›</span>
                   </div>
                 </li>
               );
@@ -1091,7 +1118,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             style={{ borderTop: `1px solid ${BORDER}`, background: '#FAFAFA' }}
             data-testid="svg-total-row"
           >
-            <span className="svg-sticky-col pl-3 text-[16px] font-bold" style={{ color: INK }}>Total</span>
+            <span className="svg-sticky-col pl-3 text-[16px]" style={{ color: INK, fontWeight: 800 }}>Total</span>
             <b className="text-right text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.net)}</b>
             <span className="text-right text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.goal)}</span>
             <span className="text-right text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: svgTotalScaled.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(svgTotalScaled.variance)}</span>
@@ -1121,22 +1148,26 @@ export default function DashboardPage({ onNavigate }: Props) {
             <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Top accounts</h2>
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Net Sales · YTD</span>
           </div>
-          <ol className="mt-4">
+          <ol className="mt-5">
             {topAccountsScaled.map((a, i) => {
               const stroke = a.trend === 'up' ? '#059669' : '#DC2626';
               return (
                 <li
                   key={a.name}
-                  className="group flex h-12 items-center gap-3 transition-colors duration-150 ease-out hover:bg-[rgba(10,10,10,0.02)] -mx-3 rounded-lg px-3"
+                  className="group flex h-12 items-center gap-3 transition-colors duration-150 ease-out hover:bg-[rgba(10,10,10,0.02)] -mx-3 rounded-lg px-3 cursor-pointer"
                   style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}` }}
                   data-testid={`top-acct-${i}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setDrilldownIdx(i)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDrilldownIdx(i); } }}
                 >
                   <span className="w-7 text-right text-[11px] font-medium tracking-wider tabular-nums" style={{ ...MONO, color: FAINT }}>{String(i + 1).padStart(2, '0')}</span>
                   <b className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: BODY }}>{a.name}</b>
                   <Spark data={a.spark} stroke={stroke} gradId={`spark-acct-${i}`} width={112} height={28} endDot />
                   <DeltaPill v={a.yoy} />
                   <b className="w-[96px] text-right text-[18px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(a.net)}</b>
-                  <span className="w-3 text-[14px] font-semibold opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: CORAL }}>›</span>
+                  <span className="text-[14px] font-medium opacity-0 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:translate-x-0.5" style={{ color: CORAL, lineHeight: 1 }}>›</span>
                 </li>
               );
             })}
@@ -1153,7 +1184,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Top items</h2>
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Revenue · YTD</span>
           </div>
-          <ol className="mt-4">
+          <ol className="mt-5">
             {topItemsScaled.map((it, i) => (
               <li
                 key={it.sku}
@@ -1165,7 +1196,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                   <span className="w-7 text-right text-[11px] font-medium tracking-wider tabular-nums" style={{ ...MONO, color: FAINT }}>{String(i + 1).padStart(2, '0')}</span>
                   <b className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: BODY }}>{it.name}</b>
                   <b className="text-right text-[18px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(it.rev)}</b>
-                  <span className="w-3 text-[14px] font-semibold opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: CORAL }}>›</span>
+                  <span className="text-[14px] font-medium opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: CORAL, lineHeight: 1 }}>›</span>
                 </div>
                 <div className="mt-0.5 flex items-center gap-3 pl-10">
                   <span className="text-[12px] font-medium" style={{ color: MUTED }}>{it.variant}</span>
@@ -1192,6 +1223,10 @@ export default function DashboardPage({ onNavigate }: Props) {
           View insights <ArrowUpRight size={12} />
         </button>
       </div>
+
+      {drilldownData && (
+        <AccountDrilldown account={drilldownData} onClose={() => setDrilldownIdx(null)} />
+      )}
     </div>
   );
 }
