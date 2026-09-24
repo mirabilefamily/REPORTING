@@ -149,6 +149,14 @@ const SEGMENT_ROWS = [
   { key: 'Amazon',       pct: 77, cur:   785_000, tgt: 1_020_000, c: C_AMZN },
 ];
 
+const SEG_TREND: Record<string, 'up' | 'down'> = {
+  'US Wholesale': 'up',
+  'Distributors': 'down',
+  'Retail':       'up',
+  'Ecommerce':    'down',
+  'Amazon':       'up',
+};
+
 const DONUT_ALL = [
   { name: 'US Wholesale', v: 6_480_000, share: 37.0, c: C_USW },
   { name: 'Distributors', v: 5_240_000, share: 29.9, c: C_DIST },
@@ -271,19 +279,31 @@ function DeltaPill({ v }: { v: number }) {
   );
 }
 
-function Spark({ data, stroke = FAINT, gradId, width = 96, height = 24 }: { data: number[]; stroke?: string; gradId: string; width?: number; height?: number }) {
+function Spark({ data, stroke = FAINT, gradId, width = 96, height = 24, endDot = false }: { data: number[]; stroke?: string; gradId: string; width?: number; height?: number; endDot?: boolean }) {
   const pts = data.map((v, i) => ({ i, v }));
+  const lastIdx = pts.length - 1;
   return (
     <div style={{ width, height, flexShrink: 0 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={pts} margin={{ top: 2, right: 0, bottom: 2, left: 0 }}>
+        <AreaChart data={pts} margin={{ top: 2, right: 3, bottom: 2, left: 0 }}>
           <defs>
             <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"  stopColor={stroke} stopOpacity={0.14} />
               <stop offset="100%" stopColor={stroke} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <Area type="monotone" dataKey="v" stroke={stroke} strokeWidth={1.25} fill={`url(#${gradId})`} isAnimationActive={false} dot={false} activeDot={false} />
+          <Area
+            type="monotone"
+            dataKey="v"
+            stroke={stroke}
+            strokeWidth={1.25}
+            fill={`url(#${gradId})`}
+            isAnimationActive={false}
+            dot={endDot ? ((props: any) => (props.index === lastIdx
+              ? <circle key={`ep-${props.index}`} cx={props.cx} cy={props.cy} r={3} fill={stroke} />
+              : <g key={`ep-${props.index}`} />)) as any : false}
+            activeDot={false}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -538,7 +558,7 @@ function MiniKPI({ label, target, delta, caption, testId }: { label: string; tar
         <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>{label}</p>
         <span data-testid={`${testId}-delta`}>{delta}</span>
       </div>
-      <p className="mt-3 text-[26px] font-bold leading-none" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>
+      <p className="mt-3 text-[20px] font-bold leading-none" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>
         {usd0(Math.max(0, v))}
       </p>
       <p className="mt-1.5 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>{caption}</p>
@@ -725,13 +745,17 @@ export default function DashboardPage({ onNavigate }: Props) {
             <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>Annual Goal</p>
             <span
               className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-bold"
-              style={{ ...TABULAR, background: 'rgba(5,150,105,0.10)', color: '#059669' }}
+              style={{
+                ...TABULAR,
+                background: onPace ? 'rgba(5,150,105,0.10)' : 'rgba(217,119,6,0.12)',
+                color: onPace ? '#059669' : '#D97706',
+              }}
               data-testid="annual-goal-pct-pill"
             >
               {goalPct}%
             </span>
           </div>
-          <p className="mt-4 text-[28px] font-extrabold leading-none" style={{ ...TABULAR, letterSpacing: '-0.02em', color: INK }} data-testid="annual-goal-amount">
+          <p className="mt-4 text-[26px] font-extrabold leading-none" style={{ ...TABULAR, letterSpacing: '-0.02em', color: INK }} data-testid="annual-goal-amount">
             {fmtM(goalValue)}
           </p>
           <p className="mt-1.5 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>
@@ -828,7 +852,7 @@ export default function DashboardPage({ onNavigate }: Props) {
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Revenue by month</h2>
+              <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Revenue by month</h2>
               <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>Twelve-month view · Total, Forecast, and vs LY overlay</p>
             </div>
             <button
@@ -840,11 +864,11 @@ export default function DashboardPage({ onNavigate }: Props) {
             </button>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Swatch color={C_USW}      label="US Wholesale" dim={!isAll && seg !== 'US Wholesale'} />
-            <Swatch color={C_DIST}     label="Distributors" dim={!isAll && seg !== 'Distributors'} />
-            <Swatch color={C_RETAIL}   label="Retail"       dim={!isAll && seg !== 'Retail'} />
-            <Swatch color={C_ECOM}     label="Ecommerce"    dim={!isAll && seg !== 'Ecommerce'} />
-            <Swatch color={C_AMZN}     label="Amazon"       dim={!isAll && seg !== 'Amazon'} />
+            <Swatch color={!isAll && seg === 'US Wholesale' ? CORAL : C_USW}      label="US Wholesale" dim={!isAll && seg !== 'US Wholesale'} />
+            <Swatch color={!isAll && seg === 'Distributors' ? CORAL : C_DIST}     label="Distributors" dim={!isAll && seg !== 'Distributors'} />
+            <Swatch color={!isAll && seg === 'Retail' ? CORAL : C_RETAIL}   label="Retail"       dim={!isAll && seg !== 'Retail'} />
+            <Swatch color={!isAll && seg === 'Ecommerce' ? CORAL : C_ECOM}     label="Ecommerce"    dim={!isAll && seg !== 'Ecommerce'} />
+            <Swatch color={!isAll && seg === 'Amazon' ? CORAL : C_AMZN}     label="Amazon"       dim={!isAll && seg !== 'Amazon'} />
             <Swatch color={INK}        label="Total"    line />
             <Swatch color={CORAL}      label="Forecast" line dashed />
             <Swatch color={LY_GRAY}    label="vs LY"    line dashed />
@@ -862,11 +886,11 @@ export default function DashboardPage({ onNavigate }: Props) {
                   tick={{ fontSize: 10, fill: FAINT, fontWeight: 500 }} width={56}
                 />
                 <Tooltip content={<RevTooltip monthly={monthlyData} />} cursor={{ stroke: FAINT, strokeDasharray: '3 3', strokeWidth: 1 }} />
-                <Bar dataKey="usw"    stackId="s" fill={C_USW}    fillOpacity={1} isAnimationActive animationDuration={400} />
-                <Bar dataKey="dist"   stackId="s" fill={C_DIST}   fillOpacity={1} isAnimationActive animationDuration={400} />
-                <Bar dataKey="retail" stackId="s" fill={C_RETAIL} fillOpacity={1} isAnimationActive animationDuration={400} />
-                <Bar dataKey="ecom"   stackId="s" fill={C_ECOM}   fillOpacity={1} isAnimationActive animationDuration={400} />
-                <Bar dataKey="amzn"   stackId="s" fill={C_AMZN}   fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="usw"    stackId="s" fill={!isAll && seg === 'US Wholesale' ? CORAL : C_USW}    fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="dist"   stackId="s" fill={!isAll && seg === 'Distributors' ? CORAL : C_DIST}   fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="retail" stackId="s" fill={!isAll && seg === 'Retail' ? CORAL : C_RETAIL} fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="ecom"   stackId="s" fill={!isAll && seg === 'Ecommerce' ? CORAL : C_ECOM}   fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="amzn"   stackId="s" fill={!isAll && seg === 'Amazon' ? CORAL : C_AMZN}   fillOpacity={1} isAnimationActive animationDuration={400} />
                 <Bar dataKey="open"   stackId="s" fill={C_OPEN}   fillOpacity={1} radius={[4, 4, 0, 0]} isAnimationActive animationDuration={400} />
                 <Line type="monotone" dataKey="ly"       stroke={LY_GRAY}    strokeWidth={1.5} dot={false} strokeDasharray="3 3" isAnimationActive animationDuration={400} />
                 <Line type="monotone" dataKey="total"    stroke={INK}        strokeWidth={2.5}   dot={false} isAnimationActive animationDuration={400} />
@@ -881,7 +905,7 @@ export default function DashboardPage({ onNavigate }: Props) {
           style={{ boxShadow: CARD_SHADOW }}
           data-testid="segment-panel"
         >
-          <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Segments</h2>
+          <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Segments</h2>
           <ul className="mt-4">
             {[...segmentRowsScaled].sort((a, b) => b.pct - a.pct).map((s, idx) => {
               const active = highlightSegRow(s.key);
@@ -904,8 +928,10 @@ export default function DashboardPage({ onNavigate }: Props) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold leading-none" style={{ color: SEG_TREND[s.key] === 'up' ? '#059669' : '#DC2626' }} aria-hidden="true">{SEG_TREND[s.key] === 'up' ? '▲' : '▼'}</span>
                     <b className="text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{s.pct}%</b>
-                    <span className="text-[14px] opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: FAINT }}>›</span>
+                    <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: s.pct >= 70 ? '#059669' : '#D97706' }} aria-hidden="true" />
+                    <span className="text-[14px] font-semibold opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: CORAL }}>›</span>
                   </div>
                 </li>
               );
@@ -921,7 +947,7 @@ export default function DashboardPage({ onNavigate }: Props) {
         data-testid="channel-mix"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Channel mix</h2>
+          <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Channel mix</h2>
           <SegTabs tabs={['All Channels', 'B2B Combined']} value={mixTab} onChange={(v: any) => setMixTab(v)} testId="mix-tabs" slugPrefix="mix" />
         </div>
         {(() => {
@@ -984,7 +1010,7 @@ export default function DashboardPage({ onNavigate }: Props) {
       >
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
-            <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Sales vs goal</h2>
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Sales vs goal</h2>
             <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>{svgSubtitle}</p>
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3 md:gap-x-8" data-testid="svg-kpis">
@@ -1066,9 +1092,9 @@ export default function DashboardPage({ onNavigate }: Props) {
             data-testid="svg-total-row"
           >
             <span className="svg-sticky-col pl-3 text-[16px] font-bold" style={{ color: INK }}>Total</span>
-            <b className="text-right text-[26px] font-extrabold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.net)}</b>
-            <span className="text-right text-[26px] font-extrabold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.goal)}</span>
-            <span className="text-right text-[26px] font-extrabold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: svgTotalScaled.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(svgTotalScaled.variance)}</span>
+            <b className="text-right text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.net)}</b>
+            <span className="text-right text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.goal)}</span>
+            <span className="text-right text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: svgTotalScaled.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(svgTotalScaled.variance)}</span>
             <div className="flex flex-col items-end gap-1">
               <b className="text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, color: CORAL }}>{svgTotalScaled.pct}%</b>
               <span className="relative h-[6px] w-full overflow-hidden rounded-full" style={{ background: TRACK, boxShadow: INSET_TRACK }}>
@@ -1078,7 +1104,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                 />
               </span>
             </div>
-            <span className="text-right text-[26px] font-extrabold whitespace-nowrap pr-3" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.annual)}</span>
+            <span className="text-right text-[20px] font-bold whitespace-nowrap pr-3" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.annual)}</span>
           </div>
         </div>
       </section>
@@ -1092,12 +1118,12 @@ export default function DashboardPage({ onNavigate }: Props) {
           data-testid="top-accounts"
         >
           <div className="flex items-start justify-between">
-            <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Top accounts</h2>
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Top accounts</h2>
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Net Sales · YTD</span>
           </div>
           <ol className="mt-4">
             {topAccountsScaled.map((a, i) => {
-              const stroke = a.trend === 'up' ? '#047857' : FAINT;
+              const stroke = a.trend === 'up' ? '#059669' : '#DC2626';
               return (
                 <li
                   key={a.name}
@@ -1107,10 +1133,10 @@ export default function DashboardPage({ onNavigate }: Props) {
                 >
                   <span className="w-7 text-right text-[11px] font-medium tracking-wider tabular-nums" style={{ ...MONO, color: FAINT }}>{String(i + 1).padStart(2, '0')}</span>
                   <b className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: BODY }}>{a.name}</b>
-                  <Spark data={a.spark} stroke={stroke} gradId={`spark-acct-${i}`} width={112} height={28} />
+                  <Spark data={a.spark} stroke={stroke} gradId={`spark-acct-${i}`} width={112} height={28} endDot />
                   <DeltaPill v={a.yoy} />
-                  <b className="w-[96px] text-right text-[26px] font-bold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(a.net)}</b>
-                  <span className="w-3 text-[14px] opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: FAINT }}>›</span>
+                  <b className="w-[96px] text-right text-[18px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(a.net)}</b>
+                  <span className="w-3 text-[14px] font-semibold opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: CORAL }}>›</span>
                 </li>
               );
             })}
@@ -1124,7 +1150,7 @@ export default function DashboardPage({ onNavigate }: Props) {
           data-testid="top-items"
         >
           <div className="flex items-start justify-between">
-            <h2 className="text-[16px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Top items</h2>
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Top items</h2>
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Revenue · YTD</span>
           </div>
           <ol className="mt-4">
@@ -1138,8 +1164,8 @@ export default function DashboardPage({ onNavigate }: Props) {
                 <div className="flex items-center gap-3">
                   <span className="w-7 text-right text-[11px] font-medium tracking-wider tabular-nums" style={{ ...MONO, color: FAINT }}>{String(i + 1).padStart(2, '0')}</span>
                   <b className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: BODY }}>{it.name}</b>
-                  <b className="text-right text-[26px] font-bold" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(it.rev)}</b>
-                  <span className="w-3 text-[14px] opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: FAINT }}>›</span>
+                  <b className="text-right text-[18px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(it.rev)}</b>
+                  <span className="w-3 text-[14px] font-semibold opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: CORAL }}>›</span>
                 </div>
                 <div className="mt-0.5 flex items-center gap-3 pl-10">
                   <span className="text-[12px] font-medium" style={{ color: MUTED }}>{it.variant}</span>
@@ -1176,7 +1202,7 @@ function NetSalesValue({ target }: { target: number }) {
   return (
     <p
       className="font-extrabold"
-      style={{ ...TABULAR, fontSize: 'clamp(44px, 4.5vw, 56px)', lineHeight: 1, letterSpacing: '-0.03em', color: INK }}
+      style={{ ...TABULAR, fontSize: 'clamp(40px, 4.2vw, 52px)', lineHeight: 1, letterSpacing: '-0.03em', color: INK }}
     >
       {usd0(Math.max(0, v))}
     </p>
