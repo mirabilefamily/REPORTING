@@ -506,63 +506,18 @@ function Swatch({ color, label, dashed = false, line = false, dim = false }: { c
   );
 }
 
-function MiniSegTabs({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const tabs = ['All', 'US Wholesale', 'Distributors'];
-  return (
-    <div
-      className="inline-flex items-center gap-[2px] rounded-xl p-0.5"
-      role="tablist"
-      style={{ background: '#EEEEEC' }}
-      data-testid="hero-mini-tabs"
-    >
-      {tabs.map((t) => {
-        const active = value === t;
-        return (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(t)}
-            data-testid={`hero-seg-${t.toLowerCase().replace(/\s+/g, '-')}`}
-            className="rounded-lg px-2.5 py-1 text-[11.5px] tracking-tight transition-colors duration-150 focus:outline-none"
-            style={
-              active
-                ? {
-                    background: '#FFFFFF',
-                    color: '#0F1214',
-                    fontWeight: 600,
-                    boxShadow: '0 1px 2px rgba(15,17,20,0.06)',
-                    border: '1px solid rgba(15,17,20,0.06)',
-                  }
-                : { color: '#52525B', fontWeight: 500, border: '1px solid transparent', background: 'transparent' }
-            }
-            onMouseEnter={(e) => { if (!active) { e.currentTarget.style.color = '#27272A'; } }}
-            onMouseLeave={(e) => { if (!active) { e.currentTarget.style.color = '#52525B'; } }}
-          >
-            {t}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function MiniKPI({ label, target, delta, caption, testId }: { label: string; target: number; delta: React.ReactNode; caption: string; testId: string }) {
   const v = useCountUp(target, 700);
   return (
-    <div
-      className="rounded-2xl bg-white p-5"
-      style={{ boxShadow: CARD_SHADOW }}
-      data-testid={testId}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>{label}</p>
+    <div className="px-6 pb-5 pt-5" data-testid={testId}>
+      <div className="flex min-h-[26px] items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>{label}</p>
         <span data-testid={`${testId}-delta`}>{delta}</span>
       </div>
-      <p className="mt-3 text-[20px] font-bold leading-none" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>
+      <p className="mt-3 font-semibold" style={{ ...TABULAR, fontSize: 22, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>
         {usd0(Math.max(0, v))}
       </p>
-      <p className="mt-1.5 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>{caption}</p>
+      <p className="mt-2 text-[11px] font-medium" style={{ ...TABULAR, color: '#64748B' }}>{caption}</p>
     </div>
   );
 }
@@ -586,7 +541,7 @@ export default function DashboardPage({ onNavigate }: Props) {
   const combined = scale * rScale;
 
   const netSalesYTD = 9_166_708 * combined;
-  const openOrders = 26_679_135 * combined;
+  const openOrders = 4_182_650 * combined;
   const total = 26_679_135 * combined;
   const forecastVal = 25_980_800 * combined;
   const goalValue = 17_510_000 * combined;
@@ -698,40 +653,35 @@ export default function DashboardPage({ onNavigate }: Props) {
           </div>
         </div>
         <div className="grid grid-cols-1 min-[900px]:grid-cols-[minmax(0,7fr)_1px_minmax(0,3fr)]" style={{ borderTop: '1px solid #F1F5F9' }}>
-          <div className="p-6 md:p-8" data-testid="kpi-net-sales">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+          <div className="px-6 pb-5 pt-6" data-testid="kpi-net-sales">
+            <div className="flex min-h-[26px] items-center gap-2">
               <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} aria-hidden="true" />
-              <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>
+              <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>
                 Net Sales · {rLabel}
               </p>
             </div>
-            <MiniSegTabs value={seg} onChange={(v) => setSeg(v as SegKey)} />
-          </div>
-          <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+          <div className="mt-5 flex min-h-[58px] flex-wrap items-end gap-x-4 gap-y-2">
             <NetSalesValue target={netSalesYTD} />
             <span
-              className="inline-flex items-center gap-0.5 rounded-md px-2.5 py-1 text-[13px] font-semibold"
-              style={{ ...TABULAR, background: 'rgba(5,150,105,0.10)', color: '#059669' }}
+              className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold"
+              style={{ ...TABULAR, background: '#ECFDF5', color: '#047857', padding: '3px 8px' }}
               data-testid="net-sales-delta"
             >
-              <ArrowUp size={11} strokeWidth={2.6} />25.6% YoY
+              <ArrowUp size={10} strokeWidth={2.6} />25.6% YoY
             </span>
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold" style={{ ...TABULAR, color: '#059669' }}>
-              <ArrowUp size={10} strokeWidth={2.6} />8.2% <span className="ml-0.5" style={{ color: MUTED, fontWeight: 500 }}>MoM</span>
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#059669' }}>
+              <ArrowUp size={10} strokeWidth={2.6} />8.2% <span className="ml-1" style={{ color: '#475569' }}>MoM</span>
             </span>
-            <span className="text-[12px]" style={{ color: FAINT }}>·</span>
-            <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold" style={{ ...TABULAR, color: '#059669' }}>
-              <ArrowUp size={10} strokeWidth={2.6} />12.4% <span className="ml-0.5" style={{ color: MUTED, fontWeight: 500 }}>QoQ</span>
+            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#059669' }}>
+              <ArrowUp size={10} strokeWidth={2.6} />12.4% <span className="ml-1" style={{ color: '#475569' }}>QoQ</span>
             </span>
-            <span className="text-[12px]" style={{ color: FAINT }}>·</span>
-            <span className="inline-flex items-center gap-0.5 text-[12px] font-semibold" style={{ ...TABULAR, color: '#059669' }}>
-              <ArrowUp size={10} strokeWidth={2.6} />25.6% <span className="ml-0.5" style={{ color: MUTED, fontWeight: 500 }}>YoY</span>
+            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#059669' }}>
+              <ArrowUp size={10} strokeWidth={2.6} />25.6% <span className="ml-1" style={{ color: '#475569' }}>YoY</span>
             </span>
           </div>
-          <p className="mt-3 text-[12px] font-medium leading-snug" style={{ color: MUTED }}>After discounts, returns &amp; tax · shipping included</p>
+          <p className="mt-3 text-[11px] font-medium leading-snug" style={{ color: '#64748B' }}>After discounts, returns &amp; tax · shipping included</p>
           <div className="mt-5" data-testid="hero-sparkline">
             <div style={{ height: 110 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -756,25 +706,28 @@ export default function DashboardPage({ onNavigate }: Props) {
 
           <div className="hidden min-[900px]:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
 
-          <div className="border-t border-[#F1F5F9] p-6 md:p-8 min-[900px]:border-t-0" data-testid="annual-goal">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>Annual Goal</p>
+          <div className="border-t border-[#F1F5F9] px-6 pb-5 pt-6 min-[900px]:border-t-0" data-testid="annual-goal">
+          <div className="flex min-h-[26px] items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>Annual Goal</p>
             <span
-              className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-bold"
+              className="inline-flex items-center rounded-full text-[11px] font-semibold"
               style={{
                 ...TABULAR,
-                background: onPace ? 'rgba(5,150,105,0.10)' : 'rgba(252,116,96,0.12)',
-                color: onPace ? '#059669' : CORAL,
+                background: onPace ? '#ECFDF5' : '#FFF1EE',
+                color: onPace ? '#047857' : '#C7452E',
+                padding: '3px 8px',
               }}
               data-testid="annual-goal-pct-pill"
             >
               {goalPct}%
             </span>
           </div>
-          <p className="mt-4 text-[26px] font-extrabold leading-none" style={{ ...TABULAR, letterSpacing: '-0.02em', color: INK }} data-testid="annual-goal-amount">
-            {fmtM(goalValue)}
-          </p>
-          <p className="mt-1.5 text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>
+          <div className="mt-5 flex min-h-[58px] items-end">
+            <p className="text-[26px] font-semibold" style={{ ...TABULAR, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }} data-testid="annual-goal-amount">
+              {fmtM(goalValue)}
+            </p>
+          </div>
+          <p className="mt-4 text-[12px] font-medium" style={{ ...TABULAR, color: '#64748B' }}>
             of {fmtM(goalMax)} · {fmtM(Math.max(0, goalMax - goalValue))} to go
           </p>
           <div className="relative mt-8">
@@ -814,18 +767,18 @@ export default function DashboardPage({ onNavigate }: Props) {
               {onPace ? 'On pace' : `${Math.abs(pace - goalPct)} pts behind pace`}
             </span>
           </div>
-          <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
+          <div className="mt-6 pt-4" style={{ borderTop: `1px solid #F1F5F9` }}>
             {[...segmentRowsScaled].sort((a, b) => b.cur - a.cur).slice(0, 2).map((s, i) => (
               <div
                 key={s.key}
                 className="flex h-8 items-center gap-3"
-                style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}` }}
+                style={{ borderTop: i === 0 ? 'none' : `1px solid #F1F5F9` }}
                 data-testid={`goal-seg-${s.key.toLowerCase().replace(/\s+/g, '-')}`}
               >
-                <span className="h-2 w-2 rounded-full shrink-0" style={{ background: s.c }} aria-hidden="true" />
-                <b className="min-w-0 flex-1 truncate text-[13px] font-semibold" style={{ color: BODY }}>{s.key}</b>
-                <span className="text-[13px] font-medium" style={{ ...TABULAR, color: INK }}>{fmtM(s.cur)}</span>
-                <span className="w-[76px] text-right text-[11px] font-medium" style={{ ...TABULAR, color: MUTED }}>{s.pct}% of goal</span>
+                <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: '#0F172A' }} aria-hidden="true" />
+                <b className="min-w-0 flex-1 truncate text-[13px] font-medium" style={{ color: '#1E293B' }}>{s.key}</b>
+                <span className="text-[13px] font-semibold" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(s.cur)}</span>
+                <span className="w-[76px] text-right text-[11px] font-medium" style={{ ...TABULAR, color: '#64748B' }}>{s.pct}% of goal</span>
               </div>
             ))}
           </div>
@@ -833,29 +786,37 @@ export default function DashboardPage({ onNavigate }: Props) {
         </div>
       </section>
 
-      {/* ── 2b) 3-KPI row: Open Orders / Total / Forecast ──────────── */}
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3" data-testid="kpi-row" style={enter(2)}>
-        <MiniKPI
-          label="Open Orders"
-          target={openOrders}
-          delta={<span className="inline-flex items-center gap-0.5 text-[13px] font-semibold" style={{ ...TABULAR, color: '#059669' }}><ArrowUp size={11} strokeWidth={2.6} />12.4%</span>}
-          caption="vs prior 30d"
-          testId="kpi-open-orders"
-        />
-        <MiniKPI
-          label="Total"
-          target={total}
-          delta={<span className="inline-flex items-center gap-0.5 text-[13px] font-semibold" style={{ ...TABULAR, color: '#059669' }}><ArrowUp size={11} strokeWidth={2.6} />8.1%</span>}
-          caption="vs LY"
-          testId="kpi-total"
-        />
-        <MiniKPI
-          label="Forecast"
-          target={forecastVal}
-          delta={<span className="inline-flex items-center gap-0.5 text-[13px] font-semibold" style={{ ...TABULAR, color: '#D97706' }}><ArrowDown size={11} strokeWidth={2.6} />Trailing</span>}
-          caption="attainment vs plan"
-          testId="kpi-forecast"
-        />
+      {/* ── 2b) Unified KPI row: Open Orders / Total / Forecast ────── */}
+      <section
+        className="overflow-hidden rounded-2xl bg-white"
+        style={{ boxShadow: CARD_SHADOW, ...enter(2) }}
+        data-testid="kpi-row"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)_1px_minmax(0,1fr)]">
+          <MiniKPI
+            label="Open Orders"
+            target={openOrders}
+            delta={<span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold" style={{ ...TABULAR, background: '#ECFDF5', color: '#047857', padding: '3px 8px' }}><ArrowUp size={10} strokeWidth={2.6} />12.4%</span>}
+            caption="vs prior 30d"
+            testId="kpi-open-orders"
+          />
+          <div className="hidden md:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
+          <MiniKPI
+            label="Total"
+            target={total}
+            delta={<span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold" style={{ ...TABULAR, background: '#ECFDF5', color: '#047857', padding: '3px 8px' }}><ArrowUp size={10} strokeWidth={2.6} />8.1%</span>}
+            caption="vs LY"
+            testId="kpi-total"
+          />
+          <div className="hidden md:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
+          <MiniKPI
+            label="Forecast"
+            target={forecastVal}
+            delta={<span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold" style={{ ...TABULAR, background: '#FFF1EE', color: '#C7452E', padding: '3px 8px' }}><ArrowDown size={10} strokeWidth={2.6} />Trailing</span>}
+            caption="attainment vs plan"
+            testId="kpi-forecast"
+          />
+        </div>
       </section>
 
       {/* ── 3) AI Assist meta line — moved to bottom (footer) ───────── */}
@@ -922,38 +883,36 @@ export default function DashboardPage({ onNavigate }: Props) {
           style={{ boxShadow: CARD_SHADOW }}
           data-testid="segment-panel"
         >
-          <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Segments</h2>
-          <ul className="mt-5">
+          <h2 className="text-[16px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.015em' }}>Segments</h2>
+          <div className="mt-6">
+            <div className="grid grid-cols-[minmax(0,1fr)_96px_96px_88px] items-center gap-3 pb-3 text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }} data-testid="segments-header">
+              <span>Segment</span>
+              <span className="text-right">Actual</span>
+              <span className="text-right">Target</span>
+              <span className="text-right">Attainment</span>
+            </div>
             {[...segmentRowsScaled].sort((a, b) => b.pct - a.pct).map((s, idx) => {
               const active = highlightSegRow(s.key);
+              const onPace = s.pct >= 70;
               return (
-                <li
+                <div
                   key={s.key}
                   data-testid={`seg-row-${s.key.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="group flex h-10 items-center justify-between -mx-3 rounded-lg px-3 hover:bg-[rgba(10,10,10,0.02)]"
+                  className="grid h-12 grid-cols-[minmax(0,1fr)_96px_96px_88px] items-center gap-3"
                   style={{
                     opacity: active ? 1 : 0.4,
-                    transition: 'opacity 250ms ease, background-color 150ms ease-out',
-                    borderTop: idx === 0 ? 'none' : `1px solid #EEEEEE`,
+                    transition: 'opacity 250ms ease',
+                    borderTop: idx === 0 ? 'none' : `1px solid #F1F5F9`,
                   }}
                 >
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <i className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: s.c }} />
-                    <div className="min-w-0">
-                      <b className="block text-[14px] font-semibold" style={{ color: BODY }}>{s.key}</b>
-                      <p className="mt-0.5 text-[11px] font-medium" style={{ ...TABULAR, color: MUTED }}>{fmtM(s.cur)} of {fmtM(s.tgt)} target</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold leading-none" style={{ color: SEG_TREND[s.key] === 'up' ? '#059669' : '#DC2626' }} aria-hidden="true">{SEG_TREND[s.key] === 'up' ? '▲' : '▼'}</span>
-                    <b className="text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{s.pct}%</b>
-                    <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: s.pct >= 70 ? '#059669' : '#D97706' }} aria-hidden="true" />
-                    <span className="text-[14px] font-medium opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: CORAL, lineHeight: 1 }}>›</span>
-                  </div>
-                </li>
+                  <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{s.key}</span>
+                  <span className="text-right text-[14px] font-medium" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(s.cur)}</span>
+                  <span className="text-right text-[14px] font-medium" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(s.tgt)}</span>
+                  <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: onPace ? '#0F172A' : '#C7452E' }}>{s.pct}%</span>
+                </div>
               );
             })}
-          </ul>
+          </div>
         </div>
       </section>
 
@@ -1226,8 +1185,8 @@ function NetSalesValue({ target }: { target: number }) {
   const v = useCountUp(target, 700);
   return (
     <p
-      className="font-extrabold"
-      style={{ ...TABULAR, fontSize: 'clamp(40px, 4.2vw, 52px)', lineHeight: 1, letterSpacing: '-0.03em', color: INK }}
+      className="font-semibold"
+      style={{ ...TABULAR, fontSize: 'clamp(40px, 4.2vw, 52px)', lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}
     >
       {usd0(Math.max(0, v))}
     </p>
