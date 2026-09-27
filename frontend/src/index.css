@@ -129,7 +129,7 @@ button { font: inherit; border: 0; cursor: pointer; }
 :root { --goorin-coral: #FC7460; }
 
 /* Sidebar image logo (replaces text lockup) */
-.brand-logo.brand-logo-image { display: block; width: 96%; height: auto; max-width: none; max-height: 68px; margin: 0 auto; object-fit: contain; transform: translateY(2px); position: static; top: 0; }
+.brand-logo.brand-logo-image { display: block; width: 80%; height: auto; max-width: none; max-height: 68px; margin: 0 auto; object-fit: contain; transform: translateY(2px); position: static; top: 0; }
 .sidebar-collapsed .brand-logo-image { display: none !important; }
 .sidebar-collapsed .brand-logo.collapsed-brand-logo { display: block; width: 44px; height: 44px; max-width: 44px; max-height: 44px; object-fit: contain; }
 
