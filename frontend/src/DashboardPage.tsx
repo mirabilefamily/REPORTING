@@ -70,7 +70,7 @@ const C_OPEN = '#D4D4D4';
 const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
 const MONO = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } as const;
 const INTER = { fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", WebkitFontSmoothing: 'antialiased' } as const;
-const EYEBROW = 'text-[11px] font-semibold uppercase tracking-[0.14em]';
+const EYEBROW = 'text-[11px] font-semibold uppercase tracking-[0.08em]';
 const eyebrowStyle = { color: MUTED } as const;
 const BAR_TRANS = 'width 700ms cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -438,7 +438,7 @@ function Donut({ title, headerRight, data, testId, emphasizeName }: { title: str
     >
       <div className="flex items-start justify-between gap-3">
         <p className={EYEBROW} style={eyebrowStyle}>Channel Mix — {title}</p>
-        {headerRight && <span className="text-[12px] font-medium uppercase tracking-[0.12em]" style={{ color: MUTED }}>{headerRight}</span>}
+        {headerRight && <span className="text-[12px] font-medium uppercase tracking-[0.08em]" style={{ color: MUTED }}>{headerRight}</span>}
       </div>
       <div className="mt-6 flex flex-col items-center gap-6 md:flex-row md:gap-8">
         <div className="relative h-[200px] w-[200px] shrink-0" style={{ borderRadius: '50%', boxShadow: 'inset 0 1px 6px rgba(15,17,20,0.03)' }}>
@@ -462,7 +462,7 @@ function Donut({ title, headerRight, data, testId, emphasizeName }: { title: str
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <div className="text-center">
-              <p className="text-[12px] font-medium uppercase tracking-[0.12em]" style={{ color: MUTED }}>
+              <p className="text-[12px] font-medium uppercase tracking-[0.08em]" style={{ color: MUTED }}>
                 {centerData ? centerData.name : 'YTD'}
               </p>
               <p className="mt-1 text-[28px] font-bold" style={{ ...TABULAR, color: INK, letterSpacing: '-0.01em' }}>
@@ -685,13 +685,13 @@ export default function DashboardPage({ onNavigate }: Props) {
             </span>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#059669' }}>
+            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#047857' }}>
               <ArrowUp size={10} strokeWidth={2.6} />8.2% <span className="ml-1" style={{ color: '#475569' }}>MoM</span>
             </span>
-            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#059669' }}>
+            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#047857' }}>
               <ArrowUp size={10} strokeWidth={2.6} />12.4% <span className="ml-1" style={{ color: '#475569' }}>QoQ</span>
             </span>
-            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#059669' }}>
+            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#047857' }}>
               <ArrowUp size={10} strokeWidth={2.6} />25.6% <span className="ml-1" style={{ color: '#475569' }}>YoY</span>
             </span>
           </div>
@@ -776,8 +776,8 @@ export default function DashboardPage({ onNavigate }: Props) {
             </div>
           </div>
           <div className="mt-3 flex items-center gap-1.5" data-testid="behind-pace-pill">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: onPace ? '#059669' : CORAL }} aria-hidden="true" />
-            <span className="text-[12px] font-medium" style={{ ...TABULAR, color: onPace ? '#059669' : CORAL }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: onPace ? '#047857' : CORAL }} aria-hidden="true" />
+            <span className="text-[12px] font-medium" style={{ ...TABULAR, color: onPace ? '#047857' : CORAL }}>
               {onPace ? 'On pace' : `${Math.abs(pace - goalPct)} pts behind pace`}
             </span>
           </div>
@@ -838,7 +838,7 @@ export default function DashboardPage({ onNavigate }: Props) {
       {/* ── 4) Revenue by Month + Segments ──────────────────────────── */}
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" style={enter(3)}>
         <div
-          className="rounded-2xl bg-white px-6 py-5"
+          className="rounded-2xl bg-white p-6"
           style={{ boxShadow: CARD_SHADOW }}
           data-testid="rev-by-month"
         >
@@ -895,7 +895,7 @@ export default function DashboardPage({ onNavigate }: Props) {
         </div>
 
         <div
-          className="rounded-2xl bg-white px-6 py-5 flex flex-col h-full"
+          className="rounded-2xl bg-white p-6 flex flex-col h-full"
           style={{ boxShadow: CARD_SHADOW }}
           data-testid="segment-panel"
         >
