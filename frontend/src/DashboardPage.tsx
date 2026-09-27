@@ -37,7 +37,7 @@ const CORAL_DEEP = '#EE5A44';
 const INK = '#0A0A0A';
 const INK_SOFT = '#171717';
 const TOTAL_NAVY = '#0A0A0A';
-const LY_GRAY = '#A3A3A3';
+const LY_GRAY = '#94A3B8';
 const BORDER = '#E5E5E5';
 const RULE = '#E5E5E5';
 const TRACK = '#EFEFEF';
@@ -51,11 +51,20 @@ const CARD_SHADOW = '0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)';
 const INSET_TRACK = 'inset 0 1px 2px rgba(15,17,20,0.04)';
 
 // Segment palette
-const C_USW = '#0A0A0A';
-const C_DIST = '#404040';
-const C_RETAIL = '#737373';
-const C_ECOM = '#A3A3A3';
-const C_AMZN = '#D4D4D4';
+// ─── Locked segment color palette (single source of truth) ────────────
+// Slate-900 anchor + 4-step coral ramp (dark → light). Used by Channel Mix + Revenue by month.
+const C_USW    = '#0F172A'; // slate-900 (anchor)
+const C_DIST   = '#C7452E'; // coral-700 (dark burnt coral)
+const C_ECOM   = '#FC7460'; // coral-500 (brand coral)
+const C_AMZN   = '#FDA595'; // coral-300 (light coral)
+const C_RETAIL = '#FDD5CB'; // coral-200 (pale coral)
+export const SEG_COLORS: Record<string, string> = {
+  'US Wholesale': C_USW,
+  'Distributors': C_DIST,
+  'Ecommerce':    C_ECOM,
+  'Amazon':       C_AMZN,
+  'Retail':       C_RETAIL,
+};
 const C_OPEN = '#D4D4D4';
 
 const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
@@ -271,10 +280,15 @@ function DeltaPill({ v }: { v: number }) {
   const up = v >= 0;
   return (
     <span
-      className="inline-flex items-center gap-0.5 text-[13px] font-semibold transition-colors duration-150 ease-out"
-      style={{ ...TABULAR, color: up ? '#059669' : '#DC2626' }}
+      className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold"
+      style={{
+        ...TABULAR,
+        color: up ? '#047857' : '#C7452E',
+        background: up ? '#ECFDF5' : '#FFF1EE',
+        padding: '3px 8px',
+      }}
     >
-      {up ? <ArrowUp size={11} strokeWidth={2.6} /> : <ArrowDown size={11} strokeWidth={2.6} />}
+      {up ? <ArrowUp size={10} strokeWidth={2.6} /> : <ArrowDown size={10} strokeWidth={2.6} />}
       {Math.abs(v).toFixed(1)}%
     </span>
   );
@@ -490,16 +504,16 @@ function Donut({ title, headerRight, data, testId, emphasizeName }: { title: str
 function Swatch({ color, label, dashed = false, line = false, dim = false }: { color: string; label: string; dashed?: boolean; line?: boolean; dim?: boolean }) {
   return (
     <span
-      className="inline-flex items-center gap-1.5 text-[11px] text-neutral-600"
-      style={{ ...TABULAR, opacity: dim ? 0.35 : 1, transition: 'opacity 200ms ease' }}
+      className="inline-flex items-center gap-1.5 text-[11px]"
+      style={{ ...TABULAR, color: '#475569', opacity: dim ? 0.35 : 1, transition: 'opacity 200ms ease' }}
     >
       {line ? (
         <span
-          className="inline-block h-[2px] w-5 rounded"
+          className="inline-block h-[2px] w-4 rounded"
           style={{ background: dashed ? 'transparent' : color, borderTop: dashed ? `2px dashed ${color}` : 'none' }}
         />
       ) : (
-        <i className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+        <i className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
       )}
       {label}
     </span>
@@ -628,7 +642,7 @@ export default function DashboardPage({ onNavigate }: Props) {
 
   const topAcctMax = topAccountsScaled[0]?.net || 1;
   const topItemMax = topItemsScaled[0]?.rev || 1;
-  const yTicks = useMemo(() => [0, 1.7e6, 3.3e6, 5e6], []);
+  const yTicks = useMemo(() => [0, 2e6, 4e6, 6e6], []);
 
   // Stagger animation helper
   const enter = (i: number) => ({
@@ -637,7 +651,7 @@ export default function DashboardPage({ onNavigate }: Props) {
   }) as React.CSSProperties;
 
   return (
-    <div className="min-h-full space-y-8 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
+    <div className="min-h-full space-y-5 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
       {/* ── 1) Unified Hero — Header + Net Sales + Annual Goal ─────── */}
       <section
         className="overflow-hidden rounded-2xl"
@@ -822,23 +836,25 @@ export default function DashboardPage({ onNavigate }: Props) {
       {/* ── 3) AI Assist meta line — moved to bottom (footer) ───────── */}
 
       {/* ── 4) Revenue by Month + Segments ──────────────────────────── */}
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" style={enter(3)}>
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" style={enter(3)}>
         <div
-          className="rounded-2xl bg-white p-6"
+          className="rounded-2xl bg-white px-6 py-5"
           style={{ boxShadow: CARD_SHADOW }}
           data-testid="rev-by-month"
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Revenue by month</h2>
-              <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>Twelve-month view · Total, Forecast, and vs LY overlay</p>
+              <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Revenue by month</h2>
+              <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>Twelve-month view · Total, Forecast, and vs LY overlay</p>
             </div>
             <button
               data-testid="rev-export"
-              className="inline-flex items-center gap-1 text-[13px] font-semibold transition hover:underline"
-              style={{ color: CORAL, textUnderlineOffset: 4 }}
+              className="inline-flex items-center gap-1 text-[12px] font-medium transition-colors duration-150"
+              style={{ color: '#475569' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#0F172A'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
             >
-              Export <ArrowUpRight size={13} />
+              Export <ArrowUpRight size={12} />
             </button>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -852,16 +868,16 @@ export default function DashboardPage({ onNavigate }: Props) {
             <Swatch color={LY_GRAY}    label="vs LY"    line dashed />
           </div>
 
-          <div className="mt-5 h-[240px] md:h-[340px]" style={TABULAR}>
+          <div className="mt-5 h-[240px]" style={TABULAR}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} barCategoryGap="40%">
-                <CartesianGrid stroke="#EFEFEF" vertical={false} strokeDasharray="4 4" />
-                <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: FAINT, fontWeight: 600, letterSpacing: '0.06em' }} tickFormatter={(m: string) => m.toUpperCase()} />
+              <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }} barCategoryGap="22%">
+                <CartesianGrid stroke="#F1F5F9" vertical={false} strokeDasharray="0" />
+                <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500, letterSpacing: '0.06em' }} tickFormatter={(m: string) => m.toUpperCase()} tickMargin={8} />
                 <YAxis
-                  ticks={yTicks} domain={[0, 5e6]}
+                  ticks={yTicks} domain={[0, 6e6]}
                   tickFormatter={fmtMShort}
                   tickLine={false} axisLine={false}
-                  tick={{ fontSize: 10, fill: FAINT, fontWeight: 500 }} width={56}
+                  tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }} width={56}
                 />
                 <Tooltip content={<RevTooltip monthly={monthlyData} />} cursor={{ stroke: FAINT, strokeDasharray: '3 3', strokeWidth: 1 }} />
                 <Bar dataKey="usw"    stackId="s" fill={!isAll && seg === 'US Wholesale' ? CORAL : C_USW}    fillOpacity={1} isAnimationActive animationDuration={400} />
@@ -869,22 +885,30 @@ export default function DashboardPage({ onNavigate }: Props) {
                 <Bar dataKey="retail" stackId="s" fill={!isAll && seg === 'Retail' ? CORAL : C_RETAIL} fillOpacity={1} isAnimationActive animationDuration={400} />
                 <Bar dataKey="ecom"   stackId="s" fill={!isAll && seg === 'Ecommerce' ? CORAL : C_ECOM}   fillOpacity={1} isAnimationActive animationDuration={400} />
                 <Bar dataKey="amzn"   stackId="s" fill={!isAll && seg === 'Amazon' ? CORAL : C_AMZN}   fillOpacity={1} isAnimationActive animationDuration={400} />
-                <Bar dataKey="open"   stackId="s" fill={C_OPEN}   fillOpacity={1} radius={[4, 4, 0, 0]} isAnimationActive animationDuration={400} />
+                <Bar dataKey="open"   stackId="s" fill={C_OPEN}   fillOpacity={1} radius={[3, 3, 0, 0]} isAnimationActive animationDuration={400} />
                 <Line type="monotone" dataKey="ly"       stroke={LY_GRAY}    strokeWidth={1.5} dot={false} strokeDasharray="3 3" isAnimationActive animationDuration={400} />
-                <Line type="monotone" dataKey="total"    stroke={INK}        strokeWidth={2.5}   dot={false} isAnimationActive animationDuration={400} />
-                <Line type="monotone" dataKey="forecast" stroke={CORAL}      strokeWidth={1.5} dot={false} strokeDasharray="6 4" isAnimationActive animationDuration={400} />
+                <Line type="monotone" dataKey="total"    stroke="#0F172A"    strokeWidth={2}   dot={false} isAnimationActive animationDuration={400} />
+                <Line type="monotone" dataKey="forecast" stroke={CORAL}      strokeWidth={1.5} dot={false} strokeDasharray="5 4" isAnimationActive animationDuration={400} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div
-          className="rounded-2xl bg-white p-6"
+          className="rounded-2xl bg-white px-6 py-5 flex flex-col h-full"
           style={{ boxShadow: CARD_SHADOW }}
           data-testid="segment-panel"
         >
-          <h2 className="text-[16px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.015em' }}>Segments</h2>
-          <div className="mt-6">
+          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Segments</h2>
+          <div className="mt-3 flex flex-nowrap items-center gap-x-3 whitespace-nowrap" data-testid="segments-legend">
+            {(['US Wholesale', 'Distributors', 'Ecommerce', 'Amazon', 'Retail'] as const).map((name) => (
+              <div key={name} className="inline-flex items-center gap-1">
+                <span className="inline-block rounded-full shrink-0" style={{ width: 5, height: 5, background: SEG_COLORS[name] }} />
+                <span className="text-[11px] font-medium" style={{ color: '#475569' }}>{name}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-1 flex-col">
             <div className="grid grid-cols-[minmax(0,1fr)_96px_96px_88px] items-center gap-3 pb-3 text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }} data-testid="segments-header">
               <span>Segment</span>
               <span className="text-right">Actual</span>
@@ -898,11 +922,12 @@ export default function DashboardPage({ onNavigate }: Props) {
                 <div
                   key={s.key}
                   data-testid={`seg-row-${s.key.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="grid h-12 grid-cols-[minmax(0,1fr)_96px_96px_88px] items-center gap-3"
+                  className="grid flex-1 grid-cols-[minmax(0,1fr)_96px_96px_88px] items-center gap-3"
                   style={{
                     opacity: active ? 1 : 0.4,
                     transition: 'opacity 250ms ease',
                     borderTop: idx === 0 ? 'none' : `1px solid #F1F5F9`,
+                    minHeight: 44,
                   }}
                 >
                   <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{s.key}</span>
@@ -923,7 +948,7 @@ export default function DashboardPage({ onNavigate }: Props) {
         data-testid="channel-mix"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Channel mix</h2>
+          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Channel mix</h2>
           <SegTabs tabs={['All Channels', 'B2B Combined']} value={mixTab} onChange={(v: any) => setMixTab(v)} testId="mix-tabs" slugPrefix="mix" />
         </div>
         {(() => {
@@ -984,194 +1009,169 @@ export default function DashboardPage({ onNavigate }: Props) {
         style={{ boxShadow: CARD_SHADOW, ...enter(5) }}
         data-testid="sales-vs-goal"
       >
-        <div className="flex flex-wrap items-start justify-between gap-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Sales vs goal</h2>
-            <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>{svgSubtitle}</p>
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Sales vs goal</h2>
+            <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>{svgSubtitle}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 md:gap-x-8" data-testid="svg-kpis">
-            <div className="text-right">
-              <p className={EYEBROW} style={eyebrowStyle}>Net Sales YTD</p>
-              <p className="mt-1.5 text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.net)}</p>
-            </div>
-            <span className="hidden h-6 w-px md:block" style={{ background: BORDER }} aria-hidden="true" />
-            <div className="text-right">
-              <p className={EYEBROW} style={eyebrowStyle}>Goal YTD</p>
-              <p className="mt-1.5 text-[20px] font-bold" style={{ ...TABULAR, color: INK }}>{fmtM(svgTotalScaled.goal)}</p>
-            </div>
-            <span className="hidden h-6 w-px md:block" style={{ background: BORDER }} aria-hidden="true" />
-            <div className="text-right">
-              <p className={EYEBROW} style={eyebrowStyle}>Variance</p>
-              <p className="mt-1.5 text-[20px] font-bold text-rose-600" style={TABULAR}>{fmtM(svgTotalScaled.variance)}</p>
-            </div>
-            <span className="hidden h-6 w-px md:block" style={{ background: BORDER }} aria-hidden="true" />
-            <div className="text-right">
-              <p className={EYEBROW} style={eyebrowStyle}>% to Goal</p>
-              <p className="mt-1.5 text-[20px] font-bold" style={{ ...TABULAR, color: CORAL }}>{svgTotalScaled.pct}%</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <div data-testid="svg-tabs-wrap">
+              <SegTabs tabs={['By Class', 'By Month']} value={svgTab} onChange={(v: any) => setSvgTab(v)} testId="svg-tabs" slugPrefix="svg-tab" />
             </div>
             <button
               data-testid="svg-export"
-              className="inline-flex items-center gap-1 text-[13px] font-semibold transition hover:underline"
-              style={{ color: CORAL, textUnderlineOffset: 4 }}
+              className="inline-flex items-center gap-1 text-[12px] font-medium transition-colors duration-150"
+              style={{ color: '#475569' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#0F172A'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
             >
-              Export <ArrowUpRight size={13} />
+              Export <ArrowUpRight size={12} />
             </button>
           </div>
         </div>
 
-        <div className="mt-6" data-testid="svg-tabs-wrap">
-          <SegTabs tabs={['By Class', 'By Month']} value={svgTab} onChange={(v: any) => setSvgTab(v)} testId="svg-tabs" slugPrefix="svg-tab" />
-        </div>
-
         <div className="mt-6 svg-scroll-wrap overflow-x-auto md:overflow-visible">
           <div
-            className={`grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 pb-2.5 ${EYEBROW}`}
-            style={{ ...eyebrowStyle, borderBottom: `1px solid ${BORDER}` }}
+            className="grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 pb-2.5 text-[11px] font-semibold uppercase"
+            style={{ letterSpacing: '0.08em', color: '#64748B', borderBottom: `1px solid #F1F5F9` }}
           >
             <span className="svg-sticky-col">Class</span>
             <span className="text-right">Net Sales YTD</span>
             <span className="text-right">Goal YTD</span>
             <span className="text-right">Variance</span>
-            <span>% to Goal</span>
+            <span className="text-right">% to Goal</span>
             <span className="text-right">Annual Goal</span>
           </div>
-          {svgVisibleRows.map((r) => (
-            <div
-              key={r.name}
-              className="group grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 h-11 text-[14px] transition-colors duration-150 ease-out hover:bg-[rgba(10,10,10,0.02)]"
-              style={{ borderBottom: `1px solid ${BORDER}` }}
-              data-testid={`svg-row-${r.name.toLowerCase().replace(/\s+/g, '-')}`}
-              title={`${r.pct}% to goal (${fmtM(r.net)} of ${fmtM(r.goal)})`}
-            >
-              <span className="svg-sticky-col flex min-w-0 items-center gap-2">
-                <i className="h-1.5 w-1.5 rounded-full" style={{ background: r.c }} />
-                <b className="truncate font-semibold" style={{ color: BODY }}>{r.name}</b>
-              </span>
-              <b className="text-right whitespace-nowrap" style={{ ...TABULAR, color: INK }}>{fmtM(r.net)}</b>
-              <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: BODY }}>{fmtM(r.goal)}</span>
-              <span className="text-right font-semibold whitespace-nowrap" style={{ ...TABULAR, color: r.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(r.variance)}</span>
-              <div className="flex flex-col items-end gap-1">
-                <b className="text-[13px] font-semibold" style={{ ...TABULAR, color: CORAL }}>{r.pct}%</b>
-                <span className="relative h-[6px] w-full overflow-hidden rounded-full" style={{ background: TRACK, boxShadow: INSET_TRACK }}>
-                  <span
-                    className="absolute left-0 top-0 h-full rounded-full"
-                    style={{ width: `${r.pct}%`, background: CORAL_GRAD_V, transition: BAR_TRANS }}
-                  />
+          {svgVisibleRows.map((r) => {
+            const onPace = r.pct >= 70;
+            const barColor = onPace ? '#0F172A' : '#FC7460';
+            const pctColor = onPace ? '#0F172A' : '#C7452E';
+            const varColor = r.variance < 0 ? '#C7452E' : r.variance > 0 ? '#0F172A' : '#64748B';
+            return (
+              <div
+                key={r.name}
+                className="group grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 h-12 text-[14px] transition-colors duration-150 ease-out hover:bg-slate-50"
+                style={{ borderBottom: `1px solid #F1F5F9` }}
+                data-testid={`svg-row-${r.name.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <span className="svg-sticky-col flex min-w-0 items-center gap-2">
+                  <i className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: r.c }} />
+                  <span className="truncate font-medium" style={{ color: '#0F172A' }}>{r.name}</span>
                 </span>
+                <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(r.net)}</span>
+                <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(r.goal)}</span>
+                <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: varColor }}>{fmtM(r.variance)}</span>
+                <div className="flex items-center gap-3">
+                  <span className="relative h-1 flex-1 overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
+                    <span
+                      className="absolute left-0 top-0 h-full rounded-full"
+                      style={{ width: `${Math.min(100, r.pct)}%`, background: barColor, transition: BAR_TRANS }}
+                    />
+                  </span>
+                  <span className="text-right text-[13px] font-semibold tabular-nums whitespace-nowrap" style={{ color: pctColor, minWidth: 36 }}>{r.pct}%</span>
+                </div>
+                <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(r.annual)}</span>
               </div>
-              <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: BODY }}>{fmtM(r.annual)}</span>
-            </div>
-          ))}
-          <div
-            className="grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 h-14 text-[14px] font-bold rounded-b-xl"
-            style={{ borderTop: `1px solid ${BORDER}`, background: '#FAFAFA' }}
-            data-testid="svg-total-row"
-          >
-            <span className="svg-sticky-col pl-3 text-[16px]" style={{ color: INK, fontWeight: 800 }}>Total</span>
-            <b className="text-right text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.net)}</b>
-            <span className="text-right text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.goal)}</span>
-            <span className="text-right text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: svgTotalScaled.variance >= 0 ? '#059669' : '#DC2626' }}>{fmtM(svgTotalScaled.variance)}</span>
-            <div className="flex flex-col items-end gap-1">
-              <b className="text-[20px] font-bold whitespace-nowrap" style={{ ...TABULAR, color: CORAL }}>{svgTotalScaled.pct}%</b>
-              <span className="relative h-[6px] w-full overflow-hidden rounded-full" style={{ background: TRACK, boxShadow: INSET_TRACK }}>
-                <span
-                  className="absolute left-0 top-0 h-full rounded-full"
-                  style={{ width: `${svgTotalScaled.pct}%`, background: CORAL_GRAD_V, transition: BAR_TRANS }}
-                />
-              </span>
-            </div>
-            <span className="text-right text-[20px] font-bold whitespace-nowrap pr-3" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(svgTotalScaled.annual)}</span>
-          </div>
+            );
+          })}
+          {(() => {
+            const onPace = svgTotalScaled.pct >= 70;
+            const barColor = onPace ? '#0F172A' : '#FC7460';
+            const pctColor = onPace ? '#0F172A' : '#C7452E';
+            const varColor = svgTotalScaled.variance < 0 ? '#C7452E' : svgTotalScaled.variance > 0 ? '#0F172A' : '#64748B';
+            return (
+              <div
+                className="grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 h-[52px] text-[15px] font-semibold"
+                style={{ borderTop: `1px solid #E2E8F0`, color: '#0F172A' }}
+                data-testid="svg-total-row"
+              >
+                <span className="svg-sticky-col">Total</span>
+                <span className="text-right whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(svgTotalScaled.net)}</span>
+                <span className="text-right whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(svgTotalScaled.goal)}</span>
+                <span className="text-right whitespace-nowrap" style={{ ...TABULAR, color: varColor }}>{fmtM(svgTotalScaled.variance)}</span>
+                <div className="flex items-center gap-3">
+                  <span className="relative h-1 flex-1 overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
+                    <span
+                      className="absolute left-0 top-0 h-full rounded-full"
+                      style={{ width: `${Math.min(100, svgTotalScaled.pct)}%`, background: barColor, transition: BAR_TRANS }}
+                    />
+                  </span>
+                  <span className="text-right text-[13px] font-semibold tabular-nums whitespace-nowrap" style={{ color: pctColor, minWidth: 36 }}>{svgTotalScaled.pct}%</span>
+                </div>
+                <span className="text-right whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(svgTotalScaled.annual)}</span>
+              </div>
+            );
+          })()}
         </div>
       </section>
 
       {/* ── 7) Top Accounts + Top Items — vertical numbered lists ──── */}
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2" style={enter(6)}>
+      <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2" style={enter(6)}>
         {/* Top Accounts */}
         <div
-          className="rounded-2xl bg-white p-6"
+          className="rounded-2xl bg-white p-6 flex flex-col h-full"
           style={{ boxShadow: CARD_SHADOW }}
           data-testid="top-accounts"
         >
           <div className="flex items-start justify-between">
-            <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Top accounts</h2>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Net Sales · YTD</span>
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Top accounts</h2>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#64748B' }}>Net Sales · YTD</span>
           </div>
-          <ol className="mt-5">
-            {topAccountsScaled.map((a, i) => {
-              const stroke = a.trend === 'up' ? '#059669' : '#DC2626';
-              return (
-                <li
-                  key={a.name}
-                  className="group flex h-12 items-center gap-3 transition-colors duration-150 ease-out hover:bg-[rgba(10,10,10,0.02)] -mx-3 rounded-lg px-3 cursor-pointer"
-                  style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}` }}
-                  data-testid={`top-acct-${i}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setDrilldownIdx(i)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDrilldownIdx(i); } }}
-                >
-                  <span className="w-7 text-right text-[11px] font-medium tracking-wider tabular-nums" style={{ ...MONO, color: FAINT }}>{String(i + 1).padStart(2, '0')}</span>
-                  <b className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: BODY }}>{a.name}</b>
-                  <Spark data={a.spark} stroke={stroke} gradId={`spark-acct-${i}`} width={112} height={28} endDot />
-                  <DeltaPill v={a.yoy} />
-                  <b className="w-[96px] text-right text-[18px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(a.net)}</b>
-                  <span className="text-[14px] font-medium opacity-0 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:translate-x-0.5" style={{ color: CORAL, lineHeight: 1 }}>›</span>
-                </li>
-              );
-            })}
+          <ol className="mt-5 flex flex-1 flex-col">
+            {topAccountsScaled.map((a, i) => (
+              <li
+                key={a.name}
+                className="group flex flex-1 items-center gap-3 transition-colors duration-150 ease-out hover:bg-slate-50 -mx-3 rounded-lg px-3 cursor-pointer"
+                style={{ borderTop: i === 0 ? 'none' : `1px solid #F1F5F9`, minHeight: 60 }}
+                data-testid={`top-acct-${i}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => setDrilldownIdx(i)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDrilldownIdx(i); } }}
+              >
+                <span className="w-7 text-right text-[11px] font-medium tabular-nums" style={{ color: '#94A3B8' }}>{String(i + 1).padStart(2, '0')}</span>
+                <span className="min-w-0 flex-1 truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{a.name}</span>
+                <DeltaPill v={a.yoy} />
+                <span className="w-[96px] text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(a.net)}</span>
+                <span className="text-[14px] font-medium opacity-0 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:translate-x-0.5" style={{ color: CORAL, lineHeight: 1 }}>›</span>
+              </li>
+            ))}
           </ol>
         </div>
 
         {/* Top Items */}
         <div
-          className="rounded-2xl bg-white p-6"
+          className="rounded-2xl bg-white p-6 flex flex-col h-full"
           style={{ boxShadow: CARD_SHADOW }}
           data-testid="top-items"
         >
           <div className="flex items-start justify-between">
-            <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.015em' }}>Top items</h2>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Revenue · YTD</span>
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Top items</h2>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#64748B' }}>Revenue · YTD</span>
           </div>
-          <ol className="mt-5">
+          <ol className="mt-5 flex flex-1 flex-col">
             {topItemsScaled.map((it, i) => (
               <li
                 key={it.sku}
-                className="group flex flex-col justify-center py-2 transition-colors duration-150 ease-out hover:bg-[rgba(10,10,10,0.02)] -mx-3 rounded-lg px-3"
-                style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`, minHeight: 52 }}
+                className="group flex flex-1 flex-col justify-center py-2 transition-colors duration-150 ease-out hover:bg-slate-50 -mx-3 rounded-lg px-3"
+                style={{ borderTop: i === 0 ? 'none' : `1px solid #F1F5F9`, minHeight: 60 }}
                 data-testid={`top-item-${i}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-7 text-right text-[11px] font-medium tracking-wider tabular-nums" style={{ ...MONO, color: FAINT }}>{String(i + 1).padStart(2, '0')}</span>
-                  <b className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: BODY }}>{it.name}</b>
-                  <b className="text-right text-[18px] font-bold whitespace-nowrap" style={{ ...TABULAR, letterSpacing: '-0.015em', color: INK }}>{fmtM(it.rev)}</b>
-                  <span className="text-[14px] font-medium opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ color: CORAL, lineHeight: 1 }}>›</span>
+                  <span className="w-7 text-right text-[11px] font-medium tabular-nums" style={{ color: '#94A3B8' }}>{String(i + 1).padStart(2, '0')}</span>
+                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{it.name}</span>
+                  <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(it.rev)}</span>
                 </div>
-                <div className="mt-0.5 flex items-center gap-3 pl-10">
-                  <span className="text-[12px] font-medium" style={{ color: MUTED }}>{it.variant}</span>
-                  <span className="min-w-0 flex-1 truncate text-[10px] font-medium uppercase tracking-[0.14em]" style={{ ...MONO, color: FAINT }}>{it.sku}</span>
-                  <span className="text-right text-[12px] font-medium" style={{ ...TABULAR, color: MUTED }}>{it.units.toLocaleString('en-US')} units</span>
+                <div className="mt-1 flex items-center gap-3 pl-10">
+                  <span className="text-[11px] font-medium" style={{ color: '#64748B' }}>{it.variant}</span>
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-medium" style={{ ...MONO, color: '#94A3B8' }}>{it.sku}</span>
+                  <span className="text-right text-[11px] font-medium tabular-nums" style={{ color: '#64748B' }}>{it.units.toLocaleString('en-US')} units</span>
                 </div>
               </li>
             ))}
           </ol>
         </div>
       </section>
-
-      {/* ── AI Assist meta footer ──────────────────────────────────── */}
-      <div className="flex items-center justify-end gap-2 pt-2" data-testid="ai-strip">
-        <Sparkles size={10} color={FAINT} strokeWidth={1.8} />
-        <span className="text-[12px] font-medium" style={{ color: MUTED }}>
-          <span className="font-semibold" style={{ color: BODY }}>Claude</span> is analyzing your data…
-        </span>
-        <button
-          data-testid="ai-strip-view-insights"
-          className="inline-flex items-center gap-0.5 text-[12px] font-semibold transition hover:underline"
-          style={{ color: CORAL, textUnderlineOffset: 3 }}
-        >
-          View insights <ArrowUpRight size={12} />
-        </button>
-      </div>
 
       {drilldownData && (
         <AccountDrilldown account={drilldownData} onClose={() => setDrilldownIdx(null)} />
