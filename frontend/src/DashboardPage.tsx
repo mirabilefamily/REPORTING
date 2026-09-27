@@ -207,14 +207,32 @@ const TOP_ITEMS = [
 ];
 
 // ─── Hooks ────────────────────────────────────────────────────────────
-function useCountUp(target: number, duration = 700) {
-  const [v, setV] = useState(0);
-  const prev = useRef(0);
+function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  });
   useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener?.('change', handler);
+    return () => mq.removeEventListener?.('change', handler);
+  }, []);
+  return reduced;
+}
+
+function useCountUp(target: number, duration = 500) {
+  const [v, setV] = useState(target);
+  const prev = useRef(target);
+  const reduced = useReducedMotion();
+  useEffect(() => {
+    if (reduced) { prev.current = target; setV(target); return; }
     let raf = 0;
     const start = performance.now();
     const from = prev.current;
-    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+    // easeOutQuart
+    const ease = (t: number) => 1 - Math.pow(1 - t, 4);
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
       const val = from + (target - from) * ease(t);
@@ -224,8 +242,42 @@ function useCountUp(target: number, duration = 700) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
+  }, [target, duration, reduced]);
   return v;
+}
+
+// Segment key ⇄ bar dataKey mapping (used for cross-module hover)
+const SEG_TO_BAR_KEY: Record<string, string> = {
+  'US Wholesale': 'usw', 'Distributors': 'dist', 'Retail': 'retail', 'Ecommerce': 'ecom', 'Amazon': 'amzn',
+};
+
+// Hero Net Sales trend line tooltip (month + value + MoM delta vs previous point)
+function HeroTrendTooltip({ active, payload, label, monthly }: any) {
+  if (!active || !payload?.length) return null;
+  const cur = payload[0]?.payload ?? {};
+  const idx = Array.isArray(monthly) ? monthly.findIndex((r: any) => r.m === label) : -1;
+  const prev = idx > 0 ? monthly[idx - 1] : null;
+  const t = cur.total ?? 0;
+  const pt = prev?.total ?? 0;
+  const mom = pt ? { d: t - pt, p: ((t - pt) / pt) * 100 } : { d: 0, p: 0 };
+  const up = mom.d >= 0;
+  return (
+    <div
+      style={{
+        background: '#FFFFFF', borderRadius: 12, padding: 12,
+        boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)',
+        minWidth: 180, ...TABULAR,
+      }}
+    >
+      <p style={{ color: '#0F172A', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.10em', marginBottom: 6 }}>{label}</p>
+      <p style={{ color: '#0F172A', fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', margin: 0 }}>{fmtM(t)}</p>
+      {prev && (
+        <p style={{ marginTop: 4, fontSize: 11, fontWeight: 500, color: up ? '#047857' : '#C7452E' }}>
+          {up ? '↑' : '↓'} {Math.abs(mom.p).toFixed(1)}% MoM
+        </p>
+      )}
+    </div>
+  );
 }
 
 // ─── Atoms ────────────────────────────────────────────────────────────
