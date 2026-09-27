@@ -149,9 +149,17 @@ function StaffApp() {
   return (
     <div className="app-shell">
       <aside className={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'sidebar-mobile-open' : ''}`} data-testid="sidebar">
-        <div className="brand-lockup">
-          <img className="brand-logo expanded-brand-logo brand-logo-image" src="/goorin_reporting_logo.png" alt="Goorin REPORTING" />
-          <img className="brand-logo collapsed-brand-logo" src="/goorin-sidebar-icon copy.png" alt="Goorin" />
+        <div
+          className="brand-lockup"
+          onClick={sidebarCollapsed ? () => setSidebarCollapsed(false) : undefined}
+          role={sidebarCollapsed ? 'button' : undefined}
+          tabIndex={sidebarCollapsed ? 0 : undefined}
+          onKeyDown={sidebarCollapsed ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSidebarCollapsed(false); } } : undefined}
+          style={sidebarCollapsed ? { cursor: 'pointer' } : undefined}
+          data-testid="brand-lockup"
+        >
+          <img className="brand-logo expanded-brand-logo brand-logo-image" src="/goorin_reporting_logo.png?v=4" alt="Goorin REPORTING" />
+          <img className="brand-logo collapsed-brand-logo" src="/goorin_sidebar_icon.png?v=4" alt="Goorin" />
         </div>
 
         <div className="sidebar-scroll">
