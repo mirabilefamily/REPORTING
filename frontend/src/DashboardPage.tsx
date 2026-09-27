@@ -651,7 +651,7 @@ export default function DashboardPage({ onNavigate }: Props) {
   }) as React.CSSProperties;
 
   return (
-    <div className="min-h-full space-y-5 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
+    <div className="min-h-full space-y-4 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
       {/* ── 1) Unified Hero — Header + Net Sales + Annual Goal ─────── */}
       <section
         className="overflow-hidden rounded-2xl"
@@ -667,14 +667,14 @@ export default function DashboardPage({ onNavigate }: Props) {
           </div>
         </div>
         <div className="grid grid-cols-1 min-[900px]:grid-cols-[minmax(0,7fr)_1px_minmax(0,3fr)]" style={{ borderTop: '1px solid #F1F5F9' }}>
-          <div className="px-6 pb-5 pt-6" data-testid="kpi-net-sales">
+          <div className="px-6 py-5" data-testid="kpi-net-sales">
             <div className="flex min-h-[26px] items-center gap-2">
               <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} aria-hidden="true" />
               <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>
                 Net Sales · {rLabel}
               </p>
             </div>
-          <div className="mt-5 flex min-h-[58px] flex-wrap items-end gap-x-4 gap-y-2">
+          <div className="mt-2.5 flex min-h-[58px] flex-wrap items-end gap-x-4 gap-y-2">
             <NetSalesValue target={netSalesYTD} />
             <span
               className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold"
@@ -684,7 +684,7 @@ export default function DashboardPage({ onNavigate }: Props) {
               <ArrowUp size={10} strokeWidth={2.6} />25.6% YoY
             </span>
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
             <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#047857' }}>
               <ArrowUp size={10} strokeWidth={2.6} />8.2% <span className="ml-1" style={{ color: '#475569' }}>MoM</span>
             </span>
@@ -695,8 +695,8 @@ export default function DashboardPage({ onNavigate }: Props) {
               <ArrowUp size={10} strokeWidth={2.6} />25.6% <span className="ml-1" style={{ color: '#475569' }}>YoY</span>
             </span>
           </div>
-          <p className="mt-3 text-[11px] font-medium leading-snug" style={{ color: '#64748B' }}>After discounts, returns &amp; tax · shipping included</p>
-          <div className="mt-5" data-testid="hero-sparkline">
+          <p className="mt-2 text-[11px] font-medium leading-snug" style={{ color: '#64748B' }}>After discounts, returns &amp; tax · shipping included</p>
+          <div className="mt-4" data-testid="hero-sparkline">
             <div style={{ height: 110 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlyData} margin={{ top: 6, right: 0, bottom: 0, left: 0 }}>
@@ -720,7 +720,7 @@ export default function DashboardPage({ onNavigate }: Props) {
 
           <div className="hidden min-[900px]:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
 
-          <div className="border-t border-[#F1F5F9] px-6 pb-5 pt-6 min-[900px]:border-t-0" data-testid="annual-goal">
+          <div className="border-t border-[#F1F5F9] px-6 py-5 min-[900px]:border-t-0" data-testid="annual-goal">
           <div className="flex min-h-[26px] items-center justify-between gap-3">
             <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>Annual Goal</p>
             <span
@@ -736,15 +736,15 @@ export default function DashboardPage({ onNavigate }: Props) {
               {goalPct}%
             </span>
           </div>
-          <div className="mt-5 flex min-h-[58px] items-end">
+          <div className="mt-2.5 flex min-h-[58px] items-end">
             <p className="text-[26px] font-semibold" style={{ ...TABULAR, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }} data-testid="annual-goal-amount">
               {fmtM(goalValue)}
             </p>
           </div>
-          <p className="mt-4 text-[12px] font-medium" style={{ ...TABULAR, color: '#64748B' }}>
+          <p className="mt-1 text-[12px] font-medium" style={{ ...TABULAR, color: '#64748B' }}>
             of {fmtM(goalMax)} · {fmtM(Math.max(0, goalMax - goalValue))} to go
           </p>
-          <div className="relative mt-8">
+          <div className="relative mt-4">
             <span
               className="absolute -top-4 whitespace-nowrap text-[10px] font-semibold uppercase"
               style={{ ...TABULAR, color: MUTED, letterSpacing: '0.10em', left: `${pace}%`, transform: 'translateX(-100%)', paddingRight: 4 }}
@@ -775,13 +775,13 @@ export default function DashboardPage({ onNavigate }: Props) {
               />
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-1.5" data-testid="behind-pace-pill">
+          <div className="mt-2 flex items-center gap-1.5" data-testid="behind-pace-pill">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: onPace ? '#047857' : CORAL }} aria-hidden="true" />
             <span className="text-[12px] font-medium" style={{ ...TABULAR, color: onPace ? '#047857' : CORAL }}>
               {onPace ? 'On pace' : `${Math.abs(pace - goalPct)} pts behind pace`}
             </span>
           </div>
-          <div className="mt-6 pt-4" style={{ borderTop: `1px solid #F1F5F9` }}>
+          <div className="mt-2 pt-2" style={{ borderTop: `1px solid #F1F5F9` }}>
             {[...segmentRowsScaled].sort((a, b) => b.cur - a.cur).slice(0, 2).map((s, i) => (
               <div
                 key={s.key}
