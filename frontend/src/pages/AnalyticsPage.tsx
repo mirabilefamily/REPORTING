@@ -1,104 +1,353 @@
-import { useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Page, Kpi, Card, usdM, MONTHS } from './_shared';
+import { useMemo, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { ArrowDown, ArrowUp, Calendar, Users } from 'lucide-react';
+import { SEG_COLORS, SegTabs, DeltaPill } from '../DashboardPage';
 import DateRangePicker from '../components/DateRangePicker';
 import { usePageRange } from '../lib/pageRange';
 
+// ─── Tokens (mirror Dashboard) ─────────────────────────────────────────
+const CARD_SHADOW = '0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)';
+const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
+const INTER = {
+  fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+  WebkitFontSmoothing: 'antialiased',
+} as const;
+
+const fmtM = (n: number) => {
+  const a = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(2)}M`;
+  if (a >= 1e3) return `${sign}$${Math.round(a / 1e3)}K`;
+  return `${sign}$${Math.round(a)}`;
+};
+
+// ─── Mock data ─────────────────────────────────────────────────────────
+const CHANNELS = ['All', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'] as const;
+const PERIODS = ['YTD', 'Last 12 mo', 'This quarter', 'Last quarter', 'Custom'] as const;
+const VIEWS = ['Sales', 'Products'] as const;
+const TREND_MODES = ['Daily', 'Weekly', 'Monthly'] as const;
+
 const KPIS = [
-  { label: 'Total Revenue', value: '$11.57M', delta: '−14.7%', tone: 'down' as const, sublabel: 'vs prior year' },
-  { label: 'Units Sold', value: '312,480', delta: '−8.2%', tone: 'down' as const, sublabel: 'vs prior year' },
-  { label: 'Avg Order Value', value: '$1,842', delta: '+3.1%', tone: 'up' as const, sublabel: 'vs prior year' },
-  { label: 'Return Rate', value: '2.4%', delta: '−0.3 pts', tone: 'up' as const, sublabel: 'vs prior year' },
+  { label: 'Net Sales',        value: '$17.51M', delta:  6.2, sub: 'vs $16.49M prior' },
+  { label: 'Units',            value: '312,480', delta: -2.1, sub: 'vs 319,204 prior' },
+  { label: 'Orders',           value: '8,204',   delta:  4.7, sub: 'vs 7,836 prior' },
+  { label: 'AOV',              value: '$2,134',  delta:  3.1, sub: 'vs $2,070 prior' },
+  { label: 'ASP',              value: '$56.10',  delta:  1.4, sub: 'vs $55.32 prior' },
+  { label: 'Active Customers', value: '1,247',   delta: -1.2, sub: 'vs 1,262 prior' },
 ];
 
-const REV_VS_LY = MONTHS.map((m, i) => {
-  const cy = [980, 1_120, 890, 1_040, 1_180, 1_250, 1_310, 1_290, 940, 1_150, 1_380, 1_420][i] * 1000;
-  const ly = [1_050, 1_180, 1_020, 1_140, 1_240, 1_390, 1_450, 1_360, 1_100, 1_310, 1_420, 1_500][i] * 1000;
-  return { m, cy, ly };
-});
+const TREND_MONTHLY = [
+  { m: 'Jan', v: 1.35e6 }, { m: 'Feb', v: 2.45e6 }, { m: 'Mar', v: 1.55e6 },
+  { m: 'Apr', v: 1.75e6 }, { m: 'May', v: 1.90e6 }, { m: 'Jun', v: 1.85e6 },
+  { m: 'Jul', v: 2.45e6 }, { m: 'Aug', v: 2.65e6 }, { m: 'Sep', v: 1.55e6 },
+  { m: 'Oct', v: 1.30e6 }, { m: 'Nov', v: 2.30e6 }, { m: 'Dec', v: 2.10e6 },
+];
+const TREND_WEEKLY = Array.from({ length: 12 }, (_, i) => ({ m: `W${i + 1}`, v: (0.4 + Math.random() * 0.6) * 1e6 }));
+const TREND_DAILY  = Array.from({ length: 14 }, (_, i) => ({ m: `D${i + 1}`, v: (0.08 + Math.random() * 0.12) * 1e6 }));
 
-const TOP_SKUS = [
-  { sku: '101-0385', name: 'The GOAT', rev: 485_200 },
-  { sku: '101-2449', name: 'Lone Wolf Trucker', rev: 412_800 },
-  { sku: '101-0386', name: 'The Gorilla', rev: 386_400 },
-  { sku: '101-2457', name: 'Black Sheep Trucker', rev: 341_900 },
-  { sku: '101-1284', name: 'The Panther', rev: 298_500 },
-  { sku: '101-1912', name: 'The Rooster', rev: 264_700 },
-  { sku: '101-0442', name: 'Classic Fedora', rev: 231_200 },
-  { sku: '101-3117', name: 'Bourbon Bucket', rev: 205_600 },
-  { sku: '101-2814', name: 'Baseball Vintage', rev: 189_400 },
-  { sku: '101-0917', name: 'Straw Panama', rev: 171_800 },
+const CHANNEL_MIX = [
+  { name: 'US Wholesale', v: 6_480_000, share: 37.0, delta:  5.8 },
+  { name: 'Distributors', v: 5_240_000, share: 29.9, delta:  8.4 },
+  { name: 'Ecommerce',    v: 4_550_000, share: 26.0, delta: 12.1 },
+  { name: 'Amazon',       v:   785_000, share:  4.5, delta: -3.6 },
+  { name: 'Retail',       v:   462_000, share:  2.6, delta: -8.9 },
 ];
 
-const CHANNELS = [
-  { name: 'Wholesale', rev: 6_412_880, units: 158_320, share: 55.4 },
-  { name: 'DTC', rev: 2_814_600, units: 82_140, share: 24.3 },
-  { name: 'Amazon', rev: 1_356_900, units: 47_820, share: 11.7 },
-  { name: 'Retail Partners', rev: 988_036, units: 24_200, share: 8.6 },
+const SALES_REPS = [
+  { name: 'Jovon Clements',   accounts: 34, net: 4_820_000, yoy:  12.6 },
+  { name: 'Erwin Samson',     accounts: 28, net: 3_940_000, yoy:   6.3 },
+  { name: 'Priya Rao',        accounts: 22, net: 2_710_000, yoy:  -4.1 },
+  { name: 'Devon Park',       accounts: 19, net: 2_180_000, yoy:   9.2 },
+  { name: 'James Whittaker',  accounts: 16, net: 1_860_000, yoy: -11.4 },
 ];
 
-export default function AnalyticsPage() {
-  const [range, setRange] = usePageRange('analytics');
+const TOP_CUSTOMERS = [
+  { name: 'Lids',                       net: 2_720_000, share: 15.5 },
+  { name: 'SASAtrend',                  net: 1_460_000, share:  8.3 },
+  { name: 'Industrias Mercury, S.A.',   net: 1_030_000, share:  5.9 },
+  { name: 'Nordstrom Accounts Payable', net:   726_000, share:  4.1 },
+  { name: 'Buckle Inc., The',           net:   617_000, share:  3.5 },
+  { name: 'Zumiez',                     net:   548_000, share:  3.1 },
+  { name: 'Journeys',                   net:   492_000, share:  2.8 },
+  { name: 'Tilly\u2019s',               net:   436_000, share:  2.5 },
+  { name: 'Urban Outfitters',           net:   398_000, share:  2.3 },
+  { name: 'Nordstrom Rack',             net:   356_000, share:  2.0 },
+];
+
+// ─── Atoms ─────────────────────────────────────────────────────────────
+function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <Page title="Analytics" subtitle="Cross-channel revenue, units and sell-through — last 12 months." testId="analytics-page" actions={<DateRangePicker value={range} onChange={setRange} testId="analytics-range" />}>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {KPIS.map((k) => <Kpi key={k.label} {...k} deltaTone={k.tone} testId={`kpi-${k.label.toLowerCase().replace(/\s+/g, '-')}`} />)}
-      </div>
+    <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>
+      {children}
+    </p>
+  );
+}
 
-      <Card title="Revenue vs Prior Year" description="Monthly invoiced revenue, current year (green) vs prior year (grey)." testId="chart-rev-vs-ly">
-        <div className="h-72">
+function InlineDelta({ v, showArrow = true }: { v: number; showArrow?: boolean }) {
+  const up = v >= 0;
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-medium"
+      style={{
+        ...TABULAR,
+        color: up ? '#047857' : '#C7452E',
+        background: up ? '#ECFDF5' : '#FFF1EE',
+        padding: '3px 8px',
+      }}
+    >
+      {showArrow && (up ? <ArrowUp size={10} strokeWidth={2.6} /> : <ArrowDown size={10} strokeWidth={2.6} />)}
+      {Math.abs(v).toFixed(1)}%
+    </span>
+  );
+}
+
+function TrendTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const v = payload[0]?.value ?? 0;
+  return (
+    <div
+      style={{
+        background: '#FFFFFF',
+        borderRadius: 12,
+        padding: 12,
+        boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)',
+        minWidth: 180,
+        ...TABULAR,
+      }}
+    >
+      <p style={{ color: '#0F172A', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.10em', marginBottom: 6 }}>
+        {label}
+      </p>
+      <p style={{ color: '#0F172A', fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em', margin: 0 }}>{fmtM(v)}</p>
+    </div>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────
+export default function AnalyticsPage() {
+  const [channel, setChannel] = useState<typeof CHANNELS[number]>('All');
+  const [period, setPeriod] = useState<typeof PERIODS[number]>('YTD');
+  const [view, setView] = useState<typeof VIEWS[number]>('Sales');
+  const [trendMode, setTrendMode] = useState<typeof TREND_MODES[number]>('Monthly');
+  const [range, setRange] = usePageRange('analytics');
+
+  const trendData = useMemo(() => {
+    if (trendMode === 'Daily')  return TREND_DAILY;
+    if (trendMode === 'Weekly') return TREND_WEEKLY;
+    return TREND_MONTHLY;
+  }, [trendMode]);
+
+  const trendMax = Math.max(...trendData.map((d) => d.v));
+  const yMax = trendMax > 2.5e6 ? 3e6 : trendMax > 1.5e6 ? 2.5e6 : 1.5e6;
+  const yTicks = yMax === 3e6 ? [0, 1e6, 2e6, 3e6] : yMax === 2.5e6 ? [0, 0.5e6, 1e6, 1.5e6, 2e6, 2.5e6] : [0, 0.5e6, 1e6, 1.5e6];
+
+  const cardShell = 'rounded-2xl bg-white p-6';
+  const shellStyle = { boxShadow: CARD_SHADOW } as React.CSSProperties;
+
+  return (
+    <div className="p-1 space-y-4" data-testid="analytics-page" style={{ ...INTER, ...TABULAR }}>
+      {/* 1) Filter bar */}
+      <section className={cardShell} style={{ ...shellStyle, paddingTop: 20, paddingBottom: 20 }} data-testid="analytics-filter-bar">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+          <div className="flex items-center gap-3">
+            <Eyebrow>Channel</Eyebrow>
+            <SegTabs tabs={CHANNELS as unknown as readonly string[]} value={channel} onChange={(v: any) => setChannel(v)} testId="a-channel-tabs" slugPrefix="a-ch" />
+          </div>
+          <div className="flex items-center gap-3">
+            <Eyebrow>Period</Eyebrow>
+            <SegTabs tabs={PERIODS as unknown as readonly string[]} value={period} onChange={(v: any) => setPeriod(v)} testId="a-period-tabs" slugPrefix="a-pd" />
+          </div>
+          <div className="flex items-center gap-3">
+            <Eyebrow>View</Eyebrow>
+            <SegTabs tabs={VIEWS as unknown as readonly string[]} value={view} onChange={(v: any) => setView(v)} testId="a-view-tabs" slugPrefix="a-vw" />
+          </div>
+          <div className="ml-auto">
+            <DateRangePicker value={range} onChange={setRange} testId="analytics-range" />
+          </div>
+        </div>
+      </section>
+
+      {/* 2) KPI row (6 metrics) */}
+      <section
+        className="overflow-hidden rounded-2xl bg-white"
+        style={shellStyle}
+        data-testid="analytics-kpi-row"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-6">
+          {KPIS.map((k, i) => (
+            <div
+              key={k.label}
+              className="px-5 py-5"
+              style={{ borderLeft: i > 0 ? '1px solid #F1F5F9' : 'none' }}
+              data-testid={`akpi-${k.label.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <Eyebrow>{k.label}</Eyebrow>
+              <p className="mt-3 font-semibold" style={{ ...TABULAR, fontSize: 24, lineHeight: 1.05, letterSpacing: '-0.02em', color: '#0F172A' }}>
+                {k.value}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <InlineDelta v={k.delta} />
+                <span className="text-[11px] font-medium" style={{ color: '#64748B' }}>{k.sub}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3) Net Sales Trend */}
+      <section className={cardShell} style={shellStyle} data-testid="analytics-trend">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Net Sales Trend</h2>
+            <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>{trendMode} view · {period}</p>
+          </div>
+          <SegTabs tabs={TREND_MODES as unknown as readonly string[]} value={trendMode} onChange={(v: any) => setTrendMode(v)} testId="a-trend-mode" slugPrefix="a-trend" />
+        </div>
+        <div className="mt-5 h-[320px]" style={TABULAR}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={REV_VS_LY} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#eef1ef" vertical={false} />
-              <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#8a938e' }} />
-              <YAxis tickFormatter={usdM} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#a3aaa5' }} width={60} />
-              <Tooltip formatter={(v: number) => usdM(v)} contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} />
-              <Line type="monotone" dataKey="ly" stroke="#a3a3a3" strokeWidth={2} strokeDasharray="4 4" dot={false} name="Prior Year" isAnimationActive={false} />
-              <Line type="monotone" dataKey="cy" stroke="#0f8a66" strokeWidth={2.6} dot={false} activeDot={{ r: 4 }} name="Current Year" isAnimationActive={false} />
-            </LineChart>
+            <BarChart data={trendData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }} barCategoryGap="22%">
+              <defs>
+                <linearGradient id="analyticsBarGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"  stopColor="#10B981" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#34D399" stopOpacity={0.92} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="#F1F5F9" vertical={false} />
+              <XAxis
+                dataKey="m" tickLine={false} axisLine={false}
+                tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500, letterSpacing: '0.06em' }}
+                tickFormatter={(m: string) => m.toUpperCase()}
+                tickMargin={8}
+              />
+              <YAxis
+                ticks={yTicks} domain={[0, yMax]}
+                tickFormatter={(v: number) => `$${v / 1_000_000}M`}
+                tickLine={false} axisLine={false}
+                tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                width={56}
+              />
+              <Tooltip content={<TrendTooltip />} cursor={{ stroke: '#E2E8F0', strokeWidth: 1 }} />
+              <Bar dataKey="v" fill="url(#analyticsBarGrad)" radius={[3, 3, 0, 0]} isAnimationActive animationDuration={400} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
-      </Card>
+      </section>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card title="Top 10 SKUs by Revenue" description="Year-to-date invoiced revenue." className="lg:col-span-2" testId="chart-top-skus">
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={TOP_SKUS} margin={{ top: 8, right: 12, left: 0, bottom: 16 }}>
-                <CartesianGrid stroke="#eef1ef" vertical={false} />
-                <XAxis dataKey="sku" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: '#8a938e' }} angle={-30} textAnchor="end" height={40} />
-                <YAxis tickFormatter={usdM} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#a3aaa5' }} width={60} />
-                <Tooltip formatter={(v: number) => usdM(v)} labelFormatter={(l) => `SKU ${l}`} contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} />
-                <Bar dataKey="rev" fill="#0f8a66" radius={[6, 6, 0, 0]} isAnimationActive={false} />
-              </BarChart>
-            </ResponsiveContainer>
+      {/* 4) Channel Mix (60%) + Returns & Credits + Customer Concentration (40%) */}
+      <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        {/* Channel Mix */}
+        <div className={cardShell} style={shellStyle} data-testid="analytics-channel-mix">
+          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Channel Mix</h2>
+          <div className="mt-5">
+            {CHANNEL_MIX.map((c, i) => (
+              <div
+                key={c.name}
+                className="grid grid-cols-[140px_minmax(0,1fr)_56px_84px_72px] items-center gap-3 transition-colors duration-150 ease-out hover:bg-slate-50 -mx-3 rounded-lg px-3"
+                style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 44 }}
+                data-testid={`amix-${c.name.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="h-2 w-2 rounded-full shrink-0" style={{ background: SEG_COLORS[c.name] }} />
+                  <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{c.name}</span>
+                </div>
+                <div className="relative h-1.5 w-full overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
+                  <span
+                    className="absolute left-0 top-0 h-full rounded-full"
+                    style={{ width: `${c.share}%`, background: SEG_COLORS[c.name], transition: 'width 700ms cubic-bezier(0.22, 1, 0.36, 1)' }}
+                  />
+                </div>
+                <span className="text-right text-[13px] font-medium tabular-nums" style={{ color: '#64748B' }}>{c.share.toFixed(1)}%</span>
+                <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(c.v)}</span>
+                <div className="flex justify-end"><InlineDelta v={c.delta} /></div>
+              </div>
+            ))}
           </div>
-        </Card>
+        </div>
 
-        <Card title="Channel Breakdown" description="Revenue share by channel." testId="table-channels">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-neutral-500">
-                <th className="pb-2 font-semibold">Channel</th>
-                <th className="pb-2 text-right font-semibold">Revenue</th>
-                <th className="pb-2 text-right font-semibold">Share</th>
-              </tr>
-            </thead>
-            <tbody>
-              {CHANNELS.map((c) => (
-                <tr key={c.name} className="border-t border-neutral-100">
-                  <td className="py-2.5">
-                    <div className="font-medium text-neutral-800">{c.name}</div>
-                    <div className="text-[11px] text-neutral-500">{c.units.toLocaleString('en-US')} units</div>
-                  </td>
-                  <td className="py-2.5 text-right font-semibold text-neutral-900">{usdM(c.rev)}</td>
-                  <td className="py-2.5 text-right text-neutral-600">{c.share.toFixed(1)}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      </div>
-    </Page>
+        {/* Returns & Credits + Customer Concentration (stacked) */}
+        <div className="flex flex-col gap-4">
+          <div className={cardShell} style={shellStyle} data-testid="analytics-returns">
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Returns &amp; Credits</h2>
+            <div className="mt-5 grid grid-cols-2 gap-4">
+              <div>
+                <p className="font-semibold" style={{ ...TABULAR, fontSize: 28, lineHeight: 1.05, letterSpacing: '-0.02em', color: '#0F172A' }}>2.4%</p>
+                <p className="mt-1 text-[11px] font-medium" style={{ color: '#64748B' }}>Credit rate</p>
+              </div>
+              <div style={{ borderLeft: '1px solid #F1F5F9', paddingLeft: 16 }}>
+                <p className="font-semibold" style={{ ...TABULAR, fontSize: 16, lineHeight: 1.2, letterSpacing: '-0.005em', color: '#0F172A' }}>$448K</p>
+                <p className="mt-1 text-[11px] font-medium" style={{ color: '#64748B' }}>Credits on $18.7M gross</p>
+              </div>
+            </div>
+          </div>
+
+          <div className={cardShell} style={{ ...shellStyle, paddingTop: 20, paddingBottom: 20 }} data-testid="analytics-concentration">
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Customer Concentration</h2>
+            <div className="mt-3 flex items-center gap-2">
+              <Users size={16} color="#64748B" strokeWidth={1.8} />
+              <p className="text-[13px] font-medium" style={{ color: '#0F172A' }}>
+                Top 10 customers = <b className="font-semibold" style={TABULAR}>75.7%</b> of net sales
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5) Sales Rep Leaderboard + Top Customers */}
+      <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
+        <div className={cardShell} style={shellStyle} data-testid="analytics-reps">
+          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Sales Rep Leaderboard</h2>
+          <div className="mt-5">
+            <div
+              className="grid grid-cols-[minmax(0,1.4fr)_80px_100px_80px] items-center gap-3 pb-3 text-[11px] font-semibold uppercase"
+              style={{ letterSpacing: '0.08em', color: '#64748B', borderBottom: '1px solid #F1F5F9' }}
+            >
+              <span>Rep</span>
+              <span className="text-right">Accounts</span>
+              <span className="text-right">Net Sales</span>
+              <span className="text-right">YoY</span>
+            </div>
+            {SALES_REPS.map((r, i) => (
+              <div
+                key={r.name}
+                className="grid grid-cols-[minmax(0,1.4fr)_80px_100px_80px] items-center gap-3 transition-colors duration-150 ease-out hover:bg-slate-50 -mx-3 rounded-lg px-3"
+                style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 44 }}
+                data-testid={`arep-${i}`}
+              >
+                <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{r.name}</span>
+                <span className="text-right text-[14px] font-medium" style={{ ...TABULAR, color: '#0F172A' }}>{r.accounts}</span>
+                <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(r.net)}</span>
+                <div className="flex justify-end"><DeltaPill v={r.yoy} /></div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={cardShell} style={shellStyle} data-testid="analytics-top-customers">
+          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Top Customers</h2>
+          <div className="mt-5">
+            <div
+              className="grid grid-cols-[minmax(0,1.6fr)_100px_72px] items-center gap-3 pb-3 text-[11px] font-semibold uppercase"
+              style={{ letterSpacing: '0.08em', color: '#64748B', borderBottom: '1px solid #F1F5F9' }}
+            >
+              <span>Customer</span>
+              <span className="text-right">Net Sales</span>
+              <span className="text-right">Share</span>
+            </div>
+            {TOP_CUSTOMERS.map((c, i) => (
+              <div
+                key={c.name}
+                className="grid grid-cols-[minmax(0,1.6fr)_100px_72px] items-center gap-3 transition-colors duration-150 ease-out hover:bg-slate-50 -mx-3 rounded-lg px-3"
+                style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 44 }}
+                data-testid={`acust-${i}`}
+              >
+                <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{c.name}</span>
+                <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(c.net)}</span>
+                <span className="text-right text-[14px] font-medium tabular-nums" style={{ color: '#64748B' }}>{c.share.toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

@@ -281,7 +281,7 @@ function HeroTrendTooltip({ active, payload, label, monthly }: any) {
 }
 
 // ─── Atoms ────────────────────────────────────────────────────────────
-function SegTabs({ tabs, value, onChange, testId, slugPrefix }: { tabs: readonly string[]; value: string; onChange: (v: any) => void; testId: string; slugPrefix: string }) {
+export function SegTabs({ tabs, value, onChange, testId, slugPrefix }: { tabs: readonly string[]; value: string; onChange: (v: any) => void; testId: string; slugPrefix: string }) {
   return (
     <div
       className="inline-flex items-center gap-[2px] rounded-2xl p-1"
@@ -328,7 +328,7 @@ function SegTabs({ tabs, value, onChange, testId, slugPrefix }: { tabs: readonly
   );
 }
 
-function DeltaPill({ v }: { v: number }) {
+export function DeltaPill({ v }: { v: number }) {
   const up = v >= 0;
   return (
     <span
