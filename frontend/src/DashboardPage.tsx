@@ -683,27 +683,22 @@ export default function DashboardPage({ onNavigate }: Props) {
 
   return (
     <div className="min-h-full space-y-8 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
-      {/* ── 1) Segment tabs + Date range ───────────────────────────── */}
-      <header className="relative z-30 flex flex-col gap-3 md:h-11 md:flex-row md:flex-wrap md:items-center md:justify-between" data-testid="dashboard-header" style={enter(0)}>
-        <div className="-mx-4 overflow-x-auto no-scrollbar px-4 md:mx-0 md:overflow-visible md:px-0">
-          <SegTabs tabs={SEGMENTS} value={seg} onChange={(v: any) => setSeg(v as SegKey)} testId="segment-tabs" slugPrefix="seg" />
+      {/* ── 1) Unified Hero — Header + Net Sales + Annual Goal ─────── */}
+      <section
+        className="overflow-hidden rounded-2xl"
+        style={{ background: '#FFFFFF', boxShadow: CARD_SHADOW, ...enter(0) }}
+        data-testid="hero-module"
+      >
+        <div className="relative z-30 flex flex-col gap-3 px-6 py-3 md:min-h-[56px] md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-6 md:px-8 md:py-4" data-testid="dashboard-header">
+          <div className="-mx-4 overflow-x-auto no-scrollbar px-4 md:mx-0 md:overflow-visible md:px-0">
+            <SegTabs tabs={SEGMENTS} value={seg} onChange={(v: any) => setSeg(v as SegKey)} testId="segment-tabs" slugPrefix="seg" />
+          </div>
+          <div className="w-full md:w-auto [&_.date-range-wrap]:w-full md:[&_.date-range-wrap]:w-auto [&_.date-range-btn]:w-full md:[&_.date-range-btn]:w-auto">
+            <DateRangePicker value={range} onChange={setRange} testId="dashboard-range" />
+          </div>
         </div>
-        <div className="w-full md:w-auto [&_.date-range-wrap]:w-full md:[&_.date-range-wrap]:w-auto [&_.date-range-btn]:w-full md:[&_.date-range-btn]:w-auto">
-          <DateRangePicker value={range} onChange={setRange} testId="dashboard-range" />
-        </div>
-      </header>
-
-      {/* ── 2) HERO — Net Sales card + Annual Goal card ─────────────── */}
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" data-testid="hero-card" style={enter(1)}>
-        {/* Left: Net Sales hero card with full-width area sparkline */}
-        <div
-          className="rounded-2xl p-6"
-          style={{
-            background: 'linear-gradient(135deg, rgba(252,116,96,0.04) 0%, #FFFFFF 60%)',
-            boxShadow: CARD_SHADOW,
-          }}
-          data-testid="kpi-net-sales"
-        >
+        <div className="grid grid-cols-1 min-[900px]:grid-cols-[minmax(0,7fr)_1px_minmax(0,3fr)]" style={{ borderTop: '1px solid #F1F5F9' }}>
+          <div className="p-6 md:p-8" data-testid="kpi-net-sales">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} aria-hidden="true" />
@@ -759,23 +754,17 @@ export default function DashboardPage({ onNavigate }: Props) {
           </div>
         </div>
 
-        {/* Right: Annual Goal card */}
-        <div
-          className="rounded-2xl p-6"
-          style={{
-            background: onPace ? '#FFFFFF' : 'linear-gradient(135deg, rgba(252,116,96,0.03) 0%, #FFFFFF 60%)',
-            boxShadow: CARD_SHADOW,
-          }}
-          data-testid="annual-goal"
-        >
+          <div className="hidden min-[900px]:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
+
+          <div className="border-t border-[#F1F5F9] p-6 md:p-8 min-[900px]:border-t-0" data-testid="annual-goal">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>Annual Goal</p>
             <span
               className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-bold"
               style={{
                 ...TABULAR,
-                background: onPace ? 'rgba(5,150,105,0.10)' : 'rgba(217,119,6,0.12)',
-                color: onPace ? '#059669' : '#D97706',
+                background: onPace ? 'rgba(5,150,105,0.10)' : 'rgba(252,116,96,0.12)',
+                color: onPace ? '#059669' : CORAL,
               }}
               data-testid="annual-goal-pct-pill"
             >
@@ -820,8 +809,8 @@ export default function DashboardPage({ onNavigate }: Props) {
             </div>
           </div>
           <div className="mt-3 flex items-center gap-1.5" data-testid="behind-pace-pill">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: onPace ? '#059669' : '#D97706' }} aria-hidden="true" />
-            <span className="text-[12px] font-medium" style={{ ...TABULAR, color: onPace ? '#059669' : '#D97706' }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: onPace ? '#059669' : CORAL }} aria-hidden="true" />
+            <span className="text-[12px] font-medium" style={{ ...TABULAR, color: onPace ? '#059669' : CORAL }}>
               {onPace ? 'On pace' : `${Math.abs(pace - goalPct)} pts behind pace`}
             </span>
           </div>
@@ -840,6 +829,7 @@ export default function DashboardPage({ onNavigate }: Props) {
               </div>
             ))}
           </div>
+        </div>
         </div>
       </section>
 
