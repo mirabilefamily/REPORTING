@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ArrowDown, ArrowUp, Calendar, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, Users } from 'lucide-react';
 import { SEG_COLORS, SegTabs, DeltaPill } from '../DashboardPage';
-import DateRangePicker from '../components/DateRangePicker';
 import { usePageRange } from '../lib/pageRange';
 
 // ─── Tokens (mirror Dashboard) ─────────────────────────────────────────
@@ -24,8 +23,16 @@ const fmtM = (n: number) => {
 // ─── Mock data ─────────────────────────────────────────────────────────
 const CHANNELS = ['All', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'] as const;
 const PERIODS = ['YTD', 'Last 12 mo', 'This quarter', 'Last quarter', 'Custom'] as const;
-const VIEWS = ['Sales', 'Products'] as const;
 const TREND_MODES = ['Daily', 'Weekly', 'Monthly'] as const;
+
+// Map Analytics Period pill → DateRangePicker value (drives data)
+const PERIOD_TO_RANGE: Record<typeof PERIODS[number], 'YTD' | 'QTD' | 'Last 30d' | 'Custom'> = {
+  'YTD':          'YTD',
+  'Last 12 mo':   'YTD',
+  'This quarter': 'QTD',
+  'Last quarter': 'QTD',
+  'Custom':       'Custom',
+};
 
 const KPIS = [
   { label: 'Net Sales',        value: '$17.51M', delta:  6.2, sub: 'vs $16.49M prior' },
@@ -127,9 +134,13 @@ function TrendTooltip({ active, payload, label }: any) {
 export default function AnalyticsPage() {
   const [channel, setChannel] = useState<typeof CHANNELS[number]>('All');
   const [period, setPeriod] = useState<typeof PERIODS[number]>('YTD');
-  const [view, setView] = useState<typeof VIEWS[number]>('Sales');
   const [trendMode, setTrendMode] = useState<typeof TREND_MODES[number]>('Monthly');
   const [range, setRange] = usePageRange('analytics');
+
+  const handlePeriodChange = (v: typeof PERIODS[number]) => {
+    setPeriod(v);
+    setRange(PERIOD_TO_RANGE[v]);
+  };
 
   const trendData = useMemo(() => {
     if (trendMode === 'Daily')  return TREND_DAILY;
@@ -148,22 +159,9 @@ export default function AnalyticsPage() {
     <div className="p-1 space-y-4" data-testid="analytics-page" style={{ ...INTER, ...TABULAR }}>
       {/* 1) Filter bar */}
       <section className={cardShell} style={{ ...shellStyle, paddingTop: 20, paddingBottom: 20 }} data-testid="analytics-filter-bar">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-          <div className="flex items-center gap-3">
-            <Eyebrow>Channel</Eyebrow>
-            <SegTabs tabs={CHANNELS as unknown as readonly string[]} value={channel} onChange={(v: any) => setChannel(v)} testId="a-channel-tabs" slugPrefix="a-ch" />
-          </div>
-          <div className="flex items-center gap-3">
-            <Eyebrow>Period</Eyebrow>
-            <SegTabs tabs={PERIODS as unknown as readonly string[]} value={period} onChange={(v: any) => setPeriod(v)} testId="a-period-tabs" slugPrefix="a-pd" />
-          </div>
-          <div className="flex items-center gap-3">
-            <Eyebrow>View</Eyebrow>
-            <SegTabs tabs={VIEWS as unknown as readonly string[]} value={view} onChange={(v: any) => setView(v)} testId="a-view-tabs" slugPrefix="a-vw" />
-          </div>
-          <div className="ml-auto">
-            <DateRangePicker value={range} onChange={setRange} testId="analytics-range" />
-          </div>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <SegTabs tabs={CHANNELS as unknown as readonly string[]} value={channel} onChange={(v: any) => setChannel(v)} testId="a-channel-tabs" slugPrefix="a-ch" />
+          <SegTabs tabs={PERIODS as unknown as readonly string[]} value={period} onChange={(v: any) => handlePeriodChange(v)} testId="a-period-tabs" slugPrefix="a-pd" />
         </div>
       </section>
 
