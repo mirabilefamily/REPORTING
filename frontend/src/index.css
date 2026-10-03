@@ -209,10 +209,8 @@ button { font: inherit; border: 0; cursor: pointer; }
 .sidebar .nav-item.nav-item-child:hover { background: #1E293B; color: #F1F5F9; transform: none; }
 .sidebar .nav-item.nav-item-child.active { background: #1E293B; color: #FFFFFF; box-shadow: none; }
 .sidebar .nav-item.nav-item-child.active::before { content: ''; position: absolute; left: 4px; top: 50%; width: 2px; height: 18px; margin-top: -9px; border-radius: 2px; background: var(--goorin-coral); display: block; }
-/* Parent-with-children (expandable group header, e.g., "Analytics"): keep hover subtle so it reads as container not destination */
+/* Parent-with-children (expandable group header, e.g., "Analytics"): same hover pill as every other row */
 .sidebar .nav-item.parent-active { color: #E2E8F0; }
-.sidebar .nav-item.parent-active:hover,
-.sidebar .nav-item[aria-expanded]:hover { background: rgba(30,41,59,0.55); color: #F1F5F9; }
 .sidebar .nav-label { color: #CBD5E1; font-size: 11px; font-weight: 700; letter-spacing: .14em; }
 
 /* ─ Collapsed-rail parent group: coral indicator dot when child route active ─ */
