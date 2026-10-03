@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useEffect, useMemo, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ArrowDown, ArrowUp, Users } from 'lucide-react';
 import { SEG_COLORS, SegTabs, DeltaPill } from '../DashboardPage';
 import { usePageRange } from '../lib/pageRange';
@@ -42,6 +42,85 @@ const KPIS = [
   { label: 'ASP',              value: '$56.10',  delta:  1.4, sub: 'vs $55.32 prior' },
   { label: 'Active Customers', value: '1,247',   delta: -1.2, sub: 'vs 1,262 prior' },
 ];
+
+// Adaptive KPI config (swaps on Channel filter)
+type KpiMetric = { label: string; value: string; delta: number; sub: string };
+const KPIS_ALL: KpiMetric[] = [
+  { label: 'Net Sales',        value: '$17.51M', delta:  6.2, sub: 'vs $16.49M prior' },
+  { label: 'Units',            value: '312,480', delta: -2.1, sub: 'vs 319,204 prior' },
+  { label: 'Orders',           value: '8,204',   delta:  4.7, sub: 'vs 7,836 prior' },
+  { label: 'AOV',              value: '$2,134',  delta:  3.1, sub: 'vs $2,070 prior' },
+  { label: 'Active Customers', value: '1,247',   delta: -1.2, sub: 'vs 1,262 prior' },
+  { label: 'Return Rate',      value: '6.4%',    delta: -0.5, sub: 'vs 6.9% prior' },
+];
+const KPIS_DTC_ECOM: KpiMetric[] = [
+  { label: 'Net Sales',            value: '$4.55M',  delta: 12.1, sub: 'vs $4.06M prior' },
+  { label: 'Sessions',             value: '486,210', delta:  8.9, sub: 'vs 446,320 prior' },
+  { label: 'Conversion Rate',      value: '2.8%',    delta:  0.3, sub: 'vs 2.5% prior' },
+  { label: 'AOV',                  value: '$84',     delta:  4.2, sub: 'vs $81 prior' },
+  { label: 'Repeat Purchase Rate', value: '34.2%',   delta:  2.1, sub: 'vs 32.1% prior' },
+  { label: 'Return Rate',          value: '7.8%',    delta: -0.4, sub: 'vs 8.2% prior' },
+];
+const KPIS_DTC_AMZN: KpiMetric[] = [
+  { label: 'Net Sales',            value: '$785K',   delta: -3.6, sub: 'vs $814K prior' },
+  { label: 'Sessions',             value: '322,140', delta:  5.4, sub: 'vs 305,480 prior' },
+  { label: 'Conversion Rate',      value: '2.3%',    delta: -0.1, sub: 'vs 2.4% prior' },
+  { label: 'AOV',                  value: '$62',     delta:  1.8, sub: 'vs $61 prior' },
+  { label: 'Repeat Purchase Rate', value: '28.6%',   delta: -1.3, sub: 'vs 29.9% prior' },
+  { label: 'Return Rate',          value: '8.9%',    delta:  0.7, sub: 'vs 8.2% prior' },
+];
+const KPIS_WH_US: KpiMetric[] = [
+  { label: 'Net Sales',       value: '$6.48M', delta:  5.8, sub: 'vs $6.12M prior' },
+  { label: 'Active Accounts', value: '318',    delta:  4.2, sub: 'vs 305 prior' },
+  { label: 'Reorder Rate',    value: '68.4%',  delta:  3.1, sub: 'vs 65.3% prior' },
+  { label: 'Avg Order Size',  value: '$12,420', delta:  5.2, sub: 'vs $11,802 prior' },
+  { label: 'Sell-through %',  value: '81.4%',  delta:  2.6, sub: 'vs 78.8% prior' },
+  { label: 'Fill Rate',       value: '96.8%',  delta:  0.4, sub: 'vs 96.4% prior' },
+];
+const KPIS_WH_DIST: KpiMetric[] = [
+  { label: 'Net Sales',       value: '$5.24M',  delta:  8.4, sub: 'vs $4.83M prior' },
+  { label: 'Active Accounts', value: '142',     delta:  2.1, sub: 'vs 139 prior' },
+  { label: 'Reorder Rate',    value: '54.1%',   delta: -1.4, sub: 'vs 55.5% prior' },
+  { label: 'Avg Order Size',  value: '$18,340', delta:  6.4, sub: 'vs $17,240 prior' },
+  { label: 'Sell-through %',  value: '72.6%',   delta:  1.1, sub: 'vs 71.5% prior' },
+  { label: 'Fill Rate',       value: '93.8%',   delta: -0.6, sub: 'vs 94.4% prior' },
+];
+const KPIS_WH_RETAIL: KpiMetric[] = [
+  { label: 'Net Sales',       value: '$462K',  delta: -8.9, sub: 'vs $507K prior' },
+  { label: 'Active Accounts', value: '45',     delta: -4.3, sub: 'vs 47 prior' },
+  { label: 'Reorder Rate',    value: '46.7%',  delta: -2.8, sub: 'vs 49.5% prior' },
+  { label: 'Avg Order Size',  value: '$2,480', delta: -3.6, sub: 'vs $2,573 prior' },
+  { label: 'Sell-through %',  value: '64.2%',  delta: -4.1, sub: 'vs 68.3% prior' },
+  { label: 'Fill Rate',       value: '91.4%',  delta: -1.2, sub: 'vs 92.6% prior' },
+];
+function getKpis(ch: string): KpiMetric[] {
+  if (ch === 'Ecommerce')    return KPIS_DTC_ECOM;
+  if (ch === 'Amazon')       return KPIS_DTC_AMZN;
+  if (ch === 'US Wholesale') return KPIS_WH_US;
+  if (ch === 'Distributors') return KPIS_WH_DIST;
+  if (ch === 'Retail')       return KPIS_WH_RETAIL;
+  return KPIS_ALL;
+}
+
+// DTC Funnel data
+const FUNNEL_MODES = ['Ecommerce', 'Amazon', 'Combined'] as const;
+const FUNNEL_STAGES = ['Sessions', 'Add-to-cart', 'Checkout', 'Purchase'] as const;
+const FUNNEL_DATA: Record<typeof FUNNEL_MODES[number], number[]> = {
+  'Ecommerce': [486210, 58345, 36174, 27131],
+  'Amazon':    [322140, 38657, 23967, 17975],
+  'Combined':  [808350, 97002, 60141, 45106],
+};
+
+// Wholesale Reorder Cadence data
+const REORDER_MODES = ['All Wholesale', 'US Wholesale', 'Distributors', 'Retail'] as const;
+const REORDER_BUCKETS = ['0-2w', '3-4w', '5-8w', '9-12w', '13-26w', '27-52w', '52w+'] as const;
+const REORDER_BENCHMARK_IDX = 3; // "9-12w" is the last on-pace bucket; indices 4+ are stale
+const REORDER_DATA: Record<typeof REORDER_MODES[number], number[]> = {
+  'All Wholesale': [48, 86, 132, 94, 61, 32, 18],
+  'US Wholesale':  [32, 58,  78, 51, 33, 18,  9],
+  'Distributors':  [14, 22,  41, 32, 20, 11,  7],
+  'Retail':        [ 2,  6,  13, 11,  8,  3,  2],
+};
 
 const TREND_MONTHLY = [
   { m: 'Jan', v: 1.35e6 }, { m: 'Feb', v: 2.45e6 }, { m: 'Mar', v: 1.55e6 },
@@ -135,7 +214,21 @@ export default function AnalyticsPage() {
   const [channel, setChannel] = useState<typeof CHANNELS[number]>('All');
   const [period, setPeriod] = useState<typeof PERIODS[number]>('YTD');
   const [trendMode, setTrendMode] = useState<typeof TREND_MODES[number]>('Monthly');
-  const [range, setRange] = usePageRange('analytics');
+  const [funnelMode, setFunnelMode] = useState<typeof FUNNEL_MODES[number]>('Ecommerce');
+  const [reorderMode, setReorderMode] = useState<typeof REORDER_MODES[number]>('All Wholesale');
+  const [, setRange] = usePageRange('analytics');
+  const [kpiOpacity, setKpiOpacity] = useState(1);
+
+  useEffect(() => {
+    setKpiOpacity(0.4);
+    const t = setTimeout(() => setKpiOpacity(1), 20);
+    return () => clearTimeout(t);
+  }, [channel]);
+
+  const kpis = useMemo(() => getKpis(channel), [channel]);
+  const funnelData = FUNNEL_DATA[funnelMode];
+  const reorderData = REORDER_DATA[reorderMode].map((count, i) => ({ bucket: REORDER_BUCKETS[i], count, stale: i > REORDER_BENCHMARK_IDX }));
+  const reorderBarColor = reorderMode === 'All Wholesale' ? '#0F172A' : SEG_COLORS[reorderMode];
 
   const handlePeriodChange = (v: typeof PERIODS[number]) => {
     setPeriod(v);
@@ -165,14 +258,17 @@ export default function AnalyticsPage() {
         </div>
       </section>
 
-      {/* 2) KPI row (6 metrics) */}
+      {/* 2) KPI row (6 metrics) — adaptive on Channel */}
       <section
         className="overflow-hidden rounded-2xl bg-white"
         style={shellStyle}
         data-testid="analytics-kpi-row"
       >
-        <div className="grid grid-cols-1 md:grid-cols-6">
-          {KPIS.map((k, i) => (
+        <div
+          className="grid grid-cols-1 md:grid-cols-6"
+          style={{ opacity: kpiOpacity, transition: 'opacity 180ms ease-out' }}
+        >
+          {kpis.map((k, i) => (
             <div
               key={k.label}
               className="px-5 py-5"
@@ -189,6 +285,101 @@ export default function AnalyticsPage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* 2b) DTC Funnel + Wholesale Reorder Cadence row */}
+      <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
+        {/* DTC Funnel */}
+        <div className={cardShell} style={shellStyle} data-testid="analytics-funnel">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>DTC Funnel</h2>
+              <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>Sessions → Add-to-cart → Checkout → Purchase</p>
+            </div>
+            <SegTabs tabs={FUNNEL_MODES as unknown as readonly string[]} value={funnelMode} onChange={(v: any) => setFunnelMode(v)} testId="a-funnel-mode" slugPrefix="a-funnel" />
+          </div>
+          <div className="mt-5 flex flex-col gap-3" style={{ minHeight: 220 }}>
+            {FUNNEL_STAGES.map((stage, i) => {
+              const value = funnelData[i];
+              const share = (value / funnelData[0]) * 100;
+              const dropPct = i > 0 ? ((funnelData[i - 1] - value) / funnelData[i - 1]) * 100 : 0;
+              return (
+                <div key={stage}>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>{stage}</span>
+                    {i > 0 && (
+                      <span
+                        className="inline-flex items-center rounded-full text-[11px] font-medium"
+                        style={{ ...TABULAR, background: '#FFF1EE', color: '#C7452E', padding: '2px 8px' }}
+                      >
+                        −{dropPct.toFixed(1)}% drop-off
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="relative h-11 rounded-md"
+                    style={{
+                      width: `${Math.max(share, 12)}%`,
+                      background: 'linear-gradient(180deg, #10B981 0%, #34D399 100%)',
+                      transition: 'width 400ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    }}
+                  >
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-white" style={TABULAR}>
+                      {value.toLocaleString('en-US')}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Wholesale Reorder Cadence */}
+        <div className={cardShell} style={shellStyle} data-testid="analytics-reorder">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Wholesale Reorder Cadence</h2>
+              <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>Weeks since last order</p>
+            </div>
+            <SegTabs tabs={REORDER_MODES as unknown as readonly string[]} value={reorderMode} onChange={(v: any) => setReorderMode(v)} testId="a-reorder-mode" slugPrefix="a-reorder" />
+          </div>
+          <div className="mt-5 h-[220px]" style={TABULAR}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={reorderData} margin={{ top: 24, right: 12, left: 0, bottom: 8 }} barCategoryGap="22%">
+                <CartesianGrid stroke="#F1F5F9" vertical={false} />
+                <XAxis
+                  dataKey="bucket" tickLine={false} axisLine={false}
+                  tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                  tickMargin={8}
+                />
+                <YAxis
+                  tickLine={false} axisLine={false}
+                  tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                  width={32}
+                />
+                <Tooltip
+                  cursor={{ fill: 'rgba(15,23,42,0.04)' }}
+                  content={({ active, payload }: any) => (!active || !payload?.length) ? null : (
+                    <div style={{ background: '#FFFFFF', borderRadius: 12, padding: 10, boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)', ...TABULAR }}>
+                      <p style={{ color: '#64748B', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{payload[0].payload.bucket}</p>
+                      <p style={{ color: '#0F172A', fontSize: 13, fontWeight: 600, margin: '4px 0 0' }}>{payload[0].value} accounts</p>
+                    </div>
+                  )}
+                />
+                <ReferenceLine
+                  x="9-12w"
+                  stroke="#FC7460" strokeDasharray="4 4" strokeWidth={1.5}
+                  label={{ value: 'Reorder benchmark', position: 'top', fill: '#C7452E', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em' }}
+                />
+                <Bar dataKey="count" radius={[3, 3, 0, 0]} isAnimationActive animationDuration={400}>
+                  {reorderData.map((d, i) => (
+                    <Cell key={i} fill={reorderBarColor} fillOpacity={d.stale ? 0.5 : 1} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </section>
 
