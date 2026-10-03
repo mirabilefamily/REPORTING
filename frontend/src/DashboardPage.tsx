@@ -807,8 +807,7 @@ export default function DashboardPage({ onNavigate }: Props) {
   const combined = scale * rScale;
 
   const netSalesYTD = 9_166_708 * combined;
-  const openOrders = 4_182_650 * combined;
-  const total = 26_679_135 * combined;
+  const netSalesCountUp = useCountUp(netSalesYTD, 700);
   const forecastVal = 25_980_800 * combined;
   const goalValue = 17_510_000 * combined;
   const goalMax = 25_980_000;
@@ -902,210 +901,93 @@ export default function DashboardPage({ onNavigate }: Props) {
   }) as React.CSSProperties;
 
   return (
-    <div className="min-h-full space-y-4 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
-      {/* ── 1) Unified Hero — Header + Net Sales + Annual Goal ─────── */}
-      <section
-        className="overflow-hidden rounded-2xl"
-        style={{ background: '#FFFFFF', boxShadow: CARD_SHADOW, ...enter(0) }}
-        data-testid="hero-module"
-      >
-        <div className="relative z-30 flex flex-col gap-3 px-6 py-3 md:min-h-[56px] md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-6 md:px-8 md:py-4" data-testid="dashboard-header">
-          <div className="-mx-4 overflow-x-auto no-scrollbar px-4 md:mx-0 md:overflow-visible md:px-0">
-            <SegTabs tabs={SEGMENTS} value={seg} onChange={(v: any) => setSeg(v as SegKey)} testId="segment-tabs" slugPrefix="seg" />
+    <div className="min-h-full" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR, background: '#F8FAFC' }}>
+      <div className="mx-auto" style={{ maxWidth: 920, padding: '48px 24px 64px' }}>
+
+        {/* ── Report header ─────────────────────────────────────── */}
+        <div className="flex flex-wrap items-start justify-between gap-6" data-testid="report-header">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase" style={{ letterSpacing: '0.12em', color: '#94A3B8' }}>Goorin Reporting · Dashboard</p>
+            <h1 className="mt-2 font-semibold" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-0.015em', color: '#0F172A' }} data-testid="report-title">Q3 Net Sales Brief</h1>
+            <p className="mt-3 font-normal" style={{ fontSize: 16, lineHeight: 1.5, color: '#64748B', maxWidth: 640 }}>
+              Year-to-date performance across US Wholesale, Distributors, Retail, Ecommerce, and Amazon.
+            </p>
           </div>
-          <div className="w-full md:w-auto [&_.date-range-wrap]:w-full md:[&_.date-range-wrap]:w-auto [&_.date-range-btn]:w-full md:[&_.date-range-btn]:w-auto">
+          <div className="flex flex-col items-end gap-3 shrink-0">
             <DateRangePicker value={range} onChange={setRange} testId="dashboard-range" />
+            <div className="scale-90 origin-right"><SegTabs tabs={SEGMENTS} value={seg} onChange={(v: any) => setSeg(v as SegKey)} testId="segment-tabs" slugPrefix="seg" /></div>
           </div>
         </div>
-        <div className="grid grid-cols-1 min-[900px]:grid-cols-[minmax(0,7fr)_1px_minmax(0,3fr)]" style={{ borderTop: '1px solid #F1F5F9' }}>
-          <div className="px-6 py-6 md:px-8 md:py-7" data-testid="kpi-net-sales">
-            <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>
-              Net Sales · {rLabel}
-            </p>
-            <div className="mt-3 flex flex-wrap items-end gap-x-5 gap-y-3">
-              <NetSalesValue target={netSalesYTD} />
-              <span
-                className="mb-2 inline-flex items-center gap-0.5 rounded-full text-[13px] font-semibold"
-                style={{ ...TABULAR, background: '#ECFDF5', color: '#047857', padding: '4px 10px' }}
-                data-testid="net-sales-delta"
-              >
-                <ArrowUp size={11} strokeWidth={2.6} />25.6% YoY
-              </span>
-            </div>
-            <div className="mt-6" style={{ height: 48 }} data-testid="hero-sparkline">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
-                  <defs>
-                    <linearGradient id="heroSparkGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#0F172A" stopOpacity={0.08} />
-                      <stop offset="100%" stopColor="#0F172A" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area type="monotone" dataKey="total" stroke="#0F172A" strokeWidth={1.5} fill="url(#heroSparkGrad)" isAnimationActive animationDuration={500} dot={false} activeDot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-6" data-testid="goal-pace-strip">
-              <div className="relative h-1 w-full overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
-                <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(100, goalPct)}%`, background: CORAL, transition: BAR_TRANS }} />
-                <span aria-hidden="true" className="pointer-events-none absolute w-[2px]" style={{ top: -5, bottom: -5, left: `${pace}%`, background: '#94A3B8' }} />
-              </div>
-              <p className="mt-2 text-[12px] font-medium" style={{ ...TABULAR, color: '#64748B' }}>
-                {goalPct}% of {fmtM(goalMax)} goal · {Math.abs(pace - goalPct)} pts {goalPct < pace ? 'behind' : 'ahead of'} pace
-              </p>
-            </div>
+
+        <ContextChips seg={seg} rLabel={rLabel} onResetSeg={() => setSeg('All')} onResetRange={() => setRange('YTD')} />
+
+        <hr style={{ margin: '36px 0', border: 'none', borderTop: '1px solid #E2E8F0' }} />
+
+        {/* ── I. Overview ─────────────────────────────────────── */}
+        <section data-testid="section-overview">
+          <div className="flex items-center gap-3">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[14px] font-semibold text-white" style={{ background: '#0F172A' }}>I</span>
+            <h2 className="font-semibold" style={{ fontSize: 24, lineHeight: 1.1, letterSpacing: '-0.01em', color: '#0F172A' }}>Overview</h2>
           </div>
+          <p className="mt-1.5 ml-9 text-[12px] font-medium" style={{ color: '#64748B' }}>YTD vs plan</p>
 
-          <div className="hidden min-[900px]:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
+          <p className="mt-6" style={{ fontSize: 16, lineHeight: 1.6, color: '#334155' }} data-testid="overview-prose">
+            Through {rLabel === 'YTD' ? 'September' : rLabel}, Goorin generated <b style={{ color: '#0F172A', fontWeight: 700, ...TABULAR }}>{usd0(netSalesCountUp)}</b> in net sales, up <b style={{ color: '#0F172A', fontWeight: 700, ...TABULAR }}>25.6%</b> vs the same period last year. The business is pacing at <b style={{ color: '#0F172A', fontWeight: 700, ...TABULAR }}>{goalPct}% of the {fmtM(goalMax)} annual goal — {Math.abs(pace - goalPct)} points {goalPct < pace ? 'behind' : 'ahead of'}</b> our day-of-year target. Distributors leads the drag with <b style={{ color: '#0F172A', fontWeight: 700, ...TABULAR }}>$510K trailing plan</b>, while Retail is pacing strongest at <b style={{ color: '#0F172A', fontWeight: 700, ...TABULAR }}>96% attainment</b>.
+          </p>
 
-          <div className="border-t border-[#F1F5F9] px-6 py-6 md:px-8 md:py-7 min-[900px]:border-t-0" data-testid="annual-goal">
-            <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>Annual Goal · 2026</p>
-            <p className="mt-3 font-semibold" style={{ ...TABULAR, fontSize: 40, lineHeight: 1, letterSpacing: '-0.02em', color: INK }} data-testid="annual-goal-amount">
-              {fmtM(goalValue)}
-            </p>
-            <p className="mt-1.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#64748B' }}>
-              of {fmtM(goalMax)} · {fmtM(Math.max(0, goalMax - goalValue))} to go
-            </p>
-            <div className="relative mt-4 h-1 w-full overflow-hidden rounded-full" style={{ background: '#F1F5F9' }} data-testid="goal-bar">
-              <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(100, goalPct)}%`, background: CORAL, transition: BAR_TRANS }} />
-              <span aria-hidden="true" className="pointer-events-none absolute w-[2px]" style={{ top: -4, bottom: -4, left: `${pace}%`, background: '#94A3B8' }} />
+          {/* Figure 1 — thin infographic strip */}
+          <div className="mt-10" data-testid="figure-1">
+            <div className="relative" style={{ height: 24 }}>
+              <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2" style={{ height: 1, background: '#E2E8F0' }} />
+              <div className="absolute" style={{ left: `${pace}%`, top: 'calc(50% - 7px)', height: 14, width: 1, background: '#94A3B8' }} aria-hidden="true" />
+              {channelPerfRows.map((row) => {
+                const size = Math.max(8, Math.min(20, 6 + (row.share / 40) * 14));
+                return (
+                  <div
+                    key={row.name}
+                    className="absolute rounded-full"
+                    style={{ left: `${Math.min(100, Math.max(0, row.attainment))}%`, top: '50%', width: size, height: size, background: row.c, transform: 'translate(-50%, -50%)', border: '2px solid #F8FAFC' }}
+                    data-testid={`figure1-dot-${row.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  />
+                );
+              })}
             </div>
-            <div className="mt-4 flex flex-col gap-1" data-testid="annual-goal-breakdown">
-              {[...segmentRowsScaled].sort((a, b) => b.pct - a.pct).slice(0, 2).map((s) => (
-                <div
-                  key={s.key}
-                  className="flex h-7 items-center gap-3"
-                  data-testid={`goal-seg-${s.key.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: SEG_COLORS[s.key] }} />
-                  <b className="min-w-0 flex-1 truncate text-[13px] font-medium" style={{ color: '#0F172A' }}>{s.key}</b>
-                  <span className="text-[13px] font-semibold" style={{ ...TABULAR, color: '#0F172A' }}>{s.pct}%</span>
+            {/* Stacked label legend — avoids overlap when attainment %s cluster */}
+            <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-5">
+              {channelPerfRows.map((row) => (
+                <div key={row.name} className="flex items-center gap-2" data-testid={`figure1-legend-${row.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                  <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: row.c }} />
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-medium" style={{ color: '#64748B' }}>{row.name}</span>
+                  <span className="text-[11px] font-medium tabular-nums" style={{ color: '#0F172A' }}>{row.attainment}%</span>
                 </div>
               ))}
             </div>
+            <p className="mt-5 text-[11px] italic" style={{ color: '#94A3B8' }}>Figure 1 · YTD attainment positions · dot size scales with channel share · grey tick marks the elapsed-year pace</p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <ContextChips
-        seg={seg}
-        rLabel={rLabel}
-        onResetSeg={() => setSeg('All')}
-        onResetRange={() => setRange('YTD')}
-      />
+        <hr style={{ margin: '48px 0', border: 'none', borderTop: '1px solid #E2E8F0' }} />
 
-      {/* ── 2) Pacing Map — channel timelines vs expected pace ─────── */}
-      <section
-        className="rounded-2xl bg-white p-6 md:p-7"
-        style={{ boxShadow: CARD_SHADOW, ...enter(1) }}
-        data-testid="pacing-map"
-      >
-        <div>
-          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Channel pacing · {rLabel}</h2>
-          <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>Where each channel sits vs expected position on 2026 goal</p>
-        </div>
-        <div className="mt-5">
-          {channelPerfRows.map((row, i) => {
-            const diff = row.attainment - pace;
-            const dotColor = Math.abs(diff) <= 1 ? '#475569' : diff < 0 ? CORAL : '#059669';
-            const stateLabel = Math.abs(diff) <= 1 ? 'On pace' : diff < 0 ? `${Math.abs(diff)} pts behind` : `${diff} pts ahead`;
-            return (
-              <div
-                key={row.name}
-                className="grid items-center gap-4 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded-lg px-3"
-                style={{ gridTemplateColumns: '160px minmax(0,1fr) 180px', borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 56 }}
-                data-testid={`pace-row-${row.name.toLowerCase().replace(/\s+/g, '-')}`}
-                title={`${row.name}: ${row.attainment}% of ${fmtM(row.target)} · ${stateLabel}`}
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: row.c }} />
-                  <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{row.name}</span>
-                </div>
-                <div className="relative" style={{ height: 14 }}>
-                  <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 rounded-full" style={{ height: 2, background: '#F1F5F9' }} />
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full" style={{ height: 2, width: `${Math.min(100, row.attainment)}%`, background: row.c, transition: BAR_TRANS }} />
-                  <div className="absolute" style={{ top: 0, bottom: 0, left: `${pace}%`, width: 2, background: '#94A3B8', transform: 'translateX(-50%)' }} aria-hidden="true" />
-                  <div className="absolute rounded-full" style={{ top: '50%', left: `${Math.min(100, Math.max(0, row.attainment))}%`, width: 10, height: 10, background: dotColor, transform: 'translate(-50%, -50%)', boxShadow: '0 0 0 2px #FFFFFF' }} />
-                </div>
-                <div className="flex items-center justify-end gap-3">
-                  <span className="text-[14px] font-semibold tabular-nums" style={{ color: '#0F172A' }}>{row.attainment}%</span>
-                  <DeltaPill v={row.attainment - pace} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── 3) Channel Scoreboard — ranked 5 mini cards ──────────────── */}
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-5" style={enter(2)} data-testid="channel-scoreboard">
-        {channelPerfRows.map((row, i) => (
-          <div
-            key={row.name}
-            className="rounded-2xl bg-white p-4"
-            style={{ boxShadow: CARD_SHADOW }}
-            data-testid={`score-card-${row.name.toLowerCase().replace(/\s+/g, '-')}`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-medium tabular-nums" style={{ color: '#94A3B8', letterSpacing: '0.08em' }}>{String(i + 1).padStart(2, '0')}</span>
-              <DeltaPill v={row.yoy} />
-            </div>
-            <div className="mt-3 flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: row.c }} />
-              <span className="truncate text-[13px] font-semibold" style={{ color: '#0F172A' }}>{row.name}</span>
-            </div>
-            <p className="mt-2 font-semibold" style={{ ...TABULAR, fontSize: 22, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>
-              {fmtM(row.revenue)}
-            </p>
-            <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
-              <span className="block h-full rounded-full" style={{ width: `${Math.min(100, row.attainment)}%`, background: row.c, transition: BAR_TRANS }} />
-            </div>
-            <p className="mt-2 text-[11px] font-medium" style={{ ...TABULAR, color: '#64748B' }}>{row.share.toFixed(1)}% share · {row.attainment}% of goal</p>
+        {/* ── II. Revenue Trend ───────────────────────────────── */}
+        <section data-testid="section-revenue-trend">
+          <div className="flex items-center gap-3">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[14px] font-semibold text-white" style={{ background: '#0F172A' }}>II</span>
+            <h2 className="font-semibold" style={{ fontSize: 24, lineHeight: 1.1, letterSpacing: '-0.01em', color: '#0F172A' }}>Revenue Trend</h2>
           </div>
-        ))}
-      </section>
+          <p className="mt-1.5 ml-9 text-[12px] font-medium" style={{ color: '#64748B' }}>Twelve-month view</p>
 
-      {/* ── 4) Revenue by Month — full width + on-canvas insight ─── */}
-      <section style={enter(3)}>
-        <div
-          className="rounded-2xl bg-white p-6 md:p-7"
-          style={{ boxShadow: CARD_SHADOW }}
-          data-testid="rev-by-month"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Revenue by month</h2>
-              <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>Twelve-month view · Total, Forecast, and vs LY overlay</p>
-            </div>
-            <button
-              data-testid="rev-export"
-              className="inline-flex items-center gap-1 text-[12px] font-medium transition-colors duration-150"
-              style={{ color: '#475569' }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#0F172A'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
-            >
-              Export <ArrowUpRight size={12} />
-            </button>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
             <Swatch color={!isAll && seg === 'US Wholesale' ? CORAL : C_USW}      label="US Wholesale" dim={!isAll && seg !== 'US Wholesale'} />
             <Swatch color={!isAll && seg === 'Distributors' ? CORAL : C_DIST}     label="Distributors" dim={!isAll && seg !== 'Distributors'} />
-            <Swatch color={!isAll && seg === 'Retail' ? CORAL : C_RETAIL}   label="Retail"       dim={!isAll && seg !== 'Retail'} />
-            <Swatch color={!isAll && seg === 'Ecommerce' ? CORAL : C_ECOM}     label="Ecommerce"    dim={!isAll && seg !== 'Ecommerce'} />
-            <Swatch color={!isAll && seg === 'Amazon' ? CORAL : C_AMZN}     label="Amazon"       dim={!isAll && seg !== 'Amazon'} />
+            <Swatch color={!isAll && seg === 'Retail' ? CORAL : C_RETAIL}         label="Retail"       dim={!isAll && seg !== 'Retail'} />
+            <Swatch color={!isAll && seg === 'Ecommerce' ? CORAL : C_ECOM}        label="Ecommerce"    dim={!isAll && seg !== 'Ecommerce'} />
+            <Swatch color={!isAll && seg === 'Amazon' ? CORAL : C_AMZN}           label="Amazon"       dim={!isAll && seg !== 'Amazon'} />
             <Swatch color={INK}        label="Total"    line />
             <Swatch color={CORAL}      label="Forecast" line dashed />
             <Swatch color={LY_GRAY}    label="vs LY"    line dashed />
           </div>
 
-          <div className="relative mt-5 h-[280px]" style={TABULAR}>
-            <span
-              className="pointer-events-none absolute right-2 top-2 z-10 inline-flex items-center rounded-full text-[12px] font-medium"
-              style={{ background: '#FFF1EF', color: '#C9422E', padding: '4px 10px' }}
-              data-testid="rev-insight-callout"
-            >
-              Distributors trailing $510K vs plan
-            </span>
+          <div className="mt-5" style={{ height: 320 }} data-testid="figure-2">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }} barCategoryGap="22%">
                 <CartesianGrid stroke="#F1F5F9" vertical={false} strokeDasharray="0" />
@@ -1119,9 +1001,9 @@ export default function DashboardPage({ onNavigate }: Props) {
                 <Tooltip content={<RevTooltip monthly={monthlyData} />} cursor={{ stroke: FAINT, strokeDasharray: '3 3', strokeWidth: 1 }} />
                 <Bar dataKey="usw"    stackId="s" fill={!isAll && seg === 'US Wholesale' ? CORAL : C_USW}    fillOpacity={1} isAnimationActive animationDuration={400} />
                 <Bar dataKey="dist"   stackId="s" fill={!isAll && seg === 'Distributors' ? CORAL : C_DIST}   fillOpacity={1} isAnimationActive animationDuration={400} />
-                <Bar dataKey="retail" stackId="s" fill={!isAll && seg === 'Retail' ? CORAL : C_RETAIL} fillOpacity={1} isAnimationActive animationDuration={400} />
-                <Bar dataKey="ecom"   stackId="s" fill={!isAll && seg === 'Ecommerce' ? CORAL : C_ECOM}   fillOpacity={1} isAnimationActive animationDuration={400} />
-                <Bar dataKey="amzn"   stackId="s" fill={!isAll && seg === 'Amazon' ? CORAL : C_AMZN}   fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="retail" stackId="s" fill={!isAll && seg === 'Retail' ? CORAL : C_RETAIL}       fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="ecom"   stackId="s" fill={!isAll && seg === 'Ecommerce' ? CORAL : C_ECOM}      fillOpacity={1} isAnimationActive animationDuration={400} />
+                <Bar dataKey="amzn"   stackId="s" fill={!isAll && seg === 'Amazon' ? CORAL : C_AMZN}         fillOpacity={1} isAnimationActive animationDuration={400} />
                 <Bar dataKey="open"   stackId="s" fill={C_OPEN}   fillOpacity={1} radius={[3, 3, 0, 0]} isAnimationActive animationDuration={400} />
                 <Line type="monotone" dataKey="ly"       stroke={LY_GRAY}    strokeWidth={1.5} dot={false} strokeDasharray="3 3" isAnimationActive animationDuration={400} />
                 <Line type="monotone" dataKey="total"    stroke="#0F172A"    strokeWidth={2}   dot={false} isAnimationActive animationDuration={400} />
@@ -1129,143 +1011,204 @@ export default function DashboardPage({ onNavigate }: Props) {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      </section>
+          <p className="mt-3 text-[11px] italic" style={{ color: '#94A3B8' }}>Figure 2 · Monthly revenue, stacked by channel, with total, forecast, and prior-year overlay</p>
 
-      {/* ── 5) Movers — gainers + decliners ────────────────────────── */}
-      <section
-        className="rounded-2xl bg-white p-6 md:p-7"
-        style={{ boxShadow: CARD_SHADOW, ...enter(4) }}
-        data-testid="movers"
-      >
-        <div>
-          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Movers · {rLabel}</h2>
-          <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>Biggest changes vs prior period</p>
-        </div>
-        <div className="mt-5 grid grid-cols-1 gap-x-7 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
-          <div data-testid="movers-gainers">
-            <p className="mb-2 text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>Top Gainers</p>
-            {GAINERS.map((m, i) => (
-              <div
-                key={m.name}
-                className="flex items-center gap-3 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded-lg px-3 cursor-pointer"
-                style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 48 }}
-                data-testid={`mover-gain-${i}`}
-                role="button"
-                tabIndex={0}
-              >
-                <span className="min-w-0 flex-1 truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{m.name}</span>
-                <span className="inline-flex items-center rounded-md text-[10px] font-semibold uppercase" style={{ background: '#F1F5F9', color: '#64748B', padding: '2px 6px', letterSpacing: '0.06em' }}>{m.type}</span>
-                <DeltaPill v={m.yoy} />
-                <span className="w-[80px] text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(m.v * combined)}</span>
-              </div>
-            ))}
-          </div>
-          <div className="hidden md:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
-          <div data-testid="movers-decliners">
-            <p className="mb-2 text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>Top Decliners</p>
-            {DECLINERS.map((m, i) => (
-              <div
-                key={m.name}
-                className="flex items-center gap-3 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded-lg px-3 cursor-pointer"
-                style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 48 }}
-                data-testid={`mover-decline-${i}`}
-                role="button"
-                tabIndex={0}
-              >
-                <span className="min-w-0 flex-1 truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{m.name}</span>
-                <span className="inline-flex items-center rounded-md text-[10px] font-semibold uppercase" style={{ background: '#F1F5F9', color: '#64748B', padding: '2px 6px', letterSpacing: '0.06em' }}>{m.type}</span>
-                <DeltaPill v={m.yoy} />
-                <span className="w-[80px] text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(m.v * combined)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-       {/* ── 6) Top Accounts + Top Items — vertical numbered lists ──── */}
-      <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2" style={enter(6)}>
-        {/* Top Accounts */}
-        <div
-          className="rounded-2xl bg-white p-6 flex flex-col h-full"
-          style={{ boxShadow: CARD_SHADOW }}
-          data-testid="top-accounts"
-        >
-          <div className="flex items-start justify-between">
-            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Top accounts</h2>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#64748B' }}>Net Sales · YTD</span>
-          </div>
-          <ol className="mt-5 flex flex-1 flex-col">
-            {topAccountsScaled.map((a, i) => (
-              <li
-                key={a.name}
-                className="group flex flex-1 items-center gap-3 transition-colors duration-150 ease-out hover:bg-slate-50 -mx-3 rounded-lg px-3 cursor-pointer"
-                style={{ borderTop: i === 0 ? 'none' : `1px solid #F1F5F9`, minHeight: 60 }}
-                data-testid={`top-acct-${i}`}
-                role="button"
-                tabIndex={0}
-                onClick={() => setDrilldownIdx(i)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDrilldownIdx(i); } }}
-              >
-                <span className="w-7 text-right text-[11px] font-medium tabular-nums" style={{ color: '#94A3B8' }}>{String(i + 1).padStart(2, '0')}</span>
-                <span className="min-w-0 flex-1 truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{a.name}</span>
-                <DeltaPill v={a.yoy} />
-                <span className="w-[96px] text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(a.net)}</span>
-                <span className="text-[14px] font-medium opacity-0 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:translate-x-0.5" style={{ color: CORAL, lineHeight: 1 }}>›</span>
-              </li>
-            ))}
-          </ol>
-        </div>
+          <p className="mt-6" style={{ fontSize: 16, lineHeight: 1.6, color: '#334155' }}>
+            Q1 ran above forecast as pre-order shipments weighted January and February. Q2 softened, bottoming in <b style={{ color: '#0F172A', fontWeight: 700, ...TABULAR }}>May at $1.2M</b>. July rebounded on a <b style={{ color: '#0F172A', fontWeight: 700, ...TABULAR }}>$2.1M Amazon week</b>. The current forecast — <b style={{ color: '#C9422E', fontWeight: 700 }}>dashed coral line</b> — projects <b style={{ color: '#0F172A', fontWeight: 700, ...TABULAR }}>{fmtM(forecastVal)}</b> by year-end, which lands us at <b style={{ color: '#0F172A', fontWeight: 700 }}>full attainment</b> of goal, pending Q4 reorder velocity.
+          </p>
+        </section>
 
-        {/* Top Items */}
-        <div
-          className="rounded-2xl bg-white p-6 flex flex-col h-full"
-          style={{ boxShadow: CARD_SHADOW }}
-          data-testid="top-items"
-        >
-          <div className="flex items-start justify-between">
-            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Top items</h2>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#64748B' }}>Revenue · YTD</span>
+        <hr style={{ margin: '48px 0', border: 'none', borderTop: '1px solid #E2E8F0' }} />
+
+        {/* ── III. Channel Performance table ──────────────────── */}
+        <section data-testid="section-channel-perf">
+          <div className="flex items-center gap-3">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[14px] font-semibold text-white" style={{ background: '#0F172A' }}>III</span>
+            <h2 className="font-semibold" style={{ fontSize: 24, lineHeight: 1.1, letterSpacing: '-0.01em', color: '#0F172A' }}>Channel Performance</h2>
           </div>
-          <ol className="mt-5 flex flex-1 flex-col">
-            {topItemsScaled.map((it, i) => (
-              <li
-                key={it.sku}
-                className="group flex flex-1 flex-col justify-center py-2 transition-colors duration-150 ease-out hover:bg-slate-50 -mx-3 rounded-lg px-3"
-                style={{ borderTop: i === 0 ? 'none' : `1px solid #F1F5F9`, minHeight: 60 }}
-                data-testid={`top-item-${i}`}
+
+          <div className="mt-6" data-testid="figure-3">
+            <div
+              className="grid items-center gap-x-5 pb-3 text-[11px] font-semibold uppercase"
+              style={{ gridTemplateColumns: '1.6fr 1fr 0.8fr 0.9fr 1fr 90px', letterSpacing: '0.08em', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}
+            >
+              <span>Channel</span>
+              <span className="text-right">Revenue</span>
+              <span className="text-right">Share</span>
+              <span className="text-right">YoY</span>
+              <span className="text-right">Attainment</span>
+              <span className="text-right">Pace</span>
+            </div>
+            {channelPerfRows.map((row) => {
+              const attainColor = row.attainment < 70 ? '#C9422E' : '#0F172A';
+              return (
+                <div
+                  key={row.name}
+                  className="grid items-center gap-x-5"
+                  style={{ gridTemplateColumns: '1.6fr 1fr 0.8fr 0.9fr 1fr 90px', borderBottom: '1px solid #F1F5F9', minHeight: 56 }}
+                  data-testid={`perf-row-${row.name.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: row.c }} />
+                    <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{row.name}</span>
+                  </div>
+                  <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(row.revenue)}</span>
+                  <span className="text-right text-[14px] font-medium" style={{ ...TABULAR, color: '#475569' }}>{row.share.toFixed(1)}%</span>
+                  <div className="flex justify-end"><DeltaPill v={row.yoy} /></div>
+                  <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: attainColor }}>{row.attainment}%</span>
+                  <div className="flex justify-end"><PaceTrack actual={row.attainment} expected={pace} /></div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-[11px] italic" style={{ color: '#94A3B8' }}>Figure 3 · YTD channel performance ranked by revenue</p>
+
+          <p className="mt-6" style={{ fontSize: 16, lineHeight: 1.6, color: '#334155' }}>
+            US Wholesale remains the volume anchor at <b style={{ color: '#0F172A', fontWeight: 700, ...TABULAR }}>$6.48M (71% share)</b>, pacing at <b style={{ color: '#0F172A', fontWeight: 700, ...TABULAR }}>71% attainment</b>. Distributors is <b style={{ color: '#C9422E', fontWeight: 700 }}>behind pace by 13 points</b> — the single largest gap. Retail (96%) and Amazon (77%) are both close to or above the elapsed-year target. Ecommerce (68%) requires attention.
+          </p>
+        </section>
+
+        <hr style={{ margin: '48px 0', border: 'none', borderTop: '1px solid #E2E8F0' }} />
+
+        {/* ── IV. Movers ───────────────────────────────────────── */}
+        <section data-testid="section-movers">
+          <div className="flex items-center gap-3">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[14px] font-semibold text-white" style={{ background: '#0F172A' }}>IV</span>
+            <h2 className="font-semibold" style={{ fontSize: 24, lineHeight: 1.1, letterSpacing: '-0.01em', color: '#0F172A' }}>Movers</h2>
+          </div>
+          <p className="mt-1.5 ml-9 text-[12px] font-medium" style={{ color: '#64748B' }}>Biggest changes YTD vs prior period</p>
+
+          <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
+            <div data-testid="movers-gainers">
+              <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>Top gainers</p>
+              <ul className="mt-3 flex flex-col gap-4">
+                {GAINERS.map((m, i) => (
+                  <li
+                    key={m.name}
+                    className="text-[14px] cursor-pointer transition-colors duration-150 hover:text-slate-900"
+                    style={{ color: '#475569', lineHeight: 1.5 }}
+                    data-testid={`mover-gain-${i}`}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <b style={{ color: '#0F172A', fontWeight: 600 }}>{m.name}</b>
+                    <span style={{ color: '#94A3B8' }}> · {m.type} · </span>
+                    <b style={{ color: '#047857', fontWeight: 700, ...TABULAR }}>+{fmtM(m.v * combined)}</b>
+                    <span style={{ color: '#94A3B8' }}> · ↑ {m.yoy}% YoY</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div data-testid="movers-decliners">
+              <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>Top decliners</p>
+              <ul className="mt-3 flex flex-col gap-4">
+                {DECLINERS.map((m, i) => (
+                  <li
+                    key={m.name}
+                    className="text-[14px] cursor-pointer transition-colors duration-150 hover:text-slate-900"
+                    style={{ color: '#475569', lineHeight: 1.5 }}
+                    data-testid={`mover-decline-${i}`}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <b style={{ color: '#0F172A', fontWeight: 600 }}>{m.name}</b>
+                    <span style={{ color: '#94A3B8' }}> · {m.type} · </span>
+                    <b style={{ color: '#C9422E', fontWeight: 700, ...TABULAR }}>−{fmtM(Math.abs(m.v * combined))}</b>
+                    <span style={{ color: '#94A3B8' }}> · ↓ {Math.abs(m.yoy)}% YoY</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <hr style={{ margin: '48px 0', border: 'none', borderTop: '1px solid #E2E8F0' }} />
+
+        {/* ── V. Top Accounts and Items ────────────────────────── */}
+        <section data-testid="section-top-accounts-items">
+          <div className="flex items-center gap-3">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[14px] font-semibold text-white" style={{ background: '#0F172A' }}>V</span>
+            <h2 className="font-semibold" style={{ fontSize: 24, lineHeight: 1.1, letterSpacing: '-0.01em', color: '#0F172A' }}>Top Accounts and Items</h2>
+          </div>
+
+          <div className="mt-6" data-testid="top-accounts">
+            <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>Top accounts</p>
+            <div className="mt-3">
+              <div
+                className="grid items-center gap-x-4 pb-2 text-[11px] font-semibold uppercase"
+                style={{ gridTemplateColumns: '32px 1fr 120px 90px', letterSpacing: '0.08em', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}
               >
-                <div className="flex items-center gap-3">
-                  <span className="w-7 text-right text-[11px] font-medium tabular-nums" style={{ color: '#94A3B8' }}>{String(i + 1).padStart(2, '0')}</span>
-                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{it.name}</span>
+                <span>#</span>
+                <span>Account</span>
+                <span className="text-right">Revenue</span>
+                <span className="text-right">YoY</span>
+              </div>
+              {topAccountsScaled.map((a, i) => (
+                <div
+                  key={a.name}
+                  className="group grid items-center gap-x-4 cursor-pointer transition-colors duration-150 hover:bg-slate-100 -mx-2 px-2 rounded"
+                  style={{ gridTemplateColumns: '32px 1fr 120px 90px', borderBottom: '1px solid #F1F5F9', minHeight: 48 }}
+                  data-testid={`top-acct-${i}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setDrilldownIdx(i)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDrilldownIdx(i); } }}
+                >
+                  <span className="text-[12px] font-medium tabular-nums" style={{ color: '#94A3B8' }}>{String(i + 1).padStart(2, '0')}</span>
+                  <span className="min-w-0 truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{a.name}</span>
+                  <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(a.net)}</span>
+                  <div className="flex justify-end"><DeltaPill v={a.yoy} /></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-10" data-testid="top-items">
+            <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>Top items</p>
+            <div className="mt-3">
+              <div
+                className="grid items-center gap-x-4 pb-2 text-[11px] font-semibold uppercase"
+                style={{ gridTemplateColumns: '32px 1.4fr 120px 90px 1fr', letterSpacing: '0.08em', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}
+              >
+                <span>#</span>
+                <span>Item</span>
+                <span className="text-right">Revenue</span>
+                <span className="text-right">Units</span>
+                <span>Attributes</span>
+              </div>
+              {topItemsScaled.map((it, i) => (
+                <div
+                  key={it.sku}
+                  className="grid items-center gap-x-4"
+                  style={{ gridTemplateColumns: '32px 1.4fr 120px 90px 1fr', borderBottom: '1px solid #F1F5F9', minHeight: 48 }}
+                  data-testid={`top-item-${i}`}
+                >
+                  <span className="text-[12px] font-medium tabular-nums" style={{ color: '#94A3B8' }}>{String(i + 1).padStart(2, '0')}</span>
+                  <span className="min-w-0 truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{it.name}</span>
                   <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(it.rev)}</span>
+                  <span className="text-right text-[14px] font-medium tabular-nums" style={{ color: '#475569' }}>{it.units.toLocaleString('en-US')}</span>
+                  <span className="truncate text-[13px] font-medium" style={{ color: '#64748B' }}>{it.variant}</span>
                 </div>
-                <div className="mt-1 flex items-center gap-3 pl-10">
-                  <span className="text-[11px] font-medium" style={{ color: '#64748B' }}>{it.variant}</span>
-                  <span className="min-w-0 flex-1 truncate text-[11px] font-medium" style={{ ...MONO, color: '#94A3B8' }}>{it.sku}</span>
-                  <span className="text-right text-[11px] font-medium tabular-nums" style={{ color: '#64748B' }}>{it.units.toLocaleString('en-US')} units</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+              ))}
+            </div>
+          </div>
+        </section>
 
-      {drilldownData && (
-        <AccountDrilldown account={drilldownData} onClose={() => setDrilldownIdx(null)} />
-      )}
+        {/* ── Footer ───────────────────────────────────────────── */}
+        <div className="mt-16 pt-6" style={{ borderTop: '1px solid #F1F5F9' }} data-testid="report-footer">
+          <p className="text-[10px] font-semibold uppercase" style={{ letterSpacing: '0.12em', color: '#94A3B8' }}>Generated</p>
+          <p className="mt-1 text-[12px]" style={{ ...TABULAR, color: '#64748B' }}>
+            {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            <span style={{ color: '#94A3B8' }}> · Data: internal mock</span>
+          </p>
+        </div>
+
+        {drilldownData && (
+          <AccountDrilldown account={drilldownData} onClose={() => setDrilldownIdx(null)} />
+        )}
+      </div>
     </div>
   );
 }
 
-// Net Sales hero anchor — editorial scale (72-88px)
-function NetSalesValue({ target }: { target: number }) {
-  const v = useCountUp(target, 700);
-  return (
-    <p
-      className="font-semibold"
-      style={{ ...TABULAR, fontSize: 'clamp(72px, 7vw, 88px)', lineHeight: 1, letterSpacing: '-0.025em', color: INK }}
-    >
-      {usd0(Math.max(0, v))}
-    </p>
-  );
-}
+// ─── Page ──────────────────────────────────────────────────────────────
