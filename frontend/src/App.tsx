@@ -158,8 +158,8 @@ function StaffApp() {
           style={sidebarCollapsed ? { cursor: 'pointer' } : undefined}
           data-testid="brand-lockup"
         >
-          <img className="brand-logo expanded-brand-logo brand-logo-image" src="/goorin_reporting_logo.png?v=4" alt="Goorin REPORTING" />
-          <img className="brand-logo collapsed-brand-logo" src="/goorin_sidebar_icon.png?v=4" alt="Goorin" />
+          <img className="brand-logo expanded-brand-logo brand-logo-image" src="/goorin_reporting_logo.png?v=7" alt="Goorin REPORTING" />
+          <img className="brand-logo collapsed-brand-logo" src="/goorin_sidebar_icon.png?v=7" alt="Goorin" />
         </div>
 
         <div className="sidebar-scroll">

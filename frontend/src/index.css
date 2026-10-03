@@ -134,7 +134,7 @@ button { font: inherit; border: 0; cursor: pointer; }
 .sidebar-collapsed .brand-logo.collapsed-brand-logo { display: block; width: 44px; height: 44px; max-width: 44px; max-height: 44px; object-fit: contain; }
 
 /* Auth page image logo */
-.login-brand-image { display: block; width: auto; height: auto; max-width: 320px; max-height: 148px; margin: 0 auto; object-fit: contain; }
+.login-brand-image { display: block; width: 280px; height: auto; max-width: 100%; max-height: 160px; margin: 0 auto; object-fit: contain; }
 
 /* Lock the expanded desktop sidebar to exactly 300px at all supported desktop widths.
    The 218px narrow variant at <=1080px is overridden here; the <=760px mobile drawer
