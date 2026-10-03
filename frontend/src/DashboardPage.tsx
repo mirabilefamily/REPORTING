@@ -580,6 +580,16 @@ const SPARK_TOTAL       = [22.1, 22.8, 23.4, 23.1, 23.9, 24.3, 24.0, 24.8, 25.2,
 const SPARK_FORECAST    = [26.4, 26.3, 26.2, 26.15, 26.1, 26.05, 26.0, 26.0, 25.99, 25.98, 25.98, 25.98];
 const SPARK_AT_RISK     = [16, 17, 18, 18, 19, 20, 20, 21, 22, 22, 23, 23];
 const SPARK_CART_ABAND  = [73.1, 72.8, 72.5, 72.3, 72.0, 71.9, 71.7, 71.6, 71.5, 71.5, 71.4, 71.4];
+const SPARK_AOV         = [2.42, 2.46, 2.49, 2.52, 2.55, 2.58, 2.61, 2.63, 2.66, 2.68, 2.70, 2.72];
+
+// YoY by channel (full-year growth) — used by Channel Performance
+const CHANNEL_YOY: Record<string, number> = {
+  'US Wholesale':  5.8,
+  'Distributors':  8.4,
+  'Ecommerce':    12.1,
+  'Amazon':       -3.6,
+  'Retail':       -8.9,
+};
 
 function MiniSpark({ data, color }: { data: number[]; color: string }) {
   const w = 100, h = 28;
@@ -654,9 +664,10 @@ function MiniKPI({ label, target, delta, caption, testId, format }: { label: str
   const config: Record<string, { full: string; data: number[]; color: string }> = {
     'Open Orders':      { full: 'Open Orders · In Flight',   data: SPARK_OPEN_ORDERS, color: '#94A3B8' },
     'Total':            { full: 'Total · YTD',               data: SPARK_TOTAL,       color: '#94A3B8' },
-    'Forecast':         { full: 'Forecast · 2026 Full Year', data: SPARK_FORECAST,    color: '#FF6F61' },
+    'Forecast':         { full: 'Forecast · 2026 EOY',       data: SPARK_FORECAST,    color: '#FF6F61' },
     'At Risk Accounts': { full: 'At Risk Accounts',          data: SPARK_AT_RISK,     color: '#FF6F61' },
     'Cart Abandonment': { full: 'Cart Abandonment %',        data: SPARK_CART_ABAND,  color: '#FF6F61' },
+    'AOV':              { full: 'Avg Order Value · YTD',     data: SPARK_AOV,         color: '#94A3B8' },
   };
   const cfg = config[label] || { full: label, data: [] as number[], color: '#94A3B8' };
   const fmt = format || ((n: number) => usd0(Math.max(0, n)));
@@ -767,8 +778,6 @@ function PaceTrack({ actual, expected }: { actual: number; expected: number }) {
 // ─── Page ──────────────────────────────────────────────────────────────
 export default function DashboardPage({ onNavigate }: Props) {
   const [seg, setSeg] = useState<SegKey>('All');
-  const [svgTab, setSvgTab] = useState<'By Class' | 'By Month'>('By Class');
-  const [mixTab, setMixTab] = useState<'All Channels' | 'B2B Combined'>('All Channels');
   const [range, setRange] = usePageRange('dashboard');
   const [drilldownIdx, setDrilldownIdx] = useState<number | null>(null);
 
@@ -778,7 +787,6 @@ export default function DashboardPage({ onNavigate }: Props) {
 
   const rScale = RANGE_SCALE[range] ?? 1;
   const rLabel = RANGE_LABEL[range] ?? 'YTD';
-  const svgSubtitle = SVG_SUBTITLE[range] ?? SVG_SUBTITLE.YTD;
   const monthsToShow = MONTHS_VISIBLE[range] ?? 12;
   const combined = scale * rScale;
 
@@ -789,7 +797,9 @@ export default function DashboardPage({ onNavigate }: Props) {
   const isDTC = seg === 'Ecommerce' || seg === 'Amazon';
   const atRiskCount = Math.max(1, Math.round(23 * combined));
   const atRiskDollars = 486_000 * combined;
+  const aovValue = 2720 * (0.9 + 0.1 * rScale);  // AOV barely moves with range
   const [kpiOpacity, setKpiOpacity] = useState(1);
+  const [chPerfView, setChPerfView] = useState<'Table' | 'Mix'>('Table');
   useEffect(() => {
     setKpiOpacity(0.4);
     const t = setTimeout(() => setKpiOpacity(1), 20);
@@ -823,34 +833,33 @@ export default function DashboardPage({ onNavigate }: Props) {
 
   const highlightSegRow = (rowKey: string) => isAll || rowKey === seg;
   const emphasizeName = isAll ? null : seg;
-  const emphasizeB2B = seg === 'US Wholesale' || seg === 'Distributors' ? 'B2B' : (isAll ? null : seg);
 
   const segmentRowsScaled = useMemo(() => SEGMENT_ROWS.map((s) => {
     const cur = s.cur * combined;
     return { ...s, cur, pct: Math.round((cur / s.tgt) * 100) };
   }), [combined]);
 
-  const svgRowsScaled = useMemo(() => SVG_ROWS.map((r) => {
-    const net = r.net * combined;
-    return { ...r, net, variance: net - r.goal, pct: Math.round((net / r.goal) * 100) };
-  }), [combined]);
-  const svgVisibleRows = useMemo(() => (isAll ? svgRowsScaled : svgRowsScaled.filter((r) => r.name === seg)), [seg, isAll, svgRowsScaled]);
-  const svgTotalScaled = useMemo(() => {
-    const net = SVG_TOTAL.net * combined;
-    return {
-      net,
-      goal: SVG_TOTAL.goal,
-      variance: net - SVG_TOTAL.goal,
-      pct: Math.round((net / SVG_TOTAL.goal) * 100),
-      annual: SVG_TOTAL.annual,
-    };
-  }, [combined]);
-
-  const donutAllScaled = useMemo(() => DONUT_ALL.map((d) => ({ ...d, v: d.v * combined })), [combined]);
-  const donutB2BScaled = useMemo(() => DONUT_B2B.map((d) => ({ ...d, v: d.v * combined })), [combined]);
-
   const topAccountsScaled = useMemo(() => TOP_ACCOUNTS.map((a) => ({ ...a, net: a.net * combined })), [combined]);
   const topItemsScaled = useMemo(() => TOP_ITEMS.map((it) => ({ ...it, rev: it.rev * combined })), [combined]);
+
+  // Channel Performance — unified rows (merges Segments + Channel Mix + Sales vs Goal)
+  const channelPerfRows = useMemo(() => {
+    const base = SVG_ROWS.map((r) => {
+      const revenue = r.net * combined;
+      return {
+        name: r.name,
+        c: r.c,
+        revenue,
+        target: r.annual,                                   // full-year target
+        attainment: Math.round((revenue / r.annual) * 100), // vs annual target
+        yoy: CHANNEL_YOY[r.name] ?? 0,
+      };
+    });
+    const totalRev = base.reduce((s, b) => s + b.revenue, 0) || 1;
+    return base
+      .map((b) => ({ ...b, share: (b.revenue / totalRev) * 100 }))
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [combined]);
 
   const drilldownData = useMemo(() => {
     if (drilldownIdx == null) return null;
@@ -1031,14 +1040,14 @@ export default function DashboardPage({ onNavigate }: Props) {
         onResetRange={() => setRange('YTD')}
       />
 
-      {/* ── 2b) Unified KPI row: Open Orders / (At Risk | Cart Abandonment) / Forecast ────── */}
+      {/* ── 2) Sales KPI row: Open Orders / (At Risk | Cart Abandonment) / Forecast / AOV ── */}
       <section
         className="overflow-hidden rounded-2xl bg-white"
         style={{ boxShadow: CARD_SHADOW, ...enter(2) }}
         data-testid="kpi-row"
       >
         <div
-          className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)_1px_minmax(0,1fr)]"
+          className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)_1px_minmax(0,1fr)_1px_minmax(0,1fr)]"
           style={{ opacity: kpiOpacity, transition: 'opacity 180ms ease-out' }}
         >
           <MiniKPI
@@ -1076,13 +1085,20 @@ export default function DashboardPage({ onNavigate }: Props) {
             caption="attainment vs plan"
             testId="kpi-forecast"
           />
+          <div className="hidden md:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
+          <MiniKPI
+            label="AOV"
+            target={aovValue}
+            delta={<span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold" style={{ ...TABULAR, background: '#ECFDF5', color: '#047857', padding: '3px 8px' }}><ArrowUp size={10} strokeWidth={2.6} />4.2%</span>}
+            caption="vs LY"
+            testId="kpi-aov"
+            format={(n) => `$${Math.round(n).toLocaleString('en-US')}`}
+          />
         </div>
       </section>
 
-      {/* ── 3) AI Assist meta line — moved to bottom (footer) ───────── */}
-
-      {/* ── 4) Revenue by Month + Segments ──────────────────────────── */}
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" style={enter(3)}>
+      {/* ── 3) Revenue trend by month — full width ─────────────────── */}
+      <section style={enter(3)}>
         <div
           className="rounded-2xl bg-white p-6"
           style={{ boxShadow: CARD_SHADOW }}
@@ -1114,7 +1130,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             <Swatch color={LY_GRAY}    label="vs LY"    line dashed />
           </div>
 
-          <div className="mt-5 h-[240px]" style={TABULAR}>
+          <div className="mt-5 h-[260px]" style={TABULAR}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={monthlyData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }} barCategoryGap="22%">
                 <CartesianGrid stroke="#F1F5F9" vertical={false} strokeDasharray="0" />
@@ -1139,219 +1155,106 @@ export default function DashboardPage({ onNavigate }: Props) {
             </ResponsiveContainer>
           </div>
         </div>
+      </section>
 
-        <div
-          className="rounded-2xl bg-white p-6 flex flex-col h-full"
-          style={{ boxShadow: CARD_SHADOW }}
-          data-testid="segment-panel"
-        >
-          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Segments</h2>
-          <div className="mt-3 flex flex-nowrap items-center gap-x-3 whitespace-nowrap" data-testid="segments-legend">
-            {(['US Wholesale', 'Distributors', 'Ecommerce', 'Amazon', 'Retail'] as const).map((name) => (
-              <div key={name} className="inline-flex items-center gap-1">
-                <span className="inline-block rounded-full shrink-0" style={{ width: 5, height: 5, background: SEG_COLORS[name] }} />
-                <span className="text-[11px] font-medium" style={{ color: '#475569' }}>{name}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex flex-1 flex-col">
-            <div className="grid grid-cols-[minmax(0,1fr)_96px_96px_88px] items-center gap-3 pb-3 text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }} data-testid="segments-header">
-              <span>Segment</span>
-              <span className="text-right">Actual</span>
+      {/* ── 4) Channel Performance — unified Table | Mix card ───────── */}
+      <section
+        className="rounded-2xl bg-white p-6"
+        style={{ boxShadow: CARD_SHADOW, ...enter(4) }}
+        data-testid="channel-performance"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>
+            Channel Performance · {rLabel}
+          </h2>
+          <SegTabs tabs={['Table', 'Mix']} value={chPerfView} onChange={(v: any) => setChPerfView(v)} testId="chperf-view-tabs" slugPrefix="chperf" />
+        </div>
+
+        {chPerfView === 'Table' ? (
+          <div className="mt-5">
+            <div
+              className="grid grid-cols-[minmax(0,1.4fr)_minmax(90px,110px)_minmax(130px,160px)_minmax(90px,110px)_minmax(80px,100px)_minmax(60px,80px)_minmax(70px,90px)] items-center gap-x-3 pb-3 text-[11px] font-semibold uppercase"
+              style={{ letterSpacing: '0.08em', color: '#64748B', borderBottom: '1px solid #F1F5F9' }}
+              data-testid="chperf-table-header"
+            >
+              <span>Channel</span>
+              <span className="text-right">Revenue</span>
+              <span className="text-right">Share</span>
               <span className="text-right">Target</span>
               <span className="text-right">Attainment</span>
+              <span className="text-right">Pace</span>
+              <span className="text-right">YoY</span>
             </div>
-            {[...segmentRowsScaled].sort((a, b) => b.pct - a.pct).map((s, idx) => {
-              const active = highlightSegRow(s.key);
-              const onPace = s.pct >= 70;
+            {channelPerfRows.map((row, i) => {
+              const attainColor = row.attainment < 70 ? '#C9422E' : '#0F172A';
               return (
                 <div
-                  key={s.key}
-                  data-testid={`seg-row-${s.key.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="grid flex-1 grid-cols-[minmax(0,1fr)_96px_96px_88px] items-center gap-3"
-                  style={{
-                    opacity: active ? 1 : 0.4,
-                    transition: 'opacity 250ms ease',
-                    borderTop: idx === 0 ? 'none' : `1px solid #F1F5F9`,
-                    minHeight: 44,
-                  }}
+                  key={row.name}
+                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(90px,110px)_minmax(130px,160px)_minmax(90px,110px)_minmax(80px,100px)_minmax(60px,80px)_minmax(70px,90px)] items-center gap-x-3 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded-lg px-3"
+                  style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 44 }}
+                  data-testid={`chperf-row-${row.name.toLowerCase().replace(/\s+/g, '-')}`}
                 >
-                  <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{s.key}</span>
-                  <span className="text-right text-[14px] font-medium" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(s.cur)}</span>
-                  <span className="text-right text-[14px] font-medium" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(s.tgt)}</span>
-                  <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: onPace ? '#0F172A' : '#C9422E' }}>{s.pct}%</span>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: row.c }} />
+                    <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{row.name}</span>
+                  </div>
+                  <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(row.revenue)}</span>
+                  <div className="flex flex-col items-end gap-1 pr-1">
+                    <span className="text-[13px] font-medium" style={{ ...TABULAR, color: '#0F172A' }}>{row.share.toFixed(1)}%</span>
+                    <span className="relative h-[2px] w-full overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
+                      <span className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${Math.min(100, row.share * 2.5)}%`, background: row.c, transition: BAR_TRANS }} />
+                    </span>
+                  </div>
+                  <span className="text-right text-[13px] font-medium whitespace-nowrap" style={{ ...TABULAR, color: '#475569' }}>{fmtM(row.target)}</span>
+                  <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: attainColor }}>{row.attainment}%</span>
+                  <PaceTrack actual={row.attainment} expected={75} />
+                  <div className="flex justify-end"><DeltaPill v={row.yoy} /></div>
                 </div>
               );
             })}
           </div>
-        </div>
-      </section>
-
-      {/* ── 5) Channel Mix — horizontal stacked bar ─────────────────── */}
-      <section
-        className="rounded-2xl bg-white p-6"
-        style={{ boxShadow: CARD_SHADOW, ...enter(4) }}
-        data-testid="channel-mix"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Channel mix</h2>
-          <SegTabs tabs={['All Channels', 'B2B Combined']} value={mixTab} onChange={(v: any) => setMixTab(v)} testId="mix-tabs" slugPrefix="mix" />
-        </div>
-        {(() => {
-          const slices = mixTab === 'B2B Combined' ? donutB2BScaled : donutAllScaled;
-          const totalV = slices.reduce((sum, s) => sum + s.v, 0) || 1;
-          return (
-            <>
-              <div className="mt-6 flex h-8 w-full overflow-hidden rounded-lg" style={{ background: TRACK }}>
-                {slices.map((s, i) => {
-                  const w = (s.v / totalV) * 100;
-                  const dim = emphasizeName && s.name !== emphasizeName && !(mixTab === 'B2B Combined' && emphasizeB2B === s.name);
-                  return (
-                    <div
-                      key={s.name}
-                      title={`${s.name} · ${fmtM(s.v)} · ${((s.v/totalV)*100).toFixed(1)}%`}
-                      className="h-full transition-opacity duration-200"
-                      style={{
-                        width: `${w}%`,
-                        background: s.c,
-                        borderRight: i < slices.length - 1 ? '3px solid #FFFFFF' : 'none',
-                        opacity: dim ? 0.35 : 1,
-                      }}
-                      data-testid={`mix-slice-${s.name.toLowerCase().replace(/\s+/g, '-')}`}
-                    />
-                  );
-                })}
-              </div>
-              <ul className="mt-6">
-                {slices.map((s, i) => {
-                  const share = (s.v / totalV) * 100;
-                  return (
-                    <li
-                      key={s.name}
-                      className="flex h-10 items-center justify-between gap-3"
-                      style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}` }}
-                      data-testid={`mix-legend-${s.name.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <i className="h-2 w-2 rounded-full shrink-0" style={{ background: s.c }} />
-                        <span className="truncate text-[14px] font-medium" style={{ color: BODY }}>{s.name}</span>
-                      </div>
-                      <span className="shrink-0 text-[14px] font-medium" style={{ ...TABULAR, color: BODY }}>
-                        <b style={{ color: INK }}>{fmtM(s.v)}</b>
-                        <span style={{ color: MUTED }}> · {share.toFixed(1)}%</span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          );
-        })()}
-      </section>
-
-      {/* ── 6) Sales vs Goal — table ───────────────────────────────── */}
-      <section
-        className="rounded-2xl bg-white p-6"
-        style={{ boxShadow: CARD_SHADOW, ...enter(5) }}
-        data-testid="sales-vs-goal"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Sales vs goal</h2>
-            <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>{svgSubtitle}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <div data-testid="svg-tabs-wrap">
-              <SegTabs tabs={['By Class', 'By Month']} value={svgTab} onChange={(v: any) => setSvgTab(v)} testId="svg-tabs" slugPrefix="svg-tab" />
+        ) : (
+          <div className="mt-5">
+            <div className="flex h-9 w-full overflow-hidden rounded-lg" style={{ background: TRACK }} data-testid="chperf-mix-bar">
+              {channelPerfRows.map((row, i) => {
+                const dim = emphasizeName && row.name !== emphasizeName;
+                return (
+                  <div
+                    key={row.name}
+                    title={`${row.name} · ${fmtM(row.revenue)} · ${row.share.toFixed(1)}%`}
+                    className="h-full transition-opacity duration-200"
+                    style={{
+                      width: `${row.share}%`,
+                      background: row.c,
+                      borderRight: i < channelPerfRows.length - 1 ? '3px solid #FFFFFF' : 'none',
+                      opacity: dim ? 0.35 : 1,
+                    }}
+                    data-testid={`chperf-slice-${row.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  />
+                );
+              })}
             </div>
-            <button
-              data-testid="svg-export"
-              className="inline-flex items-center gap-1 text-[12px] font-medium transition-colors duration-150"
-              style={{ color: '#475569' }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#0F172A'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }}
-            >
-              Export <ArrowUpRight size={12} />
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-6 svg-scroll-wrap overflow-x-auto md:overflow-visible">
-          <div
-            className="grid min-w-[920px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)_minmax(80px,100px)] items-center gap-x-4 pb-2.5 text-[11px] font-semibold uppercase"
-            style={{ letterSpacing: '0.08em', color: '#64748B', borderBottom: `1px solid #F1F5F9` }}
-          >
-            <span className="svg-sticky-col">Class</span>
-            <span className="text-right">Net Sales YTD</span>
-            <span className="text-right">Goal YTD</span>
-            <span className="text-right">Variance</span>
-            <span className="text-right">% of 2026 Goal</span>
-            <span className="text-right">Annual Goal</span>
-            <span className="text-right">Pace</span>
-          </div>
-          {svgVisibleRows.map((r) => {
-            const onPace = r.pct >= 70;
-            const barColor = onPace ? '#0F172A' : '#FF6F61';
-            const pctColor = onPace ? '#0F172A' : '#C9422E';
-            const varColor = r.variance < 0 ? '#C9422E' : r.variance > 0 ? '#0F172A' : '#64748B';
-            return (
-              <div
-                key={r.name}
-                className="group grid min-w-[920px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)_minmax(80px,100px)] items-center gap-x-4 h-12 text-[14px] transition-colors duration-150 ease-out hover:bg-slate-50"
-                style={{ borderBottom: `1px solid #F1F5F9` }}
-                data-testid={`svg-row-${r.name.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                <span className="svg-sticky-col flex min-w-0 items-center gap-2">
-                  <i className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: r.c }} />
-                  <span className="truncate font-medium" style={{ color: '#0F172A' }}>{r.name}</span>
-                </span>
-                <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(r.net)}</span>
-                <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(r.goal)}</span>
-                <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: varColor }}>{fmtM(r.variance)}</span>
-                <div className="flex items-center gap-3">
-                  <span className="relative h-1 flex-1 overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
-                    <span
-                      className="absolute left-0 top-0 h-full rounded-full"
-                      style={{ width: `${Math.min(100, r.pct)}%`, background: barColor, transition: BAR_TRANS }}
-                    />
+            <ul className="mt-5">
+              {channelPerfRows.map((row, i) => (
+                <li
+                  key={row.name}
+                  className="flex h-11 items-center justify-between gap-3"
+                  style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}` }}
+                  data-testid={`chperf-legend-${row.name.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <i className="h-2 w-2 rounded-full shrink-0" style={{ background: row.c }} />
+                    <span className="truncate text-[14px] font-medium" style={{ color: BODY }}>{row.name}</span>
+                  </div>
+                  <span className="shrink-0 text-[14px] font-medium" style={{ ...TABULAR, color: BODY }}>
+                    <b style={{ color: INK }}>{fmtM(row.revenue)}</b>
+                    <span style={{ color: MUTED }}> · {row.share.toFixed(1)}%</span>
                   </span>
-                  <span className="text-right text-[13px] font-semibold tabular-nums whitespace-nowrap" style={{ color: pctColor, minWidth: 36 }}>{r.pct}%</span>
-                </div>
-                <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(r.annual)}</span>
-                <PaceTrack actual={r.pct} expected={75} />
-              </div>
-            );
-          })}
-          {(() => {
-            const onPace = svgTotalScaled.pct >= 70;
-            const barColor = onPace ? '#0F172A' : '#FF6F61';
-            const pctColor = onPace ? '#0F172A' : '#C9422E';
-            const varColor = svgTotalScaled.variance < 0 ? '#C9422E' : svgTotalScaled.variance > 0 ? '#0F172A' : '#64748B';
-            return (
-              <div
-                className="grid min-w-[920px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)_minmax(80px,100px)] items-center gap-x-4 h-[52px] text-[15px] font-semibold"
-                style={{ borderTop: `1px solid #E2E8F0`, color: '#0F172A' }}
-                data-testid="svg-total-row"
-              >
-                <span className="svg-sticky-col">Total</span>
-                <span className="text-right whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(svgTotalScaled.net)}</span>
-                <span className="text-right whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(svgTotalScaled.goal)}</span>
-                <span className="text-right whitespace-nowrap" style={{ ...TABULAR, color: varColor }}>{fmtM(svgTotalScaled.variance)}</span>
-                <div className="flex items-center gap-3">
-                  <span className="relative h-1 flex-1 overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
-                    <span
-                      className="absolute left-0 top-0 h-full rounded-full"
-                      style={{ width: `${Math.min(100, svgTotalScaled.pct)}%`, background: barColor, transition: BAR_TRANS }}
-                    />
-                  </span>
-                  <span className="text-right text-[13px] font-semibold tabular-nums whitespace-nowrap" style={{ color: pctColor, minWidth: 36 }}>{svgTotalScaled.pct}%</span>
-                </div>
-                <span className="text-right whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(svgTotalScaled.annual)}</span>
-                <PaceTrack actual={svgTotalScaled.pct} expected={75} />
-              </div>
-            );
-          })()}
-        </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
       {/* ── 7) Top Accounts + Top Items — vertical numbered lists ──── */}
