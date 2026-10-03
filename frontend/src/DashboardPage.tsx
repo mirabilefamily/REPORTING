@@ -885,7 +885,7 @@ function RevByMonthTooltip({ active, payload, label }: any) {
   );
 }
 
-export default function DashboardPage(_props: DashProps) {
+export default function DashboardPage(props: DashProps) {
   const [seg, setSeg] = useState<SegKey>('All');
   const [range, setRange] = usePageRange('dashboard');
   const [drilldownIdx, setDrilldownIdx] = useState<number | null>(null);
@@ -939,12 +939,10 @@ export default function DashboardPage(_props: DashProps) {
 
   return (
     <div className="min-h-full" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR, background: CANVAS }}>
-      <div style={{ padding: '24px' }}>
+      <div className="page-canvas">
         {/* ── 1. Unified editorial header ────────────────────── */}
         <PageHeader
-          eyebrow="Goorin Reporting · Overview"
           title="Dashboard"
-          subtitle="Operating snapshot across channels and performance."
           testIdPrefix="dashboard"
           channels={SEGMENTS}
           activeChannel={seg}

@@ -3,7 +3,6 @@ import {
   ArrowUp,
   ChevronDown,
   ChevronRight,
-  Download,
   LayoutGrid,
   MapPin,
   Package,
@@ -74,16 +73,6 @@ const rowTotals = (r: Row) => {
 
 const fmt = (n: number) => n.toLocaleString('en-US');
 
-// ─── Atoms ─────────────────────────────────────────────────────────────
-function CountStat({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className="flex items-baseline gap-1.5" data-testid={`count-${label.toLowerCase().replace(/\s+/g, '-')}`}>
-      <span className="text-[11px] font-medium" style={{ color: SLATE_500 }}>{label}</span>
-      <span className="text-[13px] font-semibold" style={{ ...TABULAR, color: strong ? EMERALD : INK }}>{value}</span>
-    </div>
-  );
-}
-
 // ─── Page ──────────────────────────────────────────────────────────────
 export default function InventoryPage() {
   const [query, setQuery] = useState('');
@@ -118,44 +107,33 @@ export default function InventoryPage() {
 
   return (
     <div className="min-h-full" data-testid="inventory-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
-      <div style={{ padding: '24px' }}>
+      <div className="page-canvas">
 
         {/* ── Editorial header ─────────────────────────────────── */}
         <PageHeader
-          eyebrow="Goorin Reporting · Inventory"
           title="Inventory"
-          subtitle={<>On-hand, allocated, and available units across every warehouse location. Snapshot from{' '}<span style={{ color: SLATE_700, fontWeight: 600 }}>{SNAPSHOT}</span>.</>}
           testIdPrefix="inventory"
-          right={
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 transition-colors duration-150"
-              style={{
-                height: 36,
-                padding: '0 12px',
-                borderRadius: 8,
-                background: SLATE_100,
-                border: `1px solid ${SLATE_200}`,
-                color: SLATE_700,
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_200; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
-              onClick={() => { /* stub export */ }}
-              data-testid="inventory-export-btn"
-            >
-              <Download size={14} strokeWidth={1.9} style={{ color: SLATE_500 }} />
-              Export
-            </button>
-          }
         />
 
 
+        {/* ── KPI row ─────────────────────────────────────────── */}
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="inventory-kpi-row">
+          {[
+            { label: 'Products',  value: fmt(totals.products  * 120), test: 'products' },
+            { label: 'On hand',   value: fmt(totals.onHand    * 820), test: 'onhand' },
+            { label: 'Allocated', value: fmt(totals.allocated * 820), test: 'allocated' },
+            { label: 'Available', value: fmt(totals.available * 820), test: 'available' },
+          ].map((k) => (
+            <div key={k.label} className="rounded-2xl bg-white" style={{ padding: 20, boxShadow: CARD_SHADOW }} data-testid={`inv-kpi-${k.test}`}>
+              <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: SLATE_500, margin: 0 }}>{k.label}</p>
+              <p className="mt-2 font-semibold" style={{ ...TABULAR, fontSize: 28, lineHeight: 1.1, letterSpacing: '-0.02em', color: INK, margin: 0 }}>{k.value}</p>
+            </div>
+          ))}
+        </section>
+
         {/* ── Filter toolbar ─────────────────────────────────────── */}
         <section
-          className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-white"
+          className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-white"
           style={{ padding: 20, boxShadow: CARD_SHADOW }}
           data-testid="inventory-toolbar"
         >
@@ -230,17 +208,6 @@ export default function InventoryPage() {
             <LayoutGrid size={14} strokeWidth={1.9} style={{ color: SLATE_500 }} />
             By location
           </button>
-
-          {/* Right count strip */}
-          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2" data-testid="inventory-count-strip">
-            <CountStat label="Products" value={fmt(totals.products * 120)} />
-            <span aria-hidden="true" style={{ width: 1, height: 16, background: SLATE_200 }} />
-            <CountStat label="On hand" value={fmt(totals.onHand * 820)} />
-            <span aria-hidden="true" style={{ width: 1, height: 16, background: SLATE_200 }} />
-            <CountStat label="Allocated" value={fmt(totals.allocated * 820)} />
-            <span aria-hidden="true" style={{ width: 1, height: 16, background: SLATE_200 }} />
-            <CountStat label="Available" value={fmt(totals.available * 820)} strong />
-          </div>
         </section>
 
         {/* ── 3. Inventory table ──────────────────────────────────── */}
@@ -250,7 +217,7 @@ export default function InventoryPage() {
           data-testid="inventory-table-card"
         >
           <div style={{ maxHeight: 640, overflowY: 'auto', overflowX: 'auto' }}>
-            <table className="w-full" style={{ ...TABULAR, borderCollapse: 'collapse', minWidth: 1080 }} data-testid="inventory-table">
+            <table className="data-numeric-center w-full" style={{ ...TABULAR, borderCollapse: 'collapse', minWidth: 1080 }} data-testid="inventory-table">
               <thead>
                 <tr style={{ position: 'sticky', top: 0, zIndex: 2, background: '#FFFFFF', boxShadow: `inset 0 -1px 0 ${SLATE_100}` }}>
                   <th aria-label="Expand" style={{ width: 44, height: 44 }} />

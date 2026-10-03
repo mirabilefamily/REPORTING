@@ -97,12 +97,10 @@ export default function CashFlowPage() {
 
   return (
     <div className="min-h-full" data-testid="cashflow-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
-      <div style={{ padding: '24px' }}>
+      <div className="page-canvas">
         {/* Header */}
         <PageHeader
-          eyebrow="Goorin Reporting · Financials"
           title="Cash Flow"
-          subtitle="Operating, investing, and financing activity across the period."
           testIdPrefix="cf"
           channels={SEGS}
           activeChannel={seg}

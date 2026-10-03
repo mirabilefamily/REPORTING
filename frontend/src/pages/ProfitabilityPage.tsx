@@ -97,12 +97,10 @@ export default function ProfitabilityPage() {
 
   return (
     <div className="min-h-full" data-testid="profitability-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
-      <div style={{ padding: '24px' }}>
+      <div className="page-canvas">
         {/* Header */}
         <PageHeader
-          eyebrow="Goorin Reporting · Financials"
           title="Profitability"
-          subtitle="Margins by channel, product line, and customer segment."
           testIdPrefix="prof"
           channels={SEGS}
           activeChannel={seg}

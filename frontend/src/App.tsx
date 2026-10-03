@@ -41,47 +41,46 @@ import ForecastGoalsPage from './pages/ForecastGoalsPage';
 import InventoryPage from './pages/InventoryPage';
 import { navSlug } from '@/lib/nav';
 
-type NavItem = { label: string; icon: typeof BarChart2; children?: NavItem[] };
+type NavItem = { label: string; icon: typeof BarChart2 };
+type NavGroup = { title: string; icon: typeof BarChart2; items: NavItem[] };
 
-const navGroups: { title: string; items: NavItem[] }[] = [
+const navGroups: NavGroup[] = [
   {
     title: 'Analytics',
+    icon: BarChart2,
     items: [
-      { label: 'Dashboard', icon: LayoutGrid },
-      {
-        label: 'Analytics',
-        icon: BarChart2,
-        children: [
-          { label: 'Operational',      icon: BarChart2 },
-          { label: 'Custom Reporting', icon: BarChart2 },
-        ],
-      },
+      { label: 'Dashboard',        icon: LayoutGrid },
+      { label: 'Operational',      icon: BarChart2 },
+      { label: 'Custom Reporting', icon: Sparkles },
     ],
   },
   {
     title: 'Financials',
+    icon: DollarSign,
     items: [
-      { label: 'P&L', icon: DollarSign },
+      { label: 'P&L',           icon: DollarSign },
       { label: 'Profitability', icon: PieChartIcon },
-      { label: 'Cash Flow', icon: Wallet },
+      { label: 'Cash Flow',     icon: Wallet },
     ],
   },
   {
     title: 'Planning',
+    icon: Target,
     items: [
       { label: 'Forecast Goals', icon: Target },
     ],
   },
   {
     title: 'Operations',
+    icon: ClipboardList,
     items: [
       { label: 'Open Orders', icon: ClipboardList },
-      { label: 'Inventory', icon: Boxes },
+      { label: 'Inventory',   icon: Boxes },
     ],
   },
 ];
 
-const flattenNav = (): NavItem[] => navGroups.flatMap((g) => g.items.flatMap((i) => i.children ? [i, ...i.children] : [i]));
+const flattenNav = (): NavItem[] => navGroups.flatMap((g) => g.items);
 const allLabels = () => flattenNav().map((i) => i.label);
 
 function App() {
@@ -203,78 +202,47 @@ function StaffApp() {
         </div>
 
         <div className="sidebar-scroll">
-          {navGroups.map((group) => (
-            <div className="nav-group" key={group.title}>
-              {!sidebarCollapsed && <p className="nav-label">{group.title}</p>}
-              {group.items.map(({ label, icon: Icon, children }) => {
-                if (children && children.length > 0) {
-                  const childActive = children.some((c) => c.label === activeNav);
-                  const expanded = childActive || activeNav === label;
-                  // Collapsed rail: icon opens flyout; never expand inline.
-                  if (sidebarCollapsed && !mobileOpen) {
-                    return (
-                      <button
-                        key={label}
-                        className={`nav-item ${childActive ? 'parent-active' : ''}`}
-                        onClick={(e) => openFlyout(label, e)}
-                        title={label}
-                        aria-haspopup="menu"
-                        aria-expanded={flyoutGroup?.label === label}
-                        data-testid={`nav-${navSlug(label)}`}
-                      >
-                        <Icon size={21} strokeWidth={1.8} />
-                        {childActive && <span className="nav-group-dot" aria-hidden="true" />}
-                      </button>
-                    );
-                  }
-                  return (
-                    <div key={label}>
-                      <button
-                        className={`nav-item ${childActive ? 'parent-active' : ''}`}
-                        onClick={() => goto(childActive ? label : children[0].label)}
-                        title={sidebarCollapsed ? label : undefined}
-                        aria-expanded={expanded}
-                        data-testid={`nav-${navSlug(label)}`}
-                      >
-                        <Icon size={21} strokeWidth={1.8} />
-                        {!sidebarCollapsed && <span>{label}</span>}
-                        {!sidebarCollapsed && (
-                          <ChevronDown
-                            size={14}
-                            strokeWidth={2}
-                            className="nav-chevron"
-                            style={{ marginLeft: 'auto', color: '#9aa09b', transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform .15s ease' }}
-                          />
-                        )}
-                      </button>
-                      {expanded && !sidebarCollapsed && children.map((c) => (
-                        <button
-                          key={c.label}
-                          className={`nav-item nav-item-child ${activeNav === c.label ? 'active' : ''}`}
-                          onClick={() => goto(c.label)}
-                          data-testid={`nav-${navSlug(c.label)}`}
-                        >
-                          <span>{c.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  );
-                }
-                return (
+          {sidebarCollapsed && !mobileOpen ? (
+            // ── Collapsed rail: ONE icon per nav group (no per-item icons) ──
+            navGroups.map((group) => {
+              const groupActive = group.items.some((i) => i.label === activeNav);
+              return (
+                <div className="nav-group" key={group.title}>
                   <button
-                    className={`nav-item ${activeNav === label ? 'active' : ''}`}
+                    className={`nav-item ${groupActive ? 'parent-active' : ''}`}
+                    onClick={(e) => openFlyout(group.title, e)}
+                    onMouseEnter={(e) => openFlyout(group.title, e)}
+                    onMouseLeave={scheduleFlyoutClose}
+                    title={group.title}
+                    aria-haspopup="menu"
+                    aria-expanded={flyoutGroup?.label === group.title}
+                    data-testid={`nav-group-${navSlug(group.title)}`}
+                  >
+                    <group.icon size={21} strokeWidth={1.8} />
+                    {groupActive && <span className="nav-group-dot" aria-hidden="true" />}
+                  </button>
+                </div>
+              );
+            })
+          ) : (
+            // ── Expanded sidebar / mobile drawer: labelled group with items ──
+            navGroups.map((group) => (
+              <div className="nav-group" key={group.title}>
+                <p className="nav-label">{group.title}</p>
+                {group.items.map(({ label, icon: Icon }) => (
+                  <button
                     key={label}
+                    className={`nav-item ${activeNav === label ? 'active' : ''}`}
                     onClick={() => goto(label)}
-                    title={sidebarCollapsed ? label : undefined}
                     data-testid={`nav-${navSlug(label)}`}
                   >
                     <Icon size={21} strokeWidth={1.8} />
-                    {!sidebarCollapsed && <span>{label}</span>}
+                    <span>{label}</span>
                   </button>
-                );
-              })}
-            </div>
-          ))}
+                ))}
+              </div>
+            ))
+          )}
         </div>
 
         <div className="sidebar-footer">
@@ -291,10 +259,10 @@ function StaffApp() {
         <button className="collapse-button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label="Toggle sidebar"><PanelLeftClose size={16} /></button>
       </aside>
 
-      {/* Collapsed sidebar flyout for expandable groups */}
+      {/* Collapsed sidebar flyout — one per nav group */}
       {flyoutGroup && sidebarCollapsed && !mobileOpen && (() => {
-        const g = navGroups.flatMap((gr) => gr.items).find((it) => it.label === flyoutGroup.label);
-        if (!g || !g.children) return null;
+        const g = navGroups.find((gr) => gr.title === flyoutGroup.label);
+        if (!g) return null;
         return (
           <>
             <div className="sidebar-flyout-overlay" onClick={() => setFlyoutGroup(null)} aria-hidden="true" />
@@ -311,16 +279,16 @@ function StaffApp() {
                 <span>{flyoutGroup.label}</span>
                 <ChevronLeft size={14} strokeWidth={2} style={{ color: '#CBD5E1' }} />
               </div>
-              {g.children.map((c) => (
+              {g.items.map((item) => (
                 <button
-                  key={c.label}
-                  className={`sidebar-flyout-item ${activeNav === c.label ? 'active' : ''}`}
-                  onClick={() => goto(c.label)}
+                  key={item.label}
+                  className={`sidebar-flyout-item ${activeNav === item.label ? 'active' : ''}`}
+                  onClick={() => goto(item.label)}
                   role="menuitem"
-                  autoFocus={activeNav === c.label}
-                  data-testid={`sidebar-flyout-item-${navSlug(c.label)}`}
+                  autoFocus={activeNav === item.label}
+                  data-testid={`sidebar-flyout-item-${navSlug(item.label)}`}
                 >
-                  {c.label}
+                  {item.label}
                 </button>
               ))}
             </div>

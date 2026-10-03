@@ -135,13 +135,11 @@ export default function ForecastGoalsPage() {
 
   return (
     <div className="min-h-full" data-testid="forecast-goals-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
-      <div style={{ padding: '24px', paddingBottom: unsavedCount > 0 ? 100 : 24 }}>
+      <div className="page-canvas" style={{ paddingBottom: unsavedCount > 0 ? 100 : 24 }}>
 
         {/* ── Editorial header ───────────────────────────────── */}
         <PageHeader
-          eyebrow="Goorin Reporting · Planning"
           title="Forecast & Goals"
-          subtitle="Set monthly targets across all channels to compare against actual performance."
           testIdPrefix="fg"
           right={
             <div data-testid="fg-year-tabs">
@@ -251,7 +249,7 @@ export default function ForecastGoalsPage() {
           </header>
 
           <div style={{ overflowX: 'auto', opacity: fade, transition: 'opacity 180ms ease-out' }}>
-            <table style={{ ...TABULAR, borderCollapse: 'collapse', width: '100%', minWidth: 1180 }} data-testid="fg-forecast-table">
+            <table className="data-numeric-center" style={{ ...TABULAR, borderCollapse: 'collapse', width: '100%', minWidth: 1180 }} data-testid="fg-forecast-table">
               <thead>
                 <tr style={{ boxShadow: `inset 0 -1px 0 ${SLATE_100}` }}>
                   <th

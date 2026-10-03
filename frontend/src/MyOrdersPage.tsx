@@ -5,7 +5,6 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
-  Download,
   Eye,
   MoreHorizontal,
   Package,
@@ -199,46 +198,17 @@ export default function MyOrdersPage() {
 
   return (
     <div className="min-h-full" data-testid="orders-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
-      <div style={{ padding: '24px' }}>
+      <div className="page-canvas">
 
         {/* ── Editorial header ─────────────────────────────────── */}
-        <div className="flex flex-wrap items-start justify-between gap-6" data-testid="orders-report-header">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase" style={{ letterSpacing: '0.12em', color: SLATE_400 }}>Goorin Reporting · Open Orders</p>
-            <h1 className="mt-2 font-semibold" style={{ fontSize: 34, lineHeight: 1.1, letterSpacing: '-0.015em', color: INK }} data-testid="orders-title">Open Orders</h1>
-            <p className="mt-3 font-normal" style={{ fontSize: 16, lineHeight: 1.5, color: SLATE_500, maxWidth: 760 }}>
-              Orders in flight across every channel. Snapshot from{' '}
-              <span style={{ color: SLATE_700, fontWeight: 600 }}>{SNAPSHOT}</span>.
-            </p>
-          </div>
-          <div className="shrink-0">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 transition-colors duration-150"
-              style={{
-                height: 36,
-                padding: '0 12px',
-                borderRadius: 8,
-                background: SLATE_100,
-                border: `1px solid ${SLATE_200}`,
-                color: SLATE_700,
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_200; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
-              data-testid="orders-export-btn"
-            >
-              <Download size={14} strokeWidth={1.9} style={{ color: SLATE_500 }} />
-              Export
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Open Orders"
+          testIdPrefix="orders"
+        />
 
         {/* ── Filter toolbar ───────────────────────────────────── */}
         <section
-          className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-white"
+          className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-white"
           style={{ padding: 20, boxShadow: CARD_SHADOW }}
           data-testid="orders-toolbar"
         >
@@ -411,7 +381,7 @@ export default function MyOrdersPage() {
           data-testid="orders-table-card"
         >
           <div style={{ maxHeight: 680, overflowY: 'auto', overflowX: 'auto' }}>
-            <table style={{ ...TABULAR, borderCollapse: 'collapse', width: '100%', minWidth: 1280 }} data-testid="orders-table">
+            <table className="data-numeric-center" style={{ ...TABULAR, borderCollapse: 'collapse', width: '100%', minWidth: 1280 }} data-testid="orders-table">
               <thead>
                 <tr style={{ position: 'sticky', top: 0, zIndex: 2, background: '#FFFFFF', boxShadow: `inset 0 -1px 0 ${SLATE_100}` }}>
                   <th aria-label="Expand" style={{ width: 44, height: 44 }} />

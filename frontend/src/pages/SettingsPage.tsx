@@ -241,8 +241,8 @@ export default function SettingsPage() {
   // ─── Render ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-full" data-testid="settings-page" style={{ ...INTER, background: '#FAFAFA' }}>
-      <div style={{ padding: '24px' }}>
-        <PageHeader eyebrow="Goorin Reporting · Account" title="Settings" subtitle="Workspace, team, and personal preferences." testIdPrefix="settings" />
+      <div className="page-canvas">
+        <PageHeader title="Settings" testIdPrefix="settings" />
 
         {/* Mobile chip row */}
         <nav className="lg:hidden flex" style={{ gap: 6, overflowX: 'auto', marginBottom: 20, paddingBottom: 4, scrollbarWidth: 'none' }} aria-label="Settings sections" data-testid="settings-mobile-nav">

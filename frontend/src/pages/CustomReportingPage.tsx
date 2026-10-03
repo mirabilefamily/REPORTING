@@ -373,7 +373,7 @@ function PreviewTable({ rows, dims, mets }: { rows: Record<string, string | numb
   return (
     <div className="rounded-2xl bg-white overflow-hidden" style={{ boxShadow: CARD_SHADOW }} data-testid="cr-viz-table">
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ ...TABULAR, width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+        <table className="data-numeric-center" style={{ ...TABULAR, width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
           <thead>
             <tr style={{ background: SLATE_50 }}>
               {dims.map((d) => (<th key={d} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: SLATE_500, textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{d}</th>))}
@@ -495,11 +495,9 @@ export default function CustomReportingPage() {
   // ─── Render ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-full" data-testid="custom-reporting-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
-      <div style={{ padding: '24px' }}>
+      <div className="page-canvas">
         <PageHeader
-          eyebrow="Goorin Reporting · Analytics"
           title="Custom Reporting"
-          subtitle="Build, save, and share ad-hoc reports across every data source."
           testIdPrefix="cr"
           dateControl={<DateRangePicker value={range} onChange={setRange} testId="cr-range" />}
         />
@@ -596,8 +594,7 @@ function LibraryView({ tab, setTab, reports, templates, onNew, onUseTemplate, on
             const active = t === tab;
             return (
               <button key={t} type="button" role="tab" aria-selected={active} onClick={() => setTab(t)} className="ph-tab" data-active={active} data-testid={`cr-tab-${t.toLowerCase().replace(/\s+/g, '-')}`}>
-                <span>{t}</span>
-                <span className="ph-tab-underline" aria-hidden="true" />
+                {t}
               </button>
             );
           })}
