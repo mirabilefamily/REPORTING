@@ -52,6 +52,10 @@ button { font: inherit; border: 0; cursor: pointer; }
 .date-range-btn:hover { background: #fafbf8; border-color: #d5d9d2; box-shadow: 0 1px 2px rgba(28,35,30,.04); }
 .date-range-btn svg { color: #525252; }
 .date-range-btn svg.date-range-chev { color: #9aa09b; }
+
+/* Unified filter group: inner date chip inherits group bg, no border */
+.unified-date-chip .date-range-btn { background: transparent; border-color: transparent; border-radius: 10px; height: 32px; padding: 0 10px; box-shadow: none; }
+.unified-date-chip .date-range-btn:hover { background: rgba(15,17,20,0.04); border-color: transparent; box-shadow: none; }
 .date-range-chev { color: #9aa09b; transition: transform .18s ease; }
 .date-range-btn.is-open .date-range-chev { transform: rotate(180deg); }
 .date-range-pop-overlay { position: fixed; inset: 0; z-index: 65; }
