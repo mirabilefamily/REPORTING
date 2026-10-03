@@ -683,6 +683,92 @@ function MiniKPI({ label, target, delta, caption, testId }: { label: string; tar
   );
 }
 
+function SectionAnchorNav() {
+  const [active, setActive] = useState<string>('hero-module');
+  useEffect(() => {
+    const ids = ['hero-module', 'kpi-row', 'rev-by-month', 'channel-mix', 'sales-vs-goal', 'top-accounts'];
+    const els = ids.map((id) => document.querySelector(`[data-testid="${id}"]`)).filter(Boolean) as Element[];
+    if (!els.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.getAttribute('data-testid') || ''); });
+      },
+      { rootMargin: '-40% 0px -40% 0px', threshold: 0 }
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+  const items: Array<{ id: string; label: string }> = [
+    { id: 'hero-module',    label: 'Overview' },
+    { id: 'kpi-row',        label: 'KPIs' },
+    { id: 'rev-by-month',   label: 'Revenue & Segments' },
+    { id: 'channel-mix',    label: 'Channel Mix' },
+    { id: 'sales-vs-goal',  label: 'Sales vs Goal' },
+    { id: 'top-accounts',   label: 'Top Accounts & Items' },
+  ];
+  return (
+    <nav
+      className="hidden xl:block"
+      style={{
+        position: 'fixed', right: 24, top: '50%', transform: 'translateY(-50%)',
+        width: 180, zIndex: 20,
+        background: 'rgba(248,250,252,0.7)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        borderRadius: 12, padding: 12,
+      }}
+      data-testid="section-anchor-nav"
+      aria-label="Dashboard sections"
+    >
+      <ul className="flex flex-col gap-1">
+        {items.map((it) => {
+          const isActive = active === it.id;
+          return (
+            <li key={it.id}>
+              <a
+                href={`#${it.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  const el = document.querySelector(`[data-testid="${it.id}"]`) as HTMLElement | null;
+                  if (el) {
+                    const y = el.getBoundingClientRect().top + window.scrollY - 24;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                  }
+                }}
+                className="block text-[12px] font-medium transition-colors duration-150 hover:text-slate-900"
+                style={{
+                  color: isActive ? '#0F172A' : '#64748B',
+                  paddingLeft: 10, paddingTop: 4, paddingBottom: 4,
+                  borderLeft: `2px solid ${isActive ? '#FF6F61' : 'transparent'}`,
+                }}
+                data-testid={`anchor-${it.id}`}
+              >
+                {it.label}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+function PaceTrack({ actual, expected }: { actual: number; expected: number }) {
+  const diff = Math.round(actual - expected);
+  const dotColor = Math.abs(diff) <= 1 ? '#475569' : diff < 0 ? '#FF6F61' : '#059669';
+  const label = Math.abs(diff) <= 1 ? 'On pace' : diff < 0 ? `Behind pace by ${Math.abs(diff)} pts` : `Ahead of pace by ${diff} pts`;
+  const clamped = Math.min(Math.max(actual, 2), 98);
+  return (
+    <div className="flex justify-end" title={label} data-testid="svg-pace-track">
+      <div className="relative" style={{ width: 60, height: 12 }}>
+        <div style={{ position: 'absolute', top: 5, left: 0, right: 0, height: 2, background: '#F1F5F9', borderRadius: 999 }} />
+        <div style={{ position: 'absolute', top: 1, left: `${expected}%`, width: 2, height: 10, background: '#94A3B8', transform: 'translateX(-50%)' }} />
+        <div style={{ position: 'absolute', top: 2, left: `${clamped}%`, width: 8, height: 8, borderRadius: 999, background: dotColor, transform: 'translateX(-50%)', transition: 'left 400ms cubic-bezier(0.22, 1, 0.36, 1)' }} />
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────
 export default function DashboardPage({ onNavigate }: Props) {
   const [seg, setSeg] = useState<SegKey>('All');
@@ -799,12 +885,7 @@ export default function DashboardPage({ onNavigate }: Props) {
 
   return (
     <div className="min-h-full space-y-4 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
-      <InsightStrip
-        goalPct={goalPct}
-        pace={pace}
-        segmentRows={segmentRowsScaled}
-        period={rLabel}
-      />
+      <SectionAnchorNav />
       {/* ── 1) Unified Hero — Header + Net Sales + Annual Goal ─────── */}
       <section
         className="overflow-hidden rounded-2xl"
@@ -834,7 +915,7 @@ export default function DashboardPage({ onNavigate }: Props) {
               style={{ ...TABULAR, background: '#ECFDF5', color: '#047857', padding: '3px 8px' }}
               data-testid="net-sales-delta"
             >
-              <ArrowUp size={10} strokeWidth={2.6} />25.6% YoY
+              <ArrowUp size={10} strokeWidth={2.6} />25.6% vs $7.3M prior YTD
             </span>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -868,6 +949,9 @@ export default function DashboardPage({ onNavigate }: Props) {
                 <span key={d.m} style={{ flex: 1, textAlign: 'center' }}>{d.m}</span>
               ))}
             </div>
+            <p className="mt-2 text-right text-[11px] font-medium" style={{ color: '#94A3B8' }} data-testid="hero-freshness">
+              Updated 2 min ago · auto-refresh in 3 min
+            </p>
           </div>
         </div>
 
@@ -1192,7 +1276,7 @@ export default function DashboardPage({ onNavigate }: Props) {
 
         <div className="mt-6 svg-scroll-wrap overflow-x-auto md:overflow-visible">
           <div
-            className="grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 pb-2.5 text-[11px] font-semibold uppercase"
+            className="grid min-w-[920px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)_minmax(80px,100px)] items-center gap-x-4 pb-2.5 text-[11px] font-semibold uppercase"
             style={{ letterSpacing: '0.08em', color: '#64748B', borderBottom: `1px solid #F1F5F9` }}
           >
             <span className="svg-sticky-col">Class</span>
@@ -1201,6 +1285,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             <span className="text-right">Variance</span>
             <span className="text-right">% to Goal</span>
             <span className="text-right">Annual Goal</span>
+            <span className="text-right">Pace</span>
           </div>
           {svgVisibleRows.map((r) => {
             const onPace = r.pct >= 70;
@@ -1210,7 +1295,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             return (
               <div
                 key={r.name}
-                className="group grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 h-12 text-[14px] transition-colors duration-150 ease-out hover:bg-slate-50"
+                className="group grid min-w-[920px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)_minmax(80px,100px)] items-center gap-x-4 h-12 text-[14px] transition-colors duration-150 ease-out hover:bg-slate-50"
                 style={{ borderBottom: `1px solid #F1F5F9` }}
                 data-testid={`svg-row-${r.name.toLowerCase().replace(/\s+/g, '-')}`}
               >
@@ -1231,6 +1316,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                   <span className="text-right text-[13px] font-semibold tabular-nums whitespace-nowrap" style={{ color: pctColor, minWidth: 36 }}>{r.pct}%</span>
                 </div>
                 <span className="text-right font-medium whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(r.annual)}</span>
+                <PaceTrack actual={r.pct} expected={75} />
               </div>
             );
           })}
@@ -1241,7 +1327,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             const varColor = svgTotalScaled.variance < 0 ? '#C9422E' : svgTotalScaled.variance > 0 ? '#0F172A' : '#64748B';
             return (
               <div
-                className="grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 h-[52px] text-[15px] font-semibold"
+                className="grid min-w-[920px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)_minmax(80px,100px)] items-center gap-x-4 h-[52px] text-[15px] font-semibold"
                 style={{ borderTop: `1px solid #E2E8F0`, color: '#0F172A' }}
                 data-testid="svg-total-row"
               >
@@ -1259,6 +1345,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                   <span className="text-right text-[13px] font-semibold tabular-nums whitespace-nowrap" style={{ color: pctColor, minWidth: 36 }}>{svgTotalScaled.pct}%</span>
                 </div>
                 <span className="text-right whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(svgTotalScaled.annual)}</span>
+                <PaceTrack actual={svgTotalScaled.pct} expected={75} />
               </div>
             );
           })()}
@@ -1344,11 +1431,24 @@ export default function DashboardPage({ onNavigate }: Props) {
 function NetSalesValue({ target }: { target: number }) {
   const v = useCountUp(target, 700);
   return (
-    <p
-      className="font-semibold"
-      style={{ ...TABULAR, fontSize: 'clamp(40px, 4.2vw, 52px)', lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}
-    >
-      {usd0(Math.max(0, v))}
-    </p>
+    <div className="relative inline-block" data-testid="hero-net-sales-value" title="YTD net sales across all selected channels. After discounts, returns & tax; shipping included.">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute"
+        style={{
+          width: 320, height: 240,
+          left: '50%', top: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'radial-gradient(circle at center, rgba(255,111,97,0.08) 0%, transparent 60%)',
+          zIndex: 0,
+        }}
+      />
+      <p
+        className="relative font-semibold"
+        style={{ ...TABULAR, fontSize: 'clamp(44px, 4.6vw, 56px)', lineHeight: 1.05, letterSpacing: '-0.02em', color: INK, zIndex: 1 }}
+      >
+        {usd0(Math.max(0, v))}
+      </p>
+    </div>
   );
 }
