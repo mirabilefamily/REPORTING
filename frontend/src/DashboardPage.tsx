@@ -106,27 +106,47 @@ const SEG_KEY: Record<SegKey, string> = {
 };
 
 const RANGE_SCALE: Record<string, number> = {
-  'YTD':      1.00,
-  'QTD':      0.28,
+  'Today':    0.0027,
+  'Yesterday':0.0027,
+  'Last 7d':  0.019,
   'Last 30d': 0.083,
+  'Last 90d': 0.25,
+  'MTD':      0.083,
+  'QTD':      0.28,
+  'YTD':      1.00,
   'Custom':   1.00,
 };
 const RANGE_LABEL: Record<string, string> = {
-  'YTD':      'YTD',
-  'QTD':      'QTD',
+  'Today':    'TODAY',
+  'Yesterday':'YESTERDAY',
+  'Last 7d':  'LAST 7D',
   'Last 30d': 'LAST 30D',
+  'Last 90d': 'LAST 90D',
+  'MTD':      'MTD',
+  'QTD':      'QTD',
+  'YTD':      'YTD',
   'Custom':   'CUSTOM RANGE',
 };
 const SVG_SUBTITLE: Record<string, string> = {
-  'YTD':      '2026 goal pacing through September',
-  'QTD':      'Q3 2026 pacing',
+  'Today':    'Today',
+  'Yesterday':'Yesterday',
+  'Last 7d':  'Last 7 days',
   'Last 30d': 'Last 30 days',
+  'Last 90d': 'Last 90 days',
+  'MTD':      'Month-to-date',
+  'QTD':      'Q3 2026 pacing',
+  'YTD':      '2026 goal pacing through September',
   'Custom':   'Custom range',
 };
 const MONTHS_VISIBLE: Record<string, number> = {
-  'YTD':      12,
-  'QTD':      3,
+  'Today':    1,
+  'Yesterday':1,
+  'Last 7d':  2,
   'Last 30d': 4,
+  'Last 90d': 6,
+  'MTD':      3,
+  'QTD':      3,
+  'YTD':      12,
   'Custom':   12,
 };
 

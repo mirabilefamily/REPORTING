@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ArrowDown, ArrowUp } from 'lucide-react';
-import { SEG_COLORS, SegTabs, DeltaPill } from '../DashboardPage';
+import { SEG_COLORS, SegTabs } from '../DashboardPage';
 import DateRangePicker from '../components/DateRangePicker';
 import { usePageRange } from '../lib/pageRange';
 
@@ -13,20 +13,23 @@ const INTER = {
   WebkitFontSmoothing: 'antialiased',
 } as const;
 
-const fmtM = (n: number) => {
-  const a = Math.abs(n);
-  const sign = n < 0 ? '-' : '';
-  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(2)}M`;
-  if (a >= 1e3) return `${sign}$${Math.round(a / 1e3)}K`;
-  return `${sign}$${Math.round(a)}`;
-};
-const usd0 = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
+const CORAL = '#FF6F61';
+const CORAL_DK = '#C9422E';
+const GREEN = '#047857';
+const GREEN_BG = '#ECFDF5';
+const CORAL_BG = '#FFF1EF';
+
+const INK = '#0F172A';
+const MUTED = '#64748B';
+const FAINT = '#94A3B8';
+const BORDER = '#F1F5F9';
 
 // ─── Filter options ───────────────────────────────────────────────────
 const CHANNELS = ['All', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'] as const;
-const TREND_MODES = ['Daily', 'Weekly', 'Monthly'] as const;
 const FUNNEL_MODES = ['Ecommerce', 'Amazon', 'Combined'] as const;
 const REORDER_MODES = ['All Wholesale', 'US Wholesale', 'Distributors', 'Retail'] as const;
+const VELOCITY_MODES = ['Fast movers', 'Slow movers'] as const;
+const RETURNS_MODES = ['By reason', 'By channel'] as const;
 
 // ─── Mock data (hat brand) ────────────────────────────────────────────
 type SegKey = typeof CHANNELS[number];
@@ -34,50 +37,87 @@ const SEG_SCALE: Record<SegKey, number> = {
   'All': 1, 'US Wholesale': 0.37, 'Distributors': 0.30, 'Ecommerce': 0.26, 'Amazon': 0.045, 'Retail': 0.026,
 };
 
-const HERO = {
-  revenue: 17_510_000,
-  revenueYoY: 11.4,
-  grossMargin: 52.4,
-  discountRate: 9.6,
-  returnRate: 6.4,
+// Hero — Customer vs Operational Health
+const HERO_CUSTOMER = {
   activeCustomers: 18_742,
   newPct: 56,
   returningPct: 44,
   repeatRate: 34.2,
+  repeatYoY: 2.1,
   repeatSpark: [31, 32, 32, 33, 32, 33, 34, 33, 34, 34, 34, 34.2],
   ltvAov: '2.6x',
+  ltvYoY: 0.3,
 };
 
-const TREND_MONTHLY = [
-  { m: 'Jan', total: 1.35e6, margin: 51.2 },
-  { m: 'Feb', total: 2.45e6, margin: 52.0 },
-  { m: 'Mar', total: 1.55e6, margin: 51.6 },
-  { m: 'Apr', total: 1.75e6, margin: 52.1 },
-  { m: 'May', total: 1.90e6, margin: 52.9 },
-  { m: 'Jun', total: 1.85e6, margin: 52.6 },
-  { m: 'Jul', total: 2.45e6, margin: 53.4 },
-  { m: 'Aug', total: 2.65e6, margin: 53.8 },
-  { m: 'Sep', total: 1.55e6, margin: 52.5 },
-  { m: 'Oct', total: 1.30e6, margin: 51.9 },
-  { m: 'Nov', total: 2.30e6, margin: 52.8 },
-  { m: 'Dec', total: 2.10e6, margin: 52.3 },
+const HERO_OPS = {
+  fillRate: 95.2,
+  fillYoY: -0.3,
+  fillSpark: [95.5, 95.5, 95.4, 95.4, 95.3, 95.3, 95.3, 95.2, 95.2, 95.2, 95.2, 95.2],
+  otif: 91.4,
+  otifYoY: 1.6,
+  leadTime: 3.8,
+  leadYoY: -0.4,
+  returnRate: 6.4,
+  returnYoY: -0.5,
+};
+
+// Quality KPI row
+type KpiMetric = { label: string; value: string; delta: number; invert?: boolean; spark: number[]; sparkColor?: string };
+const KPIS_ALL: KpiMetric[] = [
+  { label: 'Fill Rate',       value: '95.2%', delta: -0.3, invert: true, spark: [95.5,95.5,95.4,95.4,95.3,95.3,95.3,95.2,95.2,95.2,95.2,95.2], sparkColor: CORAL },
+  { label: 'Return Rate',     value: '6.4%',  delta: -0.5, invert: true, spark: [7.1,7.0,6.9,6.8,6.9,6.7,6.6,6.5,6.5,6.4,6.4,6.4] },
+  { label: 'OTIF',            value: '91.4%', delta:  1.6, spark: [89,89.3,89.6,90,90.3,90.6,90.9,91.1,91.2,91.3,91.4,91.4] },
+  { label: 'Avg Lead Time',   value: '3.8 d', delta: -0.4, invert: true, spark: [4.3,4.2,4.2,4.1,4.1,4.0,4.0,3.9,3.9,3.8,3.8,3.8] },
+];
+const KPIS_DTC: KpiMetric[] = [
+  { label: 'Return Rate',       value: '7.9%',  delta: -0.6, invert: true, spark: [8.6,8.5,8.4,8.3,8.2,8.1,8.0,8.0,7.95,7.9,7.9,7.9] },
+  { label: 'Conversion Rate',   value: '2.8%',  delta:  0.3, spark: [2.5,2.5,2.5,2.6,2.6,2.7,2.7,2.7,2.8,2.8,2.8,2.8] },
+  { label: 'Cart Abandonment',  value: '71.4%', delta: -1.1, invert: true, spark: [73,72.8,72.5,72.2,72,71.8,71.6,71.5,71.5,71.4,71.4,71.4], sparkColor: CORAL },
+  { label: 'Repeat Rate',       value: '34.2%', delta:  2.1, spark: [31,32,32,33,32,33,34,33,34,34,34,34.2] },
+];
+const KPIS_WH: KpiMetric[] = [
+  { label: 'Fill Rate',       value: '95.2%', delta: -0.3, invert: true, spark: [95.5,95.5,95.4,95.4,95.3,95.3,95.3,95.2,95.2,95.2,95.2,95.2], sparkColor: CORAL },
+  { label: 'OTIF',            value: '91.4%', delta:  1.6, spark: [89,89.3,89.6,90,90.3,90.6,90.9,91.1,91.2,91.3,91.4,91.4] },
+  { label: 'Reorder Rate',    value: '58.4%', delta:  2.1, spark: [55,56,56,57,57,57.5,57.8,58,58.1,58.3,58.4,58.4] },
+  { label: 'Avg Lead Time',   value: '3.8 d', delta: -0.4, invert: true, spark: [4.3,4.2,4.2,4.1,4.1,4.0,4.0,3.9,3.9,3.8,3.8,3.8] },
+];
+function getKpis(ch: SegKey): KpiMetric[] {
+  if (ch === 'Ecommerce' || ch === 'Amazon') return KPIS_DTC;
+  if (ch === 'US Wholesale' || ch === 'Distributors' || ch === 'Retail') return KPIS_WH;
+  return KPIS_ALL;
+}
+
+// Returns Analysis
+const RETURN_REASONS = [
+  { label: 'Sizing / fit',         units: 1_418, pct: 38.4, delta: -1.2 },
+  { label: 'Material quality',     units:   772, pct: 20.9, delta:  0.8 },
+  { label: 'Not as described',     units:   562, pct: 15.2, delta: -0.5 },
+  { label: 'Arrived damaged',      units:   428, pct: 11.6, delta: -2.1 },
+  { label: 'Changed mind',         units:   324, pct:  8.8, delta:  1.4 },
+  { label: 'Other',                units:   188, pct:  5.1, delta: -0.3 },
+];
+const RETURNS_BY_CHANNEL = [
+  { name: 'Ecommerce',    rate: 7.9, units: 1_942, delta: -0.6 },
+  { name: 'Amazon',       rate: 9.4, units:   914, delta:  0.3 },
+  { name: 'US Wholesale', rate: 4.1, units:   518, delta: -0.8 },
+  { name: 'Distributors', rate: 3.2, units:   218, delta: -0.1 },
+  { name: 'Retail',       rate: 2.1, units:    42, delta:  0.0 },
+];
+const RETURN_RATE_TREND = [
+  { m: 'Jan', r: 7.1 }, { m: 'Feb', r: 7.0 }, { m: 'Mar', r: 6.9 }, { m: 'Apr', r: 6.8 },
+  { m: 'May', r: 6.9 }, { m: 'Jun', r: 6.7 }, { m: 'Jul', r: 6.6 }, { m: 'Aug', r: 6.5 },
+  { m: 'Sep', r: 6.5 }, { m: 'Oct', r: 6.4 }, { m: 'Nov', r: 6.4 }, { m: 'Dec', r: 6.4 },
 ];
 
-const SEGMENT_PERF = [
-  { name: 'US Wholesale', rev: 6_480_000, share: 37.0, yoy:  5.8, pct: 85 },
-  { name: 'Distributors', rev: 5_240_000, share: 29.9, yoy:  8.4, pct: 91 },
-  { name: 'Ecommerce',    rev: 4_550_000, share: 26.0, yoy: 12.1, pct: 96 },
-  { name: 'Amazon',       rev:   785_000, share:  4.5, yoy: -3.6, pct: 90 },
-  { name: 'Retail',       rev:   462_000, share:  2.6, yoy: -8.9, pct: 65 },
-];
-
+// DTC Funnel
 const FUNNEL_DATA: Record<typeof FUNNEL_MODES[number], number[]> = {
-  'Ecommerce': [486210, 58345, 36174, 27131],
-  'Amazon':    [322140, 38657, 23967, 17975],
-  'Combined':  [808350, 97002, 60141, 45106],
+  'Ecommerce': [486_210, 58_345, 36_174, 27_131],
+  'Amazon':    [322_140, 38_657, 23_967, 17_975],
+  'Combined':  [808_350, 97_002, 60_141, 45_106],
 };
 const FUNNEL_STAGES = ['Sessions', 'Add-to-cart', 'Checkout', 'Purchase'] as const;
 
+// Reorder Cadence
 const REORDER_BUCKETS = ['0-2w', '3-4w', '5-8w', '9-12w', '13-26w', '27-52w', '52w+'] as const;
 const REORDER_BENCHMARK_IDX = 3;
 const REORDER_DATA: Record<typeof REORDER_MODES[number], number[]> = {
@@ -87,92 +127,79 @@ const REORDER_DATA: Record<typeof REORDER_MODES[number], number[]> = {
   'Retail':        [ 2,  6,  13, 11,  8,  3,  2],
 };
 
-const CHANNEL_MIX = [
-  { name: 'US Wholesale', v: 6_480_000, share: 37.0, delta:  5.8 },
-  { name: 'Distributors', v: 5_240_000, share: 29.9, delta:  8.4 },
-  { name: 'Ecommerce',    v: 4_550_000, share: 26.0, delta: 12.1 },
-  { name: 'Amazon',       v:   785_000, share:  4.5, delta: -3.6 },
-  { name: 'Retail',       v:   462_000, share:  2.6, delta: -8.9 },
+// Product Velocity (fast movers / slow movers)
+const FAST_MOVERS = [
+  { sku: '101-2450-VOI01-O/S', name: 'Dean Vintage Canvas Trucker',  variant: 'Void · One Size',   onHand:  3_820, sold30: 2_412, dos:  47, sell: 94.1 },
+  { sku: '101-2510-NAV02-O/S', name: 'Dusty Baker 5-Panel Cord',     variant: 'Navy · One Size',   onHand:  2_942, sold30: 1_804, dos:  49, sell: 91.6 },
+  { sku: '101-2470-OLV01-O/S', name: 'Angler Mesh Snapback',         variant: 'Olive · One Size',  onHand:  2_418, sold30: 1_432, dos:  51, sell: 88.4 },
+  { sku: '101-2615-TAN03-M/L', name: 'Farmer Full Grain Leather',    variant: 'Tan · M/L',         onHand:  1_804, sold30: 1_112, dos:  49, sell: 86.9 },
+  { sku: '101-2452-SND01-O/S', name: 'Dean Washed Canvas Trucker',   variant: 'Sand · One Size',   onHand:  1_622, sold30:   964, dos:  50, sell: 84.2 },
+];
+const SLOW_MOVERS = [
+  { sku: '101-1118-BRN02-S/M', name: 'Prospector Wool Felt',         variant: 'Brown · S/M',       onHand:  4_210, sold30:    82, dos: 1540, sell: 18.6 },
+  { sku: '101-1142-KHA01-O/S', name: 'Lineman Flat Brim',            variant: 'Khaki · One Size',  onHand:  3_848, sold30:    94, dos: 1227, sell: 22.9 },
+  { sku: '101-1230-WHT04-L/XL',name: 'Angler Twill Dad',             variant: 'White · L/XL',      onHand:  2_912, sold30:    98, dos:  891, sell: 29.4 },
+  { sku: '101-1314-GRY02-O/S', name: 'Scout Corduroy 5-Panel',       variant: 'Grey · One Size',   onHand:  2_216, sold30:   112, dos:  594, sell: 36.1 },
+  { sku: '101-1402-RED01-S/M', name: 'Firestarter Mesh Trucker',     variant: 'Red · S/M',         onHand:  1_980, sold30:   122, dos:  487, sell: 42.0 },
 ];
 
-const TOP_ACCOUNTS = [
-  { name: 'Lids',                       net: 2_720_000, yoy:  8.2 },
-  { name: 'SASAtrend',                  net: 1_460_000, yoy: 12.4 },
-  { name: 'Industrias Mercury, S.A.',   net: 1_030_000, yoy: -4.1 },
-  { name: 'Nordstrom Accounts Payable', net:   726_000, yoy:  3.6 },
-  { name: 'Buckle Inc., The',           net:   617_000, yoy: -2.3 },
+// Customer Insights (quality composition)
+const CUSTOMER_INSIGHTS = [
+  { label: 'Top 10 customers',     value: '75.7%', sub: '+2.1 pts vs prior',       caption: 'of net sales',           bar: 75.7, deltaOk: true },
+  { label: 'Credit rate',          value: '2.0%',  sub: '$358K on $18.7M gross',    caption: 'Trending down · ↓0.4 pts', bar: 20,   deltaOk: true },
+  { label: 'New customer rate',    value: '52.3%', sub: '4,217 new this period',    caption: '↑ 3.6 pts vs prior',      bar: 52.3, deltaOk: true },
+  { label: 'Repeat purchase rate', value: '36.4%', sub: 'vs 33.1% prior',           caption: '↑ 3.3 pts',               bar: 36.4, deltaOk: true },
 ];
 
-const TOP_ITEMS = [
-  { name: 'Dean Vintage Canvas Trucker',   sku: '101-2450-VOI01-O/S', variant: 'Void · One Size',   units: 25_132, rev: 1_412_000 },
-  { name: 'Dusty Baker 5-Panel Cord',      sku: '101-2510-NAV02-O/S', variant: 'Navy · One Size',  units: 18_904, rev:   986_000 },
-  { name: 'Farmer Full Grain Leather',     sku: '101-2615-TAN03-M/L', variant: 'Tan · M/L',        units: 14_210, rev:   862_000 },
-  { name: 'Angler Mesh Snapback',          sku: '101-2470-OLV01-O/S', variant: 'Olive · One Size', units: 12_880, rev:   704_000 },
-  { name: 'Dean Washed Canvas Trucker',    sku: '101-2452-SND01-O/S', variant: 'Sand · One Size',  units: 10_122, rev:   568_000 },
-];
-
+// Sales Rep Leaderboard — operational: on-time ship %, attainment
 const SALES_REPS = [
-  { name: 'Jovon Clements',  accounts: 34, net: 4_820_000, yoy:  12.6, pct: 92 },
-  { name: 'Erwin Samson',    accounts: 28, net: 3_940_000, yoy:   6.3, pct: 81 },
-  { name: 'Priya Rao',       accounts: 22, net: 2_710_000, yoy:  -4.1, pct: 68 },
-  { name: 'Devon Park',      accounts: 19, net: 2_180_000, yoy:   9.2, pct: 86 },
-  { name: 'James Whittaker', accounts: 16, net: 1_860_000, yoy: -11.4, pct: 61 },
+  { name: 'Jovon Clements',  accounts: 34, otif: 94.6, fill: 97.1, attain:  92, yoy:  12.6 },
+  { name: 'Erwin Samson',    accounts: 28, otif: 91.2, fill: 95.4, attain:  81, yoy:   6.3 },
+  { name: 'Priya Rao',       accounts: 22, otif: 86.8, fill: 93.2, attain:  68, yoy:  -4.1 },
+  { name: 'Devon Park',      accounts: 19, otif: 93.1, fill: 96.0, attain:  86, yoy:   9.2 },
+  { name: 'James Whittaker', accounts: 16, otif: 82.4, fill: 90.6, attain:  61, yoy: -11.4 },
 ];
 
-// Adaptive KPI configs (3 variants)
-type KpiMetric = { label: string; value: string; delta: number; spark: number[]; sparkColor?: string };
-const KPIS_ALL: KpiMetric[] = [
-  { label: 'Sessions · YTD',         value: '808,350', delta:  8.9, spark: [62, 65, 64, 68, 70, 72, 71, 74, 76, 77, 78, 80] },
-  { label: 'AOV · YTD',              value: '$2,134',  delta:  3.1, spark: [2.0,2.0,2.05,2.08,2.1,2.11,2.1,2.12,2.13,2.13,2.13,2.13] },
-  { label: 'Return Rate · YTD',      value: '6.4%',    delta: -0.5, spark: [7.1,7.0,6.9,6.8,6.9,6.7,6.6,6.5,6.5,6.4,6.4,6.4], sparkColor: '#FF6F61' },
-  { label: 'Active Accounts · YTD',  value: '472',     delta:  3.8, spark: [455,458,459,462,464,466,468,469,470,471,472,472] },
-];
-const KPIS_DTC: KpiMetric[] = [
-  { label: 'Sessions · YTD',           value: '486,210', delta:  8.9, spark: [40, 42, 44, 44, 46, 47, 47, 48, 48, 48.5, 48.6, 48.6] },
-  { label: 'Conversion Rate · YTD',    value: '2.8%',    delta:  0.3, spark: [2.5,2.5,2.5,2.6,2.6,2.7,2.7,2.7,2.8,2.8,2.8,2.8] },
-  { label: 'Repeat Rate · YTD',        value: '34.2%',   delta:  2.1, spark: [31,32,32,33,32,33,34,33,34,34,34,34.2] },
-  { label: 'Cart Abandonment · YTD',   value: '71.4%',   delta: -1.1, spark: [73,72.8,72.5,72.2,72,71.8,71.6,71.5,71.5,71.4,71.4,71.4], sparkColor: '#FF6F61' },
-];
-const KPIS_WH: KpiMetric[] = [
-  { label: 'Active Accounts · YTD',  value: '472',     delta:  3.8, spark: [455,458,459,462,464,466,468,469,470,471,472,472] },
-  { label: 'Reorder Rate · YTD',     value: '58.4%',   delta:  2.1, spark: [55,56,56,57,57,57.5,57.8,58,58.1,58.3,58.4,58.4] },
-  { label: 'Avg Order Size · YTD',   value: '$8,420',  delta:  5.2, spark: [7.9,7.95,8.0,8.05,8.1,8.2,8.25,8.3,8.35,8.4,8.42,8.42] },
-  { label: 'Fill Rate · YTD',        value: '95.2%',   delta: -0.3, spark: [95.5,95.5,95.4,95.4,95.3,95.3,95.3,95.2,95.2,95.2,95.2,95.2] },
-];
-function getKpis(ch: SegKey): KpiMetric[] {
-  if (ch === 'Ecommerce' || ch === 'Amazon') return KPIS_DTC;
-  if (ch === 'US Wholesale' || ch === 'Distributors' || ch === 'Retail') return KPIS_WH;
-  return KPIS_ALL;
-}
+// ─── Formatters ────────────────────────────────────────────────────────
+const fmtInt = (n: number) => Math.round(n).toLocaleString('en-US');
 
 // ─── Atoms ─────────────────────────────────────────────────────────────
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>
+    <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: MUTED }}>
       {children}
     </p>
   );
 }
 
-function InlineDelta({ v, showArrow = true }: { v: number; showArrow?: boolean }) {
-  const up = v >= 0;
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: FAINT }}>
+      {children}
+    </p>
+  );
+}
+
+function InlineDelta({ v, invert = false, showArrow = true }: { v: number; invert?: boolean; showArrow?: boolean }) {
+  const positive = invert ? v <= 0 : v >= 0;
+  const Arrow = v >= 0 ? ArrowUp : ArrowDown;
   return (
     <span
       className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-medium"
       style={{
         ...TABULAR,
-        color: up ? '#047857' : '#C9422E',
-        background: up ? '#ECFDF5' : '#FFF1EF',
+        color: positive ? GREEN : CORAL_DK,
+        background: positive ? GREEN_BG : CORAL_BG,
         padding: '3px 8px',
       }}
     >
-      {showArrow && (up ? <ArrowUp size={10} strokeWidth={2.6} /> : <ArrowDown size={10} strokeWidth={2.6} />)}
+      {showArrow && <Arrow size={10} strokeWidth={2.6} />}
       {Math.abs(v).toFixed(1)}%
     </span>
   );
 }
 
-function MiniSpark({ data, color = '#94A3B8' }: { data: number[]; color?: string }) {
+function MiniSpark({ data, color = FAINT }: { data: number[]; color?: string }) {
   const w = 100, h = 28;
   const max = Math.max(...data);
   const min = Math.min(...data);
@@ -187,30 +214,27 @@ function MiniSpark({ data, color = '#94A3B8' }: { data: number[]; color?: string
 
 function PaceTrack({ actual, expected }: { actual: number; expected: number }) {
   const diff = Math.round(actual - expected);
-  const dotColor = Math.abs(diff) <= 1 ? '#475569' : diff < 0 ? '#FF6F61' : '#059669';
+  const dotColor = Math.abs(diff) <= 1 ? '#475569' : diff < 0 ? CORAL : '#059669';
   const clamped = Math.min(Math.max(actual, 2), 98);
   return (
     <div className="flex justify-end" aria-label={Math.abs(diff) <= 1 ? 'On pace' : diff < 0 ? `${Math.abs(diff)} pts behind` : `${diff} pts ahead`}>
       <div className="relative" style={{ width: 50, height: 10 }}>
-        <div style={{ position: 'absolute', top: 4, left: 0, right: 0, height: 2, background: '#F1F5F9', borderRadius: 999 }} />
-        <div style={{ position: 'absolute', top: 1, left: `${expected}%`, width: 1, height: 8, background: '#94A3B8', transform: 'translateX(-50%)' }} />
+        <div style={{ position: 'absolute', top: 4, left: 0, right: 0, height: 2, background: BORDER, borderRadius: 999 }} />
+        <div style={{ position: 'absolute', top: 1, left: `${expected}%`, width: 1, height: 8, background: FAINT, transform: 'translateX(-50%)' }} />
         <div style={{ position: 'absolute', top: 2, left: `${clamped}%`, width: 6, height: 6, borderRadius: 999, background: dotColor, transform: 'translateX(-50%)' }} />
       </div>
     </div>
   );
 }
 
-function TrendTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  const total = payload.find((p: any) => p.dataKey === 'total')?.value ?? 0;
-  const margin = payload.find((p: any) => p.dataKey === 'margin')?.value;
+function StatRow({ label, value, delta, invert }: { label: string; value: string; delta: number; invert?: boolean }) {
   return (
-    <div style={{ background: '#FFFFFF', borderRadius: 12, padding: 12, boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)', minWidth: 200, ...TABULAR }}>
-      <p style={{ color: '#0F172A', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.10em', marginBottom: 6 }}>{label}</p>
-      <p style={{ color: '#0F172A', fontSize: 15, fontWeight: 600, margin: 0 }}>{fmtM(total)}</p>
-      {margin !== undefined && (
-        <p style={{ marginTop: 4, fontSize: 11, fontWeight: 500, color: '#64748B' }}>Gross margin · {margin.toFixed(1)}%</p>
-      )}
+    <div className="flex items-baseline justify-between gap-3" style={{ minHeight: 24 }}>
+      <span className="text-[12px]" style={{ color: MUTED }}>{label}</span>
+      <div className="flex items-baseline gap-2">
+        <span className="text-[14px] font-semibold" style={{ ...TABULAR, color: INK }}>{value}</span>
+        <InlineDelta v={delta} invert={invert} />
+      </div>
     </div>
   );
 }
@@ -219,9 +243,10 @@ function TrendTooltip({ active, payload, label }: any) {
 export default function AnalyticsPage() {
   const [channel, setChannel] = useState<SegKey>('All');
   const [range, setRange] = usePageRange('analytics');
-  const [trendMode, setTrendMode] = useState<typeof TREND_MODES[number]>('Monthly');
   const [funnelMode, setFunnelMode] = useState<typeof FUNNEL_MODES[number]>('Ecommerce');
   const [reorderMode, setReorderMode] = useState<typeof REORDER_MODES[number]>('All Wholesale');
+  const [velocityMode, setVelocityMode] = useState<typeof VELOCITY_MODES[number]>('Fast movers');
+  const [returnsMode, setReturnsMode] = useState<typeof RETURNS_MODES[number]>('By reason');
   const [kpiOpacity, setKpiOpacity] = useState(1);
 
   useEffect(() => {
@@ -233,378 +258,443 @@ export default function AnalyticsPage() {
   const kpis = useMemo(() => getKpis(channel), [channel]);
   const funnelData = FUNNEL_DATA[funnelMode];
   const reorderData = REORDER_DATA[reorderMode].map((count, i) => ({ bucket: REORDER_BUCKETS[i], count, stale: i > REORDER_BENCHMARK_IDX }));
-  const reorderBarColor = reorderMode === 'All Wholesale' ? '#0F172A' : SEG_COLORS[reorderMode];
+  const reorderBarColor = reorderMode === 'All Wholesale' ? INK : SEG_COLORS[reorderMode];
   const scale = SEG_SCALE[channel];
+
+  const velocityRows = velocityMode === 'Fast movers' ? FAST_MOVERS : SLOW_MOVERS;
+  const velocityMax = Math.max(...velocityRows.map((r) => r.sell));
 
   const cardShell = 'rounded-2xl bg-white p-6';
   const shellStyle = { boxShadow: CARD_SHADOW } as React.CSSProperties;
 
   return (
-    <div className="p-1 space-y-4" data-testid="analytics-page" style={{ ...INTER, ...TABULAR }}>
+    <div className="min-h-full" data-testid="analytics-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
+      <div style={{ padding: '24px' }}>
 
-      {/* 1) Combined header: Channel tabs + Date chip */}
-      <section className="flex flex-wrap items-center justify-between gap-3" data-testid="analytics-header">
-        <SegTabs tabs={CHANNELS as unknown as readonly string[]} value={channel} onChange={(v: any) => setChannel(v)} testId="a-channel-tabs" slugPrefix="a-ch" />
-        <DateRangePicker value={range} onChange={setRange} testId="analytics-range" />
-      </section>
-
-      {/* 2) Hero: Northstar + Customer Health */}
-      <section className="overflow-hidden rounded-2xl bg-white" style={shellStyle} data-testid="analytics-hero">
-        <div className="grid grid-cols-1 min-[900px]:grid-cols-[minmax(0,7fr)_1px_minmax(0,3fr)]">
-          {/* LEFT: Revenue Northstar */}
-          <div className="px-6 pb-6 pt-5" data-testid="analytics-northstar">
-            <Eyebrow>Net Revenue · YTD</Eyebrow>
-            <div className="mt-2.5 flex min-h-[64px] flex-wrap items-end gap-x-4 gap-y-2">
-              <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(40px, 4vw, 48px)', lineHeight: 1.05, letterSpacing: '-0.02em', color: '#0F172A' }}>
-                {fmtM(HERO.revenue * scale)}
-              </p>
-              <InlineDelta v={HERO.revenueYoY} />
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-              <div className="flex items-center gap-2"><span className="text-[12px]" style={{ color: '#64748B' }}>Gross Margin</span><span className="text-[13px] font-semibold" style={{ ...TABULAR, color: '#0F172A' }}>{HERO.grossMargin.toFixed(1)}%</span></div>
-              <div className="flex items-center gap-2"><span className="text-[12px]" style={{ color: '#64748B' }}>Discount Rate</span><span className="text-[13px] font-semibold" style={{ ...TABULAR, color: '#0F172A' }}>{HERO.discountRate.toFixed(1)}%</span></div>
-              <div className="flex items-center gap-2"><span className="text-[12px]" style={{ color: '#64748B' }}>Return Rate</span><span className="text-[13px] font-semibold" style={{ ...TABULAR, color: '#0F172A' }}>{HERO.returnRate.toFixed(1)}%</span></div>
-            </div>
-            <div className="mt-4 h-[140px]" style={TABULAR}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={TREND_MONTHLY} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="northstarArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#FF6F61" stopOpacity={0.18} />
-                      <stop offset="100%" stopColor="#FF6F61" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="m" hide />
-                  <YAxis hide domain={['dataMin', 'dataMax']} />
-                  <Area type="monotone" dataKey="total" stroke="#FF6F61" strokeWidth={1.5} fill="url(#northstarArea)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="hidden min-[900px]:block" style={{ background: '#F1F5F9' }} />
-
-          {/* RIGHT: Customer Health */}
-          <div className="border-t border-[#F1F5F9] px-6 pb-6 pt-5 min-[900px]:border-t-0" data-testid="analytics-customer-health">
-            <Eyebrow>Customer Health</Eyebrow>
-            <p className="mt-2.5 font-semibold" style={{ ...TABULAR, fontSize: 28, lineHeight: 1.05, letterSpacing: '-0.02em', color: '#0F172A' }}>
-              {Math.round(HERO.activeCustomers * (scale === 1 ? 1 : scale * 1.6)).toLocaleString('en-US')}
+        {/* ── Editorial header + unified filter pill ─────────── */}
+        <div className="flex flex-wrap items-start justify-between gap-6" data-testid="analytics-report-header">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase" style={{ letterSpacing: '0.12em', color: FAINT }}>Goorin Reporting · Analytics</p>
+            <h1 className="mt-2 font-semibold" style={{ fontSize: 34, lineHeight: 1.1, letterSpacing: '-0.015em', color: INK }} data-testid="analytics-title">Operational Analytics</h1>
+            <p className="mt-3 font-normal" style={{ fontSize: 16, lineHeight: 1.5, color: MUTED, maxWidth: 760 }}>
+              Customer and operational health — returns, product velocity, DTC conversion, and wholesale reorder cadence.
             </p>
-            <p className="mt-1 text-[11px] font-medium" style={{ color: '#64748B' }}>YTD distinct customers</p>
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-[11px] font-medium" style={{ color: '#64748B' }}>
-                <span>New {HERO.newPct}%</span>
-                <span>Returning {HERO.returningPct}%</span>
+          </div>
+          <div className="flex flex-col items-end gap-3 shrink-0">
+            <div className="inline-flex items-center rounded-2xl p-1" style={{ background: '#EEEEEC' }} data-testid="unified-filter-group">
+              <SegTabs tabs={CHANNELS as unknown as readonly string[]} value={channel} onChange={(v: any) => setChannel(v)} testId="a-channel-tabs" slugPrefix="a-ch" background="transparent" />
+              <span aria-hidden="true" className="mx-2" style={{ width: 1, height: 20, background: '#CBD5E1' }} />
+              <div className="unified-date-chip">
+                <DateRangePicker value={range} onChange={setRange} testId="analytics-range" />
               </div>
-              <div className="mt-1.5 flex h-1.5 overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
-                <div style={{ width: `${HERO.newPct}%`, background: '#FF6F61' }} />
-                <div style={{ width: `${HERO.returningPct}%`, background: '#0F172A' }} />
-              </div>
-            </div>
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[12px]" style={{ color: '#64748B' }}>Repeat Purchase Rate</span>
-                <span className="text-[13px] font-semibold" style={{ ...TABULAR, color: '#0F172A' }}>{HERO.repeatRate.toFixed(1)}%</span>
-              </div>
-              <div className="mt-1.5" style={{ height: 24 }}><MiniSpark data={HERO.repeatSpark} /></div>
-            </div>
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-[12px]" style={{ color: '#64748B' }}>LTV / AOV</span>
-              <span className="text-[13px] font-semibold" style={{ ...TABULAR, color: '#0F172A' }}>{HERO.ltvAov}</span>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* 3) Adaptive KPI row — 4 columns */}
-      <section className="overflow-hidden rounded-2xl bg-white" style={shellStyle} data-testid="analytics-kpi-row">
-        <div className="grid grid-cols-1 md:grid-cols-4" style={{ opacity: kpiOpacity, transition: 'opacity 180ms ease-out' }}>
-          {kpis.map((k, i) => (
-            <div
-              key={k.label}
-              className="px-5 py-5"
-              style={{ borderLeft: i > 0 ? '1px solid #F1F5F9' : 'none' }}
-              data-testid={`akpi-${k.label.split('·')[0].trim().toLowerCase().replace(/\s+/g, '-')}`}
-            >
-              <Eyebrow>{k.label}</Eyebrow>
-              <div className="mt-2.5 flex flex-wrap items-end justify-between gap-2">
-                <p className="font-semibold" style={{ ...TABULAR, fontSize: 24, lineHeight: 1.05, letterSpacing: '-0.02em', color: '#0F172A' }}>
-                  {k.value}
+        <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #E2E8F0' }} />
+
+        {/* ── 01 / Health — Customer vs Operational hero ───────── */}
+        <SectionLabel>01 / Health</SectionLabel>
+
+        <section className="mt-3 overflow-hidden rounded-2xl bg-white" style={shellStyle} data-testid="analytics-hero">
+          <div className="grid grid-cols-1 min-[900px]:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
+            {/* Customer Health */}
+            <div className="px-6 py-6 md:px-8 md:py-7" data-testid="analytics-customer-health">
+              <Eyebrow>Customer Health</Eyebrow>
+              <div className="mt-3 flex flex-wrap items-end gap-x-5 gap-y-3">
+                <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(44px, 4.4vw, 56px)', lineHeight: 1, letterSpacing: '-0.02em', color: INK }} data-testid="customer-active-value">
+                  {fmtInt(HERO_CUSTOMER.activeCustomers * (scale === 1 ? 1 : scale * 1.6))}
                 </p>
-                <InlineDelta v={k.delta} />
+                <p className="mb-2 text-[12px] font-medium" style={{ color: MUTED }}>Active customers · YTD distinct</p>
               </div>
-              <div className="mt-3" style={{ height: 28 }}><MiniSpark data={k.spark} color={k.sparkColor || '#94A3B8'} /></div>
-            </div>
-          ))}
-        </div>
-      </section>
 
-      {/* 4) Revenue trend by month + Segment performance */}
-      <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-[minmax(0,6fr)_minmax(0,4fr)]">
-        {/* Revenue trend */}
-        <div className={cardShell} style={shellStyle} data-testid="analytics-trend">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Revenue trend by month</h2>
-            <SegTabs tabs={TREND_MODES as unknown as readonly string[]} value={trendMode} onChange={(v: any) => setTrendMode(v)} testId="a-trend-mode" slugPrefix="a-trend" />
-          </div>
-          <div className="mt-5 h-[280px]" style={TABULAR}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={TREND_MONTHLY} margin={{ top: 8, right: 12, left: 0, bottom: 8 }} barCategoryGap="22%">
-                <defs>
-                  <linearGradient id="trendBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#34D399" stopOpacity={0.92} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#F1F5F9" vertical={false} />
-                <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500, letterSpacing: '0.06em' }} tickFormatter={(m: string) => m.toUpperCase()} tickMargin={8} />
-                <YAxis yAxisId="rev" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }} tickFormatter={(v: number) => `$${v / 1_000_000}M`} width={44} />
-                <YAxis yAxisId="margin" orientation="right" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }} tickFormatter={(v: number) => `${v}%`} width={38} domain={[48, 56]} />
-                <Tooltip content={<TrendTooltip />} cursor={{ stroke: '#E2E8F0', strokeWidth: 1 }} />
-                <Bar yAxisId="rev" dataKey="total" fill="url(#trendBar)" radius={[3, 3, 0, 0]} isAnimationActive animationDuration={400} />
-                <Line yAxisId="margin" type="monotone" dataKey="margin" stroke="#FF6F61" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Segment performance */}
-        <div className={cardShell} style={shellStyle} data-testid="analytics-segment-perf">
-          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Segment performance</h2>
-          <div className="mt-5">
-            <div className="grid grid-cols-[minmax(0,1.4fr)_90px_72px_70px_60px] items-center gap-3 pb-3 text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B', borderBottom: '1px solid #F1F5F9' }}>
-              <span>Segment</span>
-              <span className="text-right">Revenue</span>
-              <span className="text-right">Share</span>
-              <span className="text-right">YoY</span>
-              <span className="text-right">Pace</span>
-            </div>
-            {[...SEGMENT_PERF].sort((a, b) => b.rev - a.rev).map((s, i) => (
-              <div
-                key={s.name}
-                className="grid grid-cols-[minmax(0,1.4fr)_90px_72px_70px_60px] items-center gap-3 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded-lg px-3"
-                style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 44 }}
-                data-testid={`aseg-${s.name.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="h-2 w-2 rounded-full shrink-0" style={{ background: SEG_COLORS[s.name] }} />
-                  <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{s.name}</span>
+              <div className="mt-5">
+                <div className="flex items-center justify-between text-[11px] font-medium" style={{ color: MUTED }}>
+                  <span>{HERO_CUSTOMER.newPct}% new</span>
+                  <span>{HERO_CUSTOMER.returningPct}% returning</span>
                 </div>
-                <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(s.rev)}</span>
-                <span className="text-right text-[13px] font-medium tabular-nums" style={{ color: '#64748B' }}>{s.share.toFixed(1)}%</span>
-                <div className="flex justify-end"><InlineDelta v={s.yoy} /></div>
-                <PaceTrack actual={s.pct} expected={75} />
+                <div className="mt-1.5 flex h-1.5 overflow-hidden rounded-full" style={{ background: BORDER }}>
+                  <div style={{ width: `${HERO_CUSTOMER.newPct}%`, background: INK }} />
+                  <div style={{ width: `${HERO_CUSTOMER.returningPct}%`, background: CORAL }} />
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[12px]" style={{ color: MUTED }}>Repeat purchase rate</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[14px] font-semibold" style={{ ...TABULAR, color: INK }}>{HERO_CUSTOMER.repeatRate.toFixed(1)}%</span>
+                    <InlineDelta v={HERO_CUSTOMER.repeatYoY} />
+                  </div>
+                </div>
+                <div style={{ height: 22 }}><MiniSpark data={HERO_CUSTOMER.repeatSpark} color={CORAL} /></div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[12px]" style={{ color: MUTED }}>LTV / AOV</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[14px] font-semibold" style={{ ...TABULAR, color: INK }}>{HERO_CUSTOMER.ltvAov}</span>
+                    <InlineDelta v={HERO_CUSTOMER.ltvYoY} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden min-[900px]:block" style={{ background: BORDER }} aria-hidden="true" />
+
+            {/* Operational Health */}
+            <div className="border-t border-[#F1F5F9] px-6 py-6 md:px-8 md:py-7 min-[900px]:border-t-0" data-testid="analytics-operational-health">
+              <Eyebrow>Operational Health</Eyebrow>
+              <div className="mt-3 flex flex-wrap items-end gap-x-5 gap-y-3">
+                <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(44px, 4.4vw, 56px)', lineHeight: 1, letterSpacing: '-0.02em', color: INK }} data-testid="ops-fillrate-value">
+                  {HERO_OPS.fillRate.toFixed(1)}%
+                </p>
+                <p className="mb-2 text-[12px] font-medium" style={{ color: MUTED }}>Fill rate · trailing 30d</p>
+              </div>
+
+              <div className="mt-4" style={{ height: 32 }}>
+                <MiniSpark data={HERO_OPS.fillSpark} color={CORAL} />
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3">
+                <StatRow label="OTIF" value={`${HERO_OPS.otif.toFixed(1)}%`} delta={HERO_OPS.otifYoY} />
+                <StatRow label="Avg lead time" value={`${HERO_OPS.leadTime.toFixed(1)} d`} delta={HERO_OPS.leadYoY} invert />
+                <StatRow label="Return rate" value={`${HERO_OPS.returnRate.toFixed(1)}%`} delta={HERO_OPS.returnYoY} invert />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 02 / Quality — adaptive 4-column KPIs ───────────── */}
+        <p className="mt-10"><SectionLabel>02 / Quality KPIs</SectionLabel></p>
+
+        <section className="mt-3 overflow-hidden rounded-2xl bg-white" style={shellStyle} data-testid="analytics-kpi-row">
+          <div className="grid grid-cols-1 md:grid-cols-4" style={{ opacity: kpiOpacity, transition: 'opacity 180ms ease-out' }}>
+            {kpis.map((k, i) => (
+              <div
+                key={k.label}
+                className="px-6 py-6"
+                style={{ borderLeft: i > 0 ? `1px solid ${BORDER}` : 'none' }}
+                data-testid={`akpi-${k.label.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <Eyebrow>{k.label}</Eyebrow>
+                <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
+                  <p className="font-semibold" style={{ ...TABULAR, fontSize: 26, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>
+                    {k.value}
+                  </p>
+                  <InlineDelta v={k.delta} invert={k.invert} />
+                </div>
+                <div className="mt-3" style={{ height: 28 }}><MiniSpark data={k.spark} color={k.sparkColor || FAINT} /></div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 5) DTC Funnel + Wholesale Reorder Cadence */}
-      <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
-        <div className={cardShell} style={shellStyle} data-testid="analytics-funnel">
+        {/* ── 03 / Returns — Returns Analysis ──────── */}
+        <p className="mt-10"><SectionLabel>03 / Returns Analysis</SectionLabel></p>
+
+        <section className={`mt-3 ${cardShell}`} style={shellStyle} data-testid="analytics-returns">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>DTC Funnel</h2>
-              <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>Sessions → ATC → Checkout → Purchase</p>
+              <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.005em' }}>Returns analysis</h2>
+              <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>3,692 returned units YTD · 6.4% rate</p>
             </div>
-            <SegTabs tabs={FUNNEL_MODES as unknown as readonly string[]} value={funnelMode} onChange={(v: any) => setFunnelMode(v)} testId="a-funnel-mode" slugPrefix="a-funnel" />
+            <SegTabs tabs={RETURNS_MODES as unknown as readonly string[]} value={returnsMode} onChange={(v: any) => setReturnsMode(v)} testId="a-returns-mode" slugPrefix="a-returns" />
           </div>
-          <div className="mt-5 flex flex-col gap-3" style={{ minHeight: 220 }}>
-            {FUNNEL_STAGES.map((stage, i) => {
-              const value = funnelData[i];
-              const share = (value / funnelData[0]) * 100;
-              const dropPct = i > 0 ? ((funnelData[i - 1] - value) / funnelData[i - 1]) * 100 : 0;
-              return (
-                <div key={stage}>
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>{stage}</span>
-                    {i > 0 && (
-                      <span className="inline-flex items-center rounded-full text-[11px] font-medium" style={{ ...TABULAR, background: '#FFF1EF', color: '#C9422E', padding: '2px 8px' }}>
-                        −{dropPct.toFixed(1)}% drop-off
-                      </span>
-                    )}
+
+          <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.3fr)_1px_minmax(0,1fr)]">
+            {/* Left: reasons or channels list */}
+            <div data-testid="returns-breakdown">
+              {returnsMode === 'By reason' && (
+                <>
+                  <div className="grid gap-x-5 pb-3 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '2fr 1fr 100px 90px', letterSpacing: '0.08em', color: MUTED, borderBottom: `1px solid ${BORDER}` }}>
+                    <span>Reason</span>
+                    <span>Share</span>
+                    <span className="text-right">Units</span>
+                    <span className="text-right">Δ</span>
                   </div>
-                  <div className="relative h-11 rounded-md" style={{ width: `${Math.max(share, 12)}%`, background: 'linear-gradient(180deg, #10B981 0%, #34D399 100%)', transition: 'width 400ms cubic-bezier(0.22, 1, 0.36, 1)' }}>
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-white" style={TABULAR}>{value.toLocaleString('en-US')}</span>
+                  {RETURN_REASONS.map((r, i) => (
+                    <div
+                      key={r.label}
+                      className="grid items-center gap-x-5 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded px-3"
+                      style={{ gridTemplateColumns: '2fr 1fr 100px 90px', borderBottom: i === RETURN_REASONS.length - 1 ? 'none' : `1px solid ${BORDER}`, minHeight: 48 }}
+                      data-testid={`return-reason-${i}`}
+                    >
+                      <span className="truncate text-[14px] font-medium" style={{ color: INK }}>{r.label}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="relative h-1 flex-1 overflow-hidden rounded-full" style={{ background: BORDER }}>
+                          <span className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${(r.pct / RETURN_REASONS[0].pct) * 100}%`, background: CORAL }} />
+                        </div>
+                        <span className="text-[12px] font-medium" style={{ ...TABULAR, color: MUTED, width: 42, textAlign: 'right' }}>{r.pct.toFixed(1)}%</span>
+                      </div>
+                      <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: INK }}>{fmtInt(r.units)}</span>
+                      <div className="flex justify-end"><InlineDelta v={r.delta} invert /></div>
+                    </div>
+                  ))}
+                </>
+              )}
+              {returnsMode === 'By channel' && (
+                <>
+                  <div className="grid gap-x-5 pb-3 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.5fr 1fr 100px 90px', letterSpacing: '0.08em', color: MUTED, borderBottom: `1px solid ${BORDER}` }}>
+                    <span>Channel</span>
+                    <span>Rate</span>
+                    <span className="text-right">Units</span>
+                    <span className="text-right">Δ</span>
+                  </div>
+                  {RETURNS_BY_CHANNEL.map((r, i) => (
+                    <div
+                      key={r.name}
+                      className="grid items-center gap-x-5 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded px-3"
+                      style={{ gridTemplateColumns: '1.5fr 1fr 100px 90px', borderBottom: i === RETURNS_BY_CHANNEL.length - 1 ? 'none' : `1px solid ${BORDER}`, minHeight: 48 }}
+                      data-testid={`return-channel-${i}`}
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: SEG_COLORS[r.name] }} />
+                        <span className="truncate text-[14px] font-medium" style={{ color: INK }}>{r.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="relative h-1 flex-1 overflow-hidden rounded-full" style={{ background: BORDER }}>
+                          <span className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${(r.rate / 10) * 100}%`, background: CORAL }} />
+                        </div>
+                        <span className="text-[12px] font-medium" style={{ ...TABULAR, color: MUTED, width: 42, textAlign: 'right' }}>{r.rate.toFixed(1)}%</span>
+                      </div>
+                      <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: INK }}>{fmtInt(r.units)}</span>
+                      <div className="flex justify-end"><InlineDelta v={r.delta} invert /></div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+
+            <div className="hidden lg:block" style={{ background: BORDER }} aria-hidden="true" />
+
+            {/* Right: return rate trend */}
+            <div className="border-t border-[#F1F5F9] pt-5 lg:border-t-0 lg:pt-0" data-testid="returns-rate-trend">
+              <Eyebrow>Return Rate · 12 months</Eyebrow>
+              <div className="mt-3 flex items-baseline gap-3">
+                <p className="font-semibold" style={{ ...TABULAR, fontSize: 32, lineHeight: 1, letterSpacing: '-0.02em', color: INK }}>6.4%</p>
+                <InlineDelta v={-0.5} invert />
+              </div>
+              <p className="mt-1 text-[11px] font-medium" style={{ color: MUTED }}>Trending down · 0.7 pts since Jan</p>
+              <div className="mt-4" style={{ height: 140 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={RETURN_RATE_TREND} margin={{ top: 8, right: 4, left: 0, bottom: 4 }}>
+                    <CartesianGrid stroke={BORDER} vertical={false} />
+                    <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: MUTED, fontWeight: 500 }} interval={1} tickMargin={6} />
+                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: MUTED, fontWeight: 500 }} width={28} tickFormatter={(v) => `${v}%`} domain={[6, 7.5]} />
+                    <Tooltip
+                      cursor={{ stroke: '#E2E8F0', strokeWidth: 1 }}
+                      content={({ active, payload, label }: any) => (!active || !payload?.length) ? null : (
+                        <div style={{ background: '#FFFFFF', borderRadius: 10, padding: 8, boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)', ...TABULAR }}>
+                          <p style={{ color: MUTED, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{label}</p>
+                          <p style={{ color: INK, fontSize: 13, fontWeight: 600, margin: '3px 0 0' }}>{payload[0].value}%</p>
+                        </div>
+                      )}
+                    />
+                    <Line type="monotone" dataKey="r" stroke={CORAL} strokeWidth={1.8} dot={false} isAnimationActive animationDuration={400} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 04 / Funnels — DTC + Reorder Cadence ──────── */}
+        <p className="mt-10"><SectionLabel>04 / Funnels</SectionLabel></p>
+
+        <section className="mt-3 grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
+          <div className={cardShell} style={shellStyle} data-testid="analytics-funnel">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.005em' }}>DTC conversion funnel</h2>
+                <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>Sessions → Add-to-cart → Checkout → Purchase</p>
+              </div>
+              <SegTabs tabs={FUNNEL_MODES as unknown as readonly string[]} value={funnelMode} onChange={(v: any) => setFunnelMode(v)} testId="a-funnel-mode" slugPrefix="a-funnel" />
+            </div>
+            <div className="mt-5 flex flex-col gap-3" style={{ minHeight: 220 }}>
+              {FUNNEL_STAGES.map((stage, i) => {
+                const value = funnelData[i];
+                const share = (value / funnelData[0]) * 100;
+                const dropPct = i > 0 ? ((funnelData[i - 1] - value) / funnelData[i - 1]) * 100 : 0;
+                return (
+                  <div key={stage}>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: MUTED }}>{stage}</span>
+                      {i > 0 && (
+                        <span className="inline-flex items-center rounded-full text-[11px] font-medium" style={{ ...TABULAR, background: CORAL_BG, color: CORAL_DK, padding: '2px 8px' }}>
+                          −{dropPct.toFixed(1)}% drop-off
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative h-11 rounded-md" style={{ width: `${Math.max(share, 12)}%`, background: 'linear-gradient(180deg, #10B981 0%, #34D399 100%)', transition: 'width 400ms cubic-bezier(0.22, 1, 0.36, 1)' }}>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-white" style={TABULAR}>{value.toLocaleString('en-US')}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className={cardShell} style={shellStyle} data-testid="analytics-reorder">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.005em' }}>Reorder cadence</h2>
+                <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>Weeks since last order · wholesale</p>
+              </div>
+              <SegTabs tabs={REORDER_MODES as unknown as readonly string[]} value={reorderMode} onChange={(v: any) => setReorderMode(v)} testId="a-reorder-mode" slugPrefix="a-reorder" />
+            </div>
+            <div className="mt-5" style={{ height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={reorderData} margin={{ top: 24, right: 12, left: 0, bottom: 8 }} barCategoryGap="22%">
+                  <CartesianGrid stroke={BORDER} vertical={false} />
+                  <XAxis dataKey="bucket" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: MUTED, fontWeight: 500 }} tickMargin={8} />
+                  <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: MUTED, fontWeight: 500 }} width={32} />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(15,23,42,0.04)' }}
+                    content={({ active, payload }: any) => (!active || !payload?.length) ? null : (
+                      <div style={{ background: '#FFFFFF', borderRadius: 12, padding: 10, boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)', ...TABULAR }}>
+                        <p style={{ color: MUTED, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{payload[0].payload.bucket}</p>
+                        <p style={{ color: INK, fontSize: 13, fontWeight: 600, margin: '4px 0 0' }}>{payload[0].value} accounts</p>
+                      </div>
+                    )}
+                  />
+                  <ReferenceLine x="9-12w" stroke={CORAL} strokeDasharray="4 4" strokeWidth={1.5} label={{ value: 'Reorder benchmark', position: 'top', fill: CORAL_DK, fontSize: 10, fontWeight: 600, letterSpacing: '0.04em' }} />
+                  <Bar dataKey="count" radius={[3, 3, 0, 0]} isAnimationActive animationDuration={400}>
+                    {reorderData.map((d, i) => <Cell key={i} fill={reorderBarColor} fillOpacity={d.stale ? 0.5 : 1} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 05 / Velocity — Product sell-through ──────── */}
+        <p className="mt-10"><SectionLabel>05 / Product Velocity</SectionLabel></p>
+
+        <section className={`mt-3 ${cardShell}`} style={shellStyle} data-testid="analytics-velocity">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.005em' }}>Product velocity</h2>
+              <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>Sell-through, on-hand units, and days of supply</p>
+            </div>
+            <SegTabs tabs={VELOCITY_MODES as unknown as readonly string[]} value={velocityMode} onChange={(v: any) => setVelocityMode(v)} testId="a-velocity-mode" slugPrefix="a-velocity" />
+          </div>
+          <div className="mt-5">
+            <div
+              className="grid items-center gap-x-5 pb-3 text-[11px] font-semibold uppercase"
+              style={{ gridTemplateColumns: '2fr 100px 110px 110px 1fr', letterSpacing: '0.08em', color: MUTED, borderBottom: `1px solid ${BORDER}` }}
+            >
+              <span>Product</span>
+              <span className="text-right">On hand</span>
+              <span className="text-right">Sold 30d</span>
+              <span className="text-right">Days of supply</span>
+              <span>Sell-through</span>
+            </div>
+            {velocityRows.map((r, i) => {
+              const dosColor = r.dos > 180 ? CORAL_DK : r.dos > 90 ? '#B45309' : INK;
+              const sellColor = velocityMode === 'Fast movers' ? INK : CORAL;
+              return (
+                <div
+                  key={r.sku}
+                  className="grid items-center gap-x-5 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded px-3"
+                  style={{ gridTemplateColumns: '2fr 100px 110px 110px 1fr', borderBottom: i === velocityRows.length - 1 ? 'none' : `1px solid ${BORDER}`, minHeight: 56 }}
+                  data-testid={`velocity-row-${i}`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-[14px] font-medium" style={{ color: INK }}>{r.name}</p>
+                    <p className="mt-0.5 text-[11px]" style={{ ...TABULAR, color: FAINT }}>{r.variant} · {r.sku}</p>
+                  </div>
+                  <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: INK }}>{fmtInt(r.onHand)}</span>
+                  <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: INK }}>{fmtInt(r.sold30)}</span>
+                  <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: dosColor }}>{r.dos > 999 ? `${(r.dos / 1000).toFixed(1)}k` : r.dos} d</span>
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-1 flex-1 overflow-hidden rounded-full" style={{ background: BORDER }}>
+                      <span className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${(r.sell / velocityMax) * 100}%`, background: sellColor }} />
+                    </div>
+                    <span className="text-[12px] font-semibold" style={{ ...TABULAR, color: INK, width: 44, textAlign: 'right' }}>{r.sell.toFixed(1)}%</span>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </section>
 
-        <div className={cardShell} style={shellStyle} data-testid="analytics-reorder">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Wholesale Reorder Cadence</h2>
-              <p className="mt-1.5 text-[12px] font-medium" style={{ color: '#64748B' }}>Weeks since last order</p>
-            </div>
-            <SegTabs tabs={REORDER_MODES as unknown as readonly string[]} value={reorderMode} onChange={(v: any) => setReorderMode(v)} testId="a-reorder-mode" slugPrefix="a-reorder" />
-          </div>
-          <div className="mt-5 h-[220px]" style={TABULAR}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={reorderData} margin={{ top: 24, right: 12, left: 0, bottom: 8 }} barCategoryGap="22%">
-                <CartesianGrid stroke="#F1F5F9" vertical={false} />
-                <XAxis dataKey="bucket" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }} tickMargin={8} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }} width={32} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(15,23,42,0.04)' }}
-                  content={({ active, payload }: any) => (!active || !payload?.length) ? null : (
-                    <div style={{ background: '#FFFFFF', borderRadius: 12, padding: 10, boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)', ...TABULAR }}>
-                      <p style={{ color: '#64748B', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{payload[0].payload.bucket}</p>
-                      <p style={{ color: '#0F172A', fontSize: 13, fontWeight: 600, margin: '4px 0 0' }}>{payload[0].value} accounts</p>
-                    </div>
-                  )}
-                />
-                <ReferenceLine x="9-12w" stroke="#FF6F61" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: 'Reorder benchmark', position: 'top', fill: '#C9422E', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em' }} />
-                <Bar dataKey="count" radius={[3, 3, 0, 0]} isAnimationActive animationDuration={400}>
-                  {reorderData.map((d, i) => <Cell key={i} fill={reorderBarColor} fillOpacity={d.stale ? 0.5 : 1} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </section>
+        {/* ── 06 / Customers — insights (full width) ───────── */}
+        <p className="mt-10"><SectionLabel>06 / Customers</SectionLabel></p>
 
-      {/* 6) Channel Mix + Customer Insights */}
-      <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
-        <div className={cardShell} style={shellStyle} data-testid="analytics-channel-mix">
-          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Channel Mix</h2>
-          <div className="mt-5">
-            {CHANNEL_MIX.map((c, i) => (
-              <div
-                key={c.name}
-                className="grid grid-cols-[140px_minmax(0,1fr)_56px_84px_72px] items-center gap-3 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded-lg px-3"
-                style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 44 }}
-                data-testid={`amix-${c.name.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="h-2 w-2 rounded-full shrink-0" style={{ background: SEG_COLORS[c.name] }} />
-                  <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{c.name}</span>
-                </div>
-                <div className="relative h-1.5 w-full overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
-                  <span className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${c.share}%`, background: SEG_COLORS[c.name], transition: 'width 700ms cubic-bezier(0.22, 1, 0.36, 1)' }} />
-                </div>
-                <span className="text-right text-[13px] font-medium tabular-nums" style={{ color: '#64748B' }}>{c.share.toFixed(1)}%</span>
-                <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(c.v)}</span>
-                <div className="flex justify-end"><InlineDelta v={c.delta} /></div>
-              </div>
-            ))}
+        <section className={`mt-3 ${cardShell}`} style={shellStyle} data-testid="analytics-customer-insights">
+          <div>
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.005em' }}>Customer insights</h2>
+            <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>Composition and quality</p>
           </div>
-        </div>
-
-        <div className={cardShell} style={shellStyle} data-testid="analytics-customer-insights">
-          <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Customer Insights</h2>
           <div className="mt-5 flex flex-col">
-            {[
-              { label: 'Top 10 customers',       sub: 'Share of total revenue',          value: '75.7%',   bar: 75.7 },
-              { label: 'Credit rate',            sub: '$448K credits on $18.7M gross',   value: '2.4%',    bar: 24 },
-              { label: 'New customer rate',      sub: '10,495 new this period',          value: '56.0%',   bar: 56 },
-              { label: 'Repeat purchase rate',   sub: 'vs 32.1% prior · ↑2.1 pts',       value: '34.2%',   bar: 34.2 },
-            ].map((row, i) => (
-              <div key={row.label} className="flex flex-col py-3" style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 56 }}>
-                <div className="flex items-center justify-between">
-                  <span className="text-[14px] font-medium" style={{ color: '#0F172A' }}>{row.label}</span>
-                  <span className="text-[14px] font-semibold" style={{ ...TABULAR, color: '#0F172A' }}>{row.value}</span>
-                </div>
-                <div className="mt-1 flex items-center justify-between gap-3">
-                  <span className="text-[11px]" style={{ color: '#64748B' }}>{row.sub}</span>
-                  <div className="relative h-1 w-28 overflow-hidden rounded-full" style={{ background: '#F1F5F9' }}>
-                    <span className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${row.bar}%`, background: '#0F172A' }} />
+            {CUSTOMER_INSIGHTS.map((row, i) => (
+              <div
+                key={row.label}
+                className="flex items-center gap-6"
+                style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`, minHeight: 60 }}
+                data-testid={`cust-insight-${row.label.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <span className="min-w-[200px] text-[14px] font-medium" style={{ color: INK }}>{row.label}</span>
+                <div className="flex-1 flex items-center gap-4">
+                  <div className="relative h-1 w-32 overflow-hidden rounded-full" style={{ background: BORDER }}>
+                    <span className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${row.bar}%`, background: INK }} />
                   </div>
+                  <span className="text-[12px] font-medium" style={{ color: MUTED }}>{row.sub}</span>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[16px] font-semibold tabular-nums" style={{ color: INK }}>{row.value}</span>
+                  <span className="text-[11px] font-medium" style={{ color: row.deltaOk ? GREEN : CORAL_DK }}>{row.caption}</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 7) Top accounts + Top items */}
-      <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
-        <div className={cardShell + ' flex flex-col h-full'} style={shellStyle} data-testid="analytics-top-accounts">
-          <div className="flex items-start justify-between">
-            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Top accounts</h2>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#64748B' }}>Net Sales · YTD</span>
-          </div>
-          <ol className="mt-5 flex flex-1 flex-col">
-            {TOP_ACCOUNTS.map((a, i) => (
-              <li
-                key={a.name}
-                className="group flex flex-1 items-center gap-3 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded-lg px-3 cursor-pointer"
-                style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 60 }}
-                data-testid={`atop-acct-${i}`}
-                role="button"
-                tabIndex={0}
-              >
-                <span className="w-7 text-right text-[11px] font-medium tabular-nums" style={{ color: '#94A3B8' }}>{String(i + 1).padStart(2, '0')}</span>
-                <span className="min-w-0 flex-1 truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{a.name}</span>
-                <DeltaPill v={a.yoy} />
-                <span className="w-[96px] text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(a.net)}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
+        {/* ── 07 / Reps — Operational leaderboard ────────────── */}
+        <p className="mt-10"><SectionLabel>07 / Reps</SectionLabel></p>
 
-        <div className={cardShell + ' flex flex-col h-full'} style={shellStyle} data-testid="analytics-top-items">
-          <div className="flex items-start justify-between">
-            <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Top items</h2>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#64748B' }}>Revenue · YTD</span>
+        <section className={`mt-3 ${cardShell}`} style={shellStyle} data-testid="analytics-reps">
+          <div>
+            <h2 className="text-[15px] font-semibold leading-none" style={{ color: INK, letterSpacing: '-0.005em' }}>Sales rep leaderboard</h2>
+            <p className="mt-1.5 text-[12px] font-medium" style={{ color: MUTED }}>Fulfillment quality and attainment · YTD</p>
           </div>
-          <ol className="mt-5 flex flex-1 flex-col">
-            {TOP_ITEMS.map((it, i) => (
-              <li
-                key={it.sku}
-                className="group flex flex-1 flex-col justify-center py-2 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded-lg px-3"
-                style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 60 }}
-                data-testid={`atop-item-${i}`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-7 text-right text-[11px] font-medium tabular-nums" style={{ color: '#94A3B8' }}>{String(i + 1).padStart(2, '0')}</span>
-                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{it.name}</span>
-                  <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(it.rev)}</span>
-                </div>
-                <div className="mt-1 flex items-center gap-3 pl-10">
-                  <span className="text-[11px]" style={{ color: '#64748B' }}>{it.variant}</span>
-                  <span className="min-w-0 flex-1 truncate text-[11px] font-medium tabular-nums" style={{ color: '#94A3B8' }}>{it.sku}</span>
-                  <span className="text-right text-[11px] font-medium tabular-nums" style={{ color: '#64748B' }}>{it.units.toLocaleString('en-US')} units</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* 8) Sales Rep Leaderboard — full width */}
-      <section className={cardShell} style={shellStyle} data-testid="analytics-reps">
-        <h2 className="text-[15px] font-semibold leading-none" style={{ color: '#0F172A', letterSpacing: '-0.005em' }}>Sales Rep Leaderboard</h2>
-        <div className="mt-5">
-          <div className="grid grid-cols-[minmax(0,2fr)_100px_140px_90px_70px] items-center gap-3 pb-3 text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B', borderBottom: '1px solid #F1F5F9' }}>
-            <span>Rep</span>
-            <span className="text-right">Accounts</span>
-            <span className="text-right">Revenue</span>
-            <span className="text-right">YoY</span>
-            <span className="text-right">Pace</span>
-          </div>
-          {SALES_REPS.map((r, i) => (
+          <div className="mt-5">
             <div
-              key={r.name}
-              className="grid grid-cols-[minmax(0,2fr)_100px_140px_90px_70px] items-center gap-3 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded-lg px-3 cursor-pointer"
-              style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', minHeight: 44 }}
-              data-testid={`arep-${i}`}
-              role="button"
-              tabIndex={0}
+              className="grid items-center gap-x-5 pb-3 text-[11px] font-semibold uppercase"
+              style={{ gridTemplateColumns: '2fr 90px 100px 100px 120px 100px', letterSpacing: '0.08em', color: MUTED, borderBottom: `1px solid ${BORDER}` }}
             >
-              <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{r.name}</span>
-              <span className="text-right text-[14px] font-medium" style={{ ...TABULAR, color: '#0F172A' }}>{r.accounts}</span>
-              <span className="text-right text-[14px] font-semibold whitespace-nowrap" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(r.net)}</span>
-              <div className="flex justify-end"><DeltaPill v={r.yoy} /></div>
-              <PaceTrack actual={r.pct} expected={75} />
+              <span>Rep</span>
+              <span className="text-right">Accounts</span>
+              <span className="text-right">OTIF</span>
+              <span className="text-right">Fill Rate</span>
+              <span className="text-right">Attainment</span>
+              <span className="text-right">Pace</span>
             </div>
-          ))}
-        </div>
-      </section>
+            {SALES_REPS.map((r, i) => {
+              const attainColor = r.attain < 70 ? CORAL_DK : INK;
+              return (
+                <div
+                  key={r.name}
+                  className="grid items-center gap-x-5 transition-colors duration-150 hover:bg-slate-50 -mx-3 rounded px-3 cursor-pointer"
+                  style={{ gridTemplateColumns: '2fr 90px 100px 100px 120px 100px', borderBottom: i === SALES_REPS.length - 1 ? 'none' : `1px solid ${BORDER}`, minHeight: 48 }}
+                  data-testid={`arep-${i}`}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <span className="truncate text-[14px] font-medium" style={{ color: INK }}>{r.name}</span>
+                  <span className="text-right text-[14px] font-medium tabular-nums" style={{ color: '#475569' }}>{r.accounts}</span>
+                  <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: INK }}>{r.otif.toFixed(1)}%</span>
+                  <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: INK }}>{r.fill.toFixed(1)}%</span>
+                  <div className="flex items-center justify-end gap-3">
+                    <span className="text-[14px] font-semibold" style={{ ...TABULAR, color: attainColor }}>{r.attain}%</span>
+                  </div>
+                  <div className="flex justify-end"><PaceTrack actual={r.attain} expected={75} /></div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+      </div>
     </div>
   );
 }
