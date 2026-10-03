@@ -1,143 +1,572 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown, Box, Calendar, ChevronRight, CreditCard, DollarSign, Download, FileText, LayoutList, Package, RotateCcw, Search, Truck, X } from 'lucide-react';
-import { useToast } from '@/lib/toast';
-import { money } from '@/lib/money';
-import { useCart } from '@/lib/cart';
-import { products } from '@/lib/products';
-import { orders, orderTotal, orderUnits, type Order } from '@/lib/orders';
-import { useBackable } from '@/lib/nav';
-import './marketplace.css';
-import './dashboard.css';
-import './prebook.css';
-import './orders.css';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Download,
+  Eye,
+  MoreHorizontal,
+  Package,
+  Search,
+} from 'lucide-react';
+import { SEG_COLORS } from './DashboardPage';
+import PageHeader from './components/PageHeader';
 
-const fmt = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-const statusTone: Record<Order['status'], string> = { Open: 'blue', Invoiced: 'green', Shipped: 'teal', Delivered: 'green', Cancelled: 'grey' };
-const payTone: Record<Order['payment'], string> = { 'Paid in full': 'green', 'Partially Paid': 'amber', 'Not invoiced': 'grey', Refunded: 'grey' };
-const payments = ['All payments', 'Paid in full', 'Partially Paid', 'Not invoiced', 'Refunded'];
-type Scope = 'All' | 'Open' | 'Invoiced';
-type SortKey = 'id' | 'date' | 'ship' | 'total';
+// ─── Tokens ────────────────────────────────────────────────────────────
+const CARD_SHADOW = '0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)';
+const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
+const INTER = {
+  fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+  WebkitFontSmoothing: 'antialiased',
+} as const;
 
-function Detail({ o, onBack }: { o: Order; onBack: () => void }) {
-  const notify = useToast();
-  const cart = useCart();
-  const reorder = () => {
-    let n = 0;
-    o.lines.forEach((l) => { const p = products.find((x) => x.sku === l.sku || x.name === l.name); if (p) { cart.add(p, l.qty); n += l.qty; } });
-    notify(n ? `${n} units from ${o.id} added to your cart` : 'These styles are no longer in the Marketplace', n ? 'success' : 'info');
-  };
-  const total = orderTotal(o);
+const INK       = '#0F172A';
+const SLATE_700 = '#334155';
+const SLATE_500 = '#64748B';
+const SLATE_400 = '#94A3B8';
+const SLATE_300 = '#CBD5E1';
+const SLATE_200 = '#E2E8F0';
+const SLATE_100 = '#F1F5F9';
+const SLATE_50  = '#F8FAFC';
+const EMERALD   = '#047857';
+const EMERALD_BG = '#ECFDF5';
+const EMERALD_200 = '#A7F3D0';
+const CORAL     = '#FF6F61';
+const CORAL_DK  = '#C9422E';
+const CORAL_BG  = '#FFF1EF';
+const CORAL_200 = '#FFD2CB';
+
+type Status = 'In Production' | 'Ready to Ship' | 'Shipped' | 'Delayed' | 'Backordered';
+type Channel = 'US Wholesale' | 'Distributors' | 'Retail' | 'Ecommerce' | 'Amazon';
+type LineItem = { sku: string; name: string; units: number; value: number };
+type Order = {
+  orderNo: string;
+  customer: string;
+  city: string;
+  channel: Channel;
+  po: string;
+  status: Status;
+  orderDate: string;   // ISO yyyy-mm-dd
+  expectedShip: string;
+  units: number;
+  value: number;
+  lines: LineItem[];
+};
+
+// Snapshot timestamp
+const SNAPSHOT = 'Oct 3, 2026, 4:32 PM';
+const TODAY = new Date('2026-10-03');
+
+// ─── Mock orders ───────────────────────────────────────────────────────
+const RAW: Order[] = [
+  { orderNo: 'O-10431', customer: 'Lids',                     city: 'Chicago, IL',    channel: 'US Wholesale', po: 'PO-889245', status: 'In Production', orderDate: '2026-09-28', expectedShip: '2026-10-12', units: 420, value: 24_120, lines: [
+    { sku: '101-2450', name: 'Dean Vintage Trucker',  units: 180, value: 10_080 },
+    { sku: '101-2510', name: 'Dusty Baker 5-Panel',   units: 140, value:  8_120 },
+    { sku: '101-2470', name: 'Angler Mesh Snapback',  units: 100, value:  5_920 },
+  ] },
+  { orderNo: 'O-10430', customer: 'Hat Cult Boutique',        city: 'Austin, TX',     channel: 'Retail',       po: 'PO-889244', status: 'Ready to Ship', orderDate: '2026-09-27', expectedShip: '2026-10-05', units:  48, value:  3_120, lines: [] },
+  { orderNo: 'O-10429', customer: 'Nordstrom Accounts Payable', city: 'Seattle, WA',  channel: 'US Wholesale', po: 'PO-889243', status: 'In Production', orderDate: '2026-09-27', expectedShip: '2026-10-14', units: 310, value: 18_410, lines: [
+    { sku: '101-2615', name: 'Farmer Full Grain',    units: 180, value: 11_040 },
+    { sku: '101-2452', name: 'Dean Washed Trucker',  units: 130, value:  7_370 },
+  ] },
+  { orderNo: 'O-10428', customer: 'Industrias Mercury, S.A.', city: 'Guadalajara, MX',channel: 'Distributors', po: 'PO-889225', status: 'Ready to Ship', orderDate: '2026-09-26', expectedShip: '2026-10-02', units: 820, value: 36_540, lines: [
+    { sku: '101-2450', name: 'Dean Vintage Trucker', units: 420, value: 18_900 },
+    { sku: '101-2510', name: 'Dusty Baker 5-Panel',  units: 400, value: 17_640 },
+  ] },
+  { orderNo: 'O-10427', customer: 'Big Bear Supply Co',       city: 'Boise, ID',      channel: 'US Wholesale', po: 'PO-889221', status: 'In Production', orderDate: '2026-09-24', expectedShip: '2026-10-08', units: 240, value: 14_200, lines: [] },
+  { orderNo: 'O-10426', customer: 'SASAtrend',                city: 'Paris, FR',      channel: 'Distributors', po: 'PO-889212', status: 'Shipped',       orderDate: '2026-09-22', expectedShip: '2026-09-30', units: 1_240, value: 58_280, lines: [] },
+  { orderNo: 'O-10425', customer: 'Buckle Inc., The',         city: 'Kearney, NE',    channel: 'US Wholesale', po: 'PO-889208', status: 'Delayed',       orderDate: '2026-09-20', expectedShip: '2026-09-29', units: 220, value: 12_980, lines: [
+    { sku: '101-2470', name: 'Angler Mesh Snapback', units: 120, value:  7_080 },
+    { sku: '101-2452', name: 'Dean Washed Trucker',  units: 100, value:  5_900 },
+  ] },
+  { orderNo: 'O-10424', customer: 'Shopify DTC',              city: 'Online',         channel: 'Ecommerce',    po: '—',          status: 'Ready to Ship', orderDate: '2026-09-19', expectedShip: '2026-10-04', units:  12, value:    820, lines: [] },
+  { orderNo: 'O-10423', customer: 'Amazon Vendor Central',    city: 'Online',         channel: 'Amazon',       po: 'PO-AZ-4421',status: 'In Production', orderDate: '2026-09-18', expectedShip: '2026-10-11', units: 180, value: 10_440, lines: [] },
+  { orderNo: 'O-10422', customer: 'Panther Trading Co',       city: 'Atlanta, GA',    channel: 'Distributors', po: 'PO-889104', status: 'Delayed',       orderDate: '2026-09-15', expectedShip: '2026-09-29', units: 1_200, value: 42_600, lines: [
+    { sku: '101-2615', name: 'Farmer Full Grain',    units: 500, value: 20_000 },
+    { sku: '101-2450', name: 'Dean Vintage Trucker', units: 400, value: 13_200 },
+    { sku: '101-2510', name: 'Dusty Baker 5-Panel',  units: 300, value:  9_400 },
+  ] },
+  { orderNo: 'O-10421', customer: 'Zumiez Inc.',              city: 'Lynnwood, WA',   channel: 'US Wholesale', po: 'PO-889096', status: 'Shipped',       orderDate: '2026-09-12', expectedShip: '2026-09-24', units: 340, value: 19_720, lines: [] },
+  { orderNo: 'O-10420', customer: 'Shopify DTC',              city: 'Online',         channel: 'Ecommerce',    po: '—',          status: 'Shipped',       orderDate: '2026-09-10', expectedShip: '2026-09-18', units:   8, value:    540, lines: [] },
+  { orderNo: 'O-10419', customer: 'Backcountry Ski Co',       city: 'Park City, UT',  channel: 'Retail',       po: 'PO-889041', status: 'Backordered',   orderDate: '2026-09-08', expectedShip: '2026-09-28', units:  64, value:  4_120, lines: [
+    { sku: '101-2615', name: 'Farmer Full Grain',    units: 40, value: 2_820 },
+    { sku: '101-2452', name: 'Dean Washed Trucker',  units: 24, value: 1_300 },
+  ] },
+  { orderNo: 'O-10418', customer: 'Lids',                     city: 'Chicago, IL',    channel: 'US Wholesale', po: 'PO-889038', status: 'Shipped',       orderDate: '2026-09-05', expectedShip: '2026-09-15', units: 480, value: 27_320, lines: [] },
+  { orderNo: 'O-10417', customer: 'Amazon Vendor Central',    city: 'Online',         channel: 'Amazon',       po: 'PO-AZ-4388',status: 'Delayed',       orderDate: '2026-09-03', expectedShip: '2026-09-22', units: 220, value: 12_060, lines: [] },
+  { orderNo: 'O-10416', customer: 'Country Threads',          city: 'Nashville, TN',  channel: 'Retail',       po: 'PO-888971', status: 'Backordered',   orderDate: '2026-08-30', expectedShip: '2026-09-20', units: 112, value:  7_040, lines: [] },
+  { orderNo: 'O-10415', customer: 'Shopify DTC',              city: 'Online',         channel: 'Ecommerce',    po: '—',          status: 'Shipped',       orderDate: '2026-08-28', expectedShip: '2026-09-04', units:  14, value:    980, lines: [] },
+  { orderNo: 'O-10414', customer: 'Industrias Mercury, S.A.', city: 'Guadalajara, MX',channel: 'Distributors', po: 'PO-888962', status: 'Shipped',       orderDate: '2026-08-25', expectedShip: '2026-09-10', units: 940, value: 41_880, lines: [] },
+  { orderNo: 'O-10413', customer: 'Freewheel Outfitters',     city: 'Jackson, WY',    channel: 'US Wholesale', po: 'PO-888950', status: 'Shipped',       orderDate: '2026-08-21', expectedShip: '2026-09-02', units: 160, value:  9_240, lines: [] },
+  { orderNo: 'O-10412', customer: 'Amazon Vendor Central',    city: 'Online',         channel: 'Amazon',       po: 'PO-AZ-4321',status: 'Shipped',       orderDate: '2026-08-18', expectedShip: '2026-09-01', units: 420, value: 22_680, lines: [] },
+];
+
+const CHANNELS = ['All channels', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'] as const;
+const STATUSES = ['All statuses', 'In Production', 'Ready to Ship', 'Shipped', 'Delayed', 'Backordered'] as const;
+
+// ─── Formatters ────────────────────────────────────────────────────────
+const fmtInt = (n: number) => n.toLocaleString('en-US');
+const fmtUsd = (n: number) => `$${n.toLocaleString('en-US')}`;
+const fmtDate = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const isOverdue = (iso: string, status: Status) => status !== 'Shipped' && new Date(`${iso}T12:00:00Z`) < TODAY;
+
+// ─── Atoms ─────────────────────────────────────────────────────────────
+function CountStat({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) {
   return (
-    <div className="od" data-testid="order-detail">
-      <div className="od-top">
-        <button className="pb-back" onClick={onBack} data-testid="order-back"><ArrowLeft /> Back to orders</button>
-        <div className="od-actions">
-          <button className="od-btn od-btn--dark" onClick={reorder} data-testid="order-reorder"><RotateCcw /> Re-order</button>
-          <button className="od-btn" onClick={() => notify(`Sales order ${o.id}.pdf downloading…`)} data-testid="order-so"><Download /> Sales order</button>
-          <button className="od-btn" onClick={() => notify(o.payment === 'Not invoiced' ? 'No invoice issued yet for this order.' : `Invoice for ${o.id} downloading…`, o.payment === 'Not invoiced' ? 'info' : 'success')} data-testid="order-invoice"><Download /> Invoice</button>
-        </div>
-      </div>
-      <section className="od-hero">
-        <div className="od-hero-head">
-          <div><p className="pb-eyebrow">Sales order</p><h1>{o.id}</h1><p className="od-sub">Placed {fmt(o.date)} · ref {o.ref} | {o.id} · {o.lines.length} lines · {orderUnits(o)} units</p></div>
-          <span className={`dash-pill tone-${statusTone[o.status]}`}><i />{o.status}</span>
-        </div>
-        <div className="od-stats">
-          <div><small>Order date <Calendar /></small><strong>{fmt(o.date)}</strong></div>
-          <div><small>Ship window <Truck /></small><strong>{fmt(o.shipStart)} → {fmt(o.shipEnd)}</strong><span className={o.status === 'Cancelled' ? 'muted' : 'ok'}>{o.estimated ? 'Estimated' : o.status}</span></div>
-          <div><small>Order value <DollarSign /></small><strong className="ok">{money(total)}</strong><span className="muted">USD</span></div>
-          <div><small>Payment <CreditCard /></small><strong className={o.payment === 'Paid in full' ? 'ok' : ''}>{o.payment}</strong>{o.payment === 'Partially Paid' && <span className="muted">{money(total / 2)} due · Net 60</span>}</div>
-        </div>
-      </section>
-      <section className="od-lines">
-        <header><h2>Line items <span>{o.lines.length} items</span></h2><span>{orderUnits(o)} units</span></header>
-        <div className="dash-table-wrap"><table className="dash-table od-table">
-          <thead><tr><th /><th>SKU</th><th>Product</th><th>UPC</th><th>Qty</th><th>Unit price</th><th>MSRP</th><th>Factory</th><th className="r">Extended</th></tr></thead>
-          <tbody>
-            {o.lines.map((l) => (
-              <tr key={l.sku}>
-                <td><span className="od-thumb">{l.image ? <img src={l.image} alt="" /> : <Box />}</span></td>
-                <td className="mono">{l.sku}</td><td className="dash-td-id">{l.name}</td><td className="mono muted">{l.upc}</td><td>{l.qty}</td><td>{money(l.price)}</td><td className="muted">{money(l.msrp)}</td><td>{o.factory}</td><td className="dash-td-total r">{money(l.qty * l.price)}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot><tr><td colSpan={7} /><td>Lines subtotal</td><td className="r">{money(total)}</td></tr><tr className="grand"><td colSpan={7} /><td>Order total</td><td className="r">{money(total)}</td></tr></tfoot>
-        </table></div>
-      </section>
+    <div className="flex items-baseline gap-1.5" data-testid={`count-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+      <span style={{ fontSize: 11, fontWeight: 500, color: SLATE_500 }}>{label}</span>
+      <span style={{ ...TABULAR, fontSize: 13, fontWeight: 600, color: warn ? CORAL_DK : INK }}>{value}</span>
     </div>
   );
 }
 
+function StatusBadge({ s }: { s: Status }) {
+  const map: Record<Status, { bg: string; color: string; border: string; icon?: typeof Clock }> = {
+    'In Production':  { bg: SLATE_50,   color: SLATE_700, border: SLATE_200 },
+    'Ready to Ship':  { bg: EMERALD_BG, color: EMERALD,   border: EMERALD_200 },
+    'Shipped':        { bg: SLATE_100,  color: SLATE_500, border: SLATE_200 },
+    'Delayed':        { bg: CORAL_BG,   color: CORAL_DK,  border: CORAL_200, icon: Clock },
+    'Backordered':    { bg: CORAL_BG,   color: CORAL_DK,  border: CORAL_200 },
+  };
+  const t = map[s];
+  const Icon = t.icon;
+  return (
+    <span
+      className="inline-flex items-center gap-1"
+      style={{
+        background: t.bg,
+        color: t.color,
+        border: `1px solid ${t.border}`,
+        height: 24,
+        padding: '0 10px',
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 500,
+        whiteSpace: 'nowrap',
+      }}
+      data-testid={`status-${s.toLowerCase().replace(/\s+/g, '-')}`}
+    >
+      {Icon && <Icon size={12} strokeWidth={2} />}
+      {s}
+    </span>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────
 export default function MyOrdersPage() {
-  const [scope, setScope] = useState<Scope>('All');
-  const [mode, setMode] = useState<'orders' | 'lines'>('orders');
   const [query, setQuery] = useState('');
-  const [pay, setPay] = useState(payments[0]);
-  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'date', dir: 'desc' });
-  const [open, setOpen] = useState<Order | null>(null);
-  useBackable(!!open, () => setOpen(null));
+  const [statusFilter, setStatusFilter] = useState<typeof STATUSES[number]>('All statuses');
+  const [channelFilter, setChannelFilter] = useState<typeof CHANNELS[number]>('All channels');
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [channelOpen, setChannelOpen] = useState(false);
+  const [sortDesc, setSortDesc] = useState(true);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  const list = useMemo(() => {
+  const filtered = useMemo(() => {
+    let rows = RAW;
+    if (statusFilter !== 'All statuses') rows = rows.filter((r) => r.status === statusFilter);
+    if (channelFilter !== 'All channels') rows = rows.filter((r) => r.channel === channelFilter);
     const q = query.trim().toLowerCase();
-    const r = orders.filter((o) => (scope === 'All' || (scope === 'Open' ? o.status === 'Open' : o.status === 'Invoiced')) && (pay === payments[0] || o.payment === pay) && (!q || o.id.toLowerCase().includes(q) || o.ref.toLowerCase().includes(q) || o.lines.some((l) => l.sku.toLowerCase().includes(q) || l.name.toLowerCase().includes(q))));
-    const v = (o: Order) => sort.key === 'id' ? o.id : sort.key === 'date' ? o.date : sort.key === 'ship' ? o.shipStart : orderTotal(o);
-    return [...r].sort((a, b) => { const c = typeof v(a) === 'number' ? (v(a) as number) - (v(b) as number) : String(v(a)).localeCompare(String(v(b))); return sort.dir === 'asc' ? c : -c; });
-  }, [scope, query, pay, sort]);
+    if (q) rows = rows.filter((r) =>
+      r.orderNo.toLowerCase().includes(q) ||
+      r.customer.toLowerCase().includes(q) ||
+      r.po.toLowerCase().includes(q),
+    );
+    return rows;
+  }, [query, statusFilter, channelFilter]);
 
-  const total = list.reduce((s, o) => s + orderTotal(o), 0);
-  const lineRows = list.flatMap((o) => o.lines.map((l) => ({ o, l })));
-  const toggle = (key: SortKey) => setSort((s) => ({ key, dir: s.key === key && s.dir === 'asc' ? 'desc' : 'asc' }));
-  const Th = ({ k, label }: { k: SortKey; label: string }) => <th><button onClick={() => toggle(k)} className={sort.key === k ? 'sorted' : ''} data-testid={`orders-sort-${k}`}>{label}{sort.key === k ? (sort.dir === 'asc' ? <ArrowUp /> : <ArrowDown />) : <ArrowUpDown />}</button></th>;
-  const exportCsv = () => {
-    const rows = mode === 'orders' ? ['Order,Date,Ship,Status,Payment,Units,Total', ...list.map((o) => [o.id, o.date, o.shipStart, o.status, o.payment, orderUnits(o), orderTotal(o).toFixed(2)].join(','))] : ['Order,Date,SKU,Product,Qty,Unit,Amount', ...lineRows.map(({ o, l }) => [o.id, o.date, l.sku, l.name, l.qty, l.price.toFixed(2), (l.qty * l.price).toFixed(2)].join(','))];
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv' })); a.download = `goorin-${mode}.csv`; a.click();
+  const sorted = useMemo(() => {
+    const copy = [...filtered];
+    copy.sort((a, b) => sortDesc ? b.orderDate.localeCompare(a.orderDate) : a.orderDate.localeCompare(b.orderDate));
+    return copy;
+  }, [filtered, sortDesc]);
+
+  const totals = useMemo(() => {
+    const nonShipped = filtered.filter((r) => r.status !== 'Shipped');
+    return {
+      orders: filtered.length,
+      units: filtered.reduce((s, r) => s + r.units, 0),
+      value: nonShipped.reduce((s, r) => s + r.value, 0),
+      behindSLA: filtered.filter((r) => isOverdue(r.expectedShip, r.status)).length,
+    };
+  }, [filtered]);
+
+  const clearFilters = () => {
+    setQuery(''); setStatusFilter('All statuses'); setChannelFilter('All channels');
   };
 
-  if (open) return <Detail o={open} onBack={() => setOpen(null)} />;
-
   return (
-    <div className="ord" data-testid="orders-page">
-      <div className="ord-bar">
-        <div className="dash-segment" role="tablist">{(['All', 'Open', 'Invoiced'] as Scope[]).map((s) => <button key={s} role="tab" aria-selected={scope === s} className={scope === s ? 'active' : ''} onClick={() => setScope(s)} data-testid={`orders-scope-${s.toLowerCase()}`}>{s === 'All' ? 'All Orders' : s}<em>{s === 'All' ? orders.length : orders.filter((o) => o.status === s).length}</em></button>)}</div>
-        <div className="dash-segment" role="tablist"><button role="tab" aria-selected={mode === 'orders'} className={mode === 'orders' ? 'active' : ''} onClick={() => setMode('orders')} data-testid="orders-mode-orders"><Package /> Orders</button><button role="tab" aria-selected={mode === 'lines'} className={mode === 'lines' ? 'active' : ''} onClick={() => setMode('lines')} data-testid="orders-mode-lines"><LayoutList /> Line Items</button></div>
-        <button className="mk-btn" onClick={exportCsv} data-testid="orders-export"><Download /> Export</button>
-      </div>
-      <section className="dash-orders ord-card">
-        <div className="dash-orders-tools ord-tools">
-          <label className="dash-search"><Search /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={mode === 'orders' ? 'Search by order #, reference…' : 'Search by order #, SKU, or product…'} data-testid="orders-search" />{query && <button onClick={() => setQuery('')} aria-label="Clear"><X /></button>}</label>
-          <select className="mk-select" value={pay} onChange={(e) => setPay(e.target.value)} data-testid="orders-payment">{payments.map((p) => <option key={p}>{p}</option>)}</select>
-          <div className="ord-summary"><span data-testid="orders-count"><strong>{mode === 'orders' ? list.length : lineRows.length}</strong> {mode === 'orders' ? 'orders' : 'line items'}</span><i /><span>Total <strong>{money(total)}</strong></span></div>
+    <div className="min-h-full" data-testid="orders-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
+      <div style={{ padding: '24px' }}>
+
+        {/* ── Editorial header ─────────────────────────────────── */}
+        <div className="flex flex-wrap items-start justify-between gap-6" data-testid="orders-report-header">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase" style={{ letterSpacing: '0.12em', color: SLATE_400 }}>Goorin Reporting · Open Orders</p>
+            <h1 className="mt-2 font-semibold" style={{ fontSize: 34, lineHeight: 1.1, letterSpacing: '-0.015em', color: INK }} data-testid="orders-title">Open Orders</h1>
+            <p className="mt-3 font-normal" style={{ fontSize: 16, lineHeight: 1.5, color: SLATE_500, maxWidth: 760 }}>
+              Orders in flight across every channel. Snapshot from{' '}
+              <span style={{ color: SLATE_700, fontWeight: 600 }}>{SNAPSHOT}</span>.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 transition-colors duration-150"
+              style={{
+                height: 36,
+                padding: '0 12px',
+                borderRadius: 8,
+                background: SLATE_100,
+                border: `1px solid ${SLATE_200}`,
+                color: SLATE_700,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_200; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
+              data-testid="orders-export-btn"
+            >
+              <Download size={14} strokeWidth={1.9} style={{ color: SLATE_500 }} />
+              Export
+            </button>
+          </div>
         </div>
-        <div className="dash-table-wrap"><table className={`dash-table ord-table ${mode === 'orders' ? 'ord-table--orders' : 'ord-table--lines'}`}>
-          {mode === 'orders' ? (
-            <>
-              <thead><tr><Th k="id" label="Order" /><Th k="date" label="Order date" /><Th k="ship" label="Est. ship date" /><th>Factory</th><th>Shipment</th><th>Status</th><th>Payment</th><th>Units</th><Th k="total" label="Total" /><th /></tr></thead>
-              <tbody>{list.map((o) => (
-                <tr key={o.id} onClick={() => setOpen(o)} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setOpen(o)} data-testid={`order-row-${o.id}`}>
-                  <td><div className="ord-id"><strong>{o.id}</strong><span>{o.ref} | {o.id}</span></div></td>
-                  <td>{fmt(o.date)}</td><td>{o.estimated ? 'Est. ' : ''}{fmt(o.shipStart)}</td><td className="muted">{o.factory}</td>
-                  <td>{o.shipment ? <span className="dash-pill tone-blue">{o.shipment}</span> : <span className="muted">—</span>}</td>
-                  <td><span className={`dash-pill tone-${statusTone[o.status]}`}><i />{o.status}</span></td>
-                  <td><span className={`dash-pill tone-${payTone[o.payment]}`}>{o.payment}</span></td>
-                  <td>{orderUnits(o)}</td><td className="dash-td-total">{money(orderTotal(o))}</td><td className="dash-td-chevron"><ChevronRight /></td>
+
+        <hr style={{ margin: '20px 0', border: 'none', borderTop: `1px solid ${SLATE_200}` }} />
+
+        {/* ── Filter toolbar ───────────────────────────────────── */}
+        <section
+          className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-white"
+          style={{ padding: 20, boxShadow: CARD_SHADOW }}
+          data-testid="orders-toolbar"
+        >
+          <div className="relative" style={{ width: 320 }}>
+            <Search size={16} strokeWidth={1.9} style={{ position: 'absolute', top: 10, left: 10, color: SLATE_500 }} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search order #, customer, PO..."
+              className="inv-search w-full"
+              data-testid="orders-search"
+              style={{
+                height: 36,
+                padding: '0 10px 0 34px',
+                background: SLATE_50,
+                border: `1px solid ${SLATE_200}`,
+                borderRadius: 8,
+                color: INK,
+                fontSize: 13,
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* Status dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => { setStatusOpen((o) => !o); setChannelOpen(false); }}
+              className="inline-flex items-center gap-2 transition-colors duration-150"
+              style={{
+                height: 36,
+                padding: '0 12px',
+                background: SLATE_100,
+                border: `1px solid ${SLATE_200}`,
+                borderRadius: 8,
+                color: SLATE_700,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#E8EDF2'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
+              data-testid="orders-status-dropdown"
+            >
+              {statusFilter}
+              <ChevronDown size={14} strokeWidth={2} style={{ color: SLATE_500 }} />
+            </button>
+            {statusOpen && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={() => setStatusOpen(false)} />
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 80, minWidth: 180, padding: 6, background: '#FFFFFF', borderRadius: 10, boxShadow: '0 0 0 1px rgba(15,17,20,0.06), 0 16px 42px rgba(15,17,20,0.14)' }}>
+                  {STATUSES.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => { setStatusFilter(s); setStatusOpen(false); }}
+                      className="transition-colors duration-150"
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        height: 32,
+                        padding: '0 10px',
+                        background: 'transparent',
+                        color: s === statusFilter ? INK : SLATE_700,
+                        fontSize: 13,
+                        fontWeight: s === statusFilter ? 600 : 500,
+                        borderRadius: 7,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                      data-testid={`orders-status-opt-${s.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {s}
+                      {s === statusFilter && <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} />}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <span aria-hidden="true" style={{ width: 1, height: 20, background: SLATE_200 }} />
+
+          {/* Channel dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => { setChannelOpen((o) => !o); setStatusOpen(false); }}
+              className="inline-flex items-center gap-2 transition-colors duration-150"
+              style={{
+                height: 36,
+                padding: '0 12px',
+                background: SLATE_100,
+                border: `1px solid ${SLATE_200}`,
+                borderRadius: 8,
+                color: SLATE_700,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#E8EDF2'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
+              data-testid="orders-channel-dropdown"
+            >
+              {channelFilter}
+              <ChevronDown size={14} strokeWidth={2} style={{ color: SLATE_500 }} />
+            </button>
+            {channelOpen && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={() => setChannelOpen(false)} />
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 80, minWidth: 180, padding: 6, background: '#FFFFFF', borderRadius: 10, boxShadow: '0 0 0 1px rgba(15,17,20,0.06), 0 16px 42px rgba(15,17,20,0.14)' }}>
+                  {CHANNELS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => { setChannelFilter(c); setChannelOpen(false); }}
+                      className="transition-colors duration-150"
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        height: 32,
+                        padding: '0 10px',
+                        background: 'transparent',
+                        color: c === channelFilter ? INK : SLATE_700,
+                        fontSize: 13,
+                        fontWeight: c === channelFilter ? 600 : 500,
+                        borderRadius: 7,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                      data-testid={`orders-channel-opt-${c.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        {c !== 'All channels' && <span className="h-1.5 w-1.5 rounded-full" style={{ background: SEG_COLORS[c] || SLATE_500 }} />}
+                        {c}
+                      </span>
+                      {c === channelFilter && <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} />}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2" data-testid="orders-count-strip">
+            <CountStat label="Orders" value={fmtInt(totals.orders)} />
+            <span aria-hidden="true" style={{ width: 1, height: 16, background: SLATE_200 }} />
+            <CountStat label="Units" value={fmtInt(totals.units)} />
+            <span aria-hidden="true" style={{ width: 1, height: 16, background: SLATE_200 }} />
+            <CountStat label="Open value" value={fmtUsd(totals.value)} />
+            <span aria-hidden="true" style={{ width: 1, height: 16, background: SLATE_200 }} />
+            <CountStat label="Behind SLA" value={fmtInt(totals.behindSLA)} warn={totals.behindSLA > 0} />
+          </div>
+        </section>
+
+        {/* ── Orders table ─────────────────────────────────────── */}
+        <section
+          className="mt-4 overflow-hidden rounded-2xl bg-white"
+          style={{ boxShadow: CARD_SHADOW }}
+          data-testid="orders-table-card"
+        >
+          <div style={{ maxHeight: 680, overflowY: 'auto', overflowX: 'auto' }}>
+            <table style={{ ...TABULAR, borderCollapse: 'collapse', width: '100%', minWidth: 1280 }} data-testid="orders-table">
+              <thead>
+                <tr style={{ position: 'sticky', top: 0, zIndex: 2, background: '#FFFFFF', boxShadow: `inset 0 -1px 0 ${SLATE_100}` }}>
+                  <th aria-label="Expand" style={{ width: 44, height: 44 }} />
+                  <th
+                    onClick={() => setSortDesc((s) => !s)}
+                    className="cursor-pointer transition-colors duration-150"
+                    style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44, userSelect: 'none' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = SLATE_700; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = SLATE_500; }}
+                    data-testid="orders-sort-date"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Order #
+                      {sortDesc ? <ArrowDown size={11} strokeWidth={2.4} /> : <ArrowUp size={11} strokeWidth={2.4} />}
+                    </span>
+                  </th>
+                  {['Customer', 'Channel', 'PO #', 'Status', 'Order date'].map((h) => (
+                    <th key={h} style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
+                  ))}
+                  {['Units', '$ Value'].map((h) => (
+                    <th key={h} style={{ padding: '0 16px', textAlign: 'right', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
+                  ))}
+                  <th style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>Expected ship</th>
+                  <th style={{ padding: '0 16px', textAlign: 'right', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44, width: 100 }}>Actions</th>
                 </tr>
-              ))}</tbody>
-            </>
-          ) : (
-            <>
-              <thead><tr><Th k="id" label="Order" /><Th k="date" label="Order date" /><th>Status</th><th>SKU</th><th>Product</th><Th k="ship" label="Est. ship date" /><th>Shipment</th><th>Qty</th><th>Unit price</th><th>Amount</th></tr></thead>
-              <tbody>{lineRows.map(({ o, l }) => (
-                <tr key={o.id + l.sku} onClick={() => setOpen(o)} data-testid={`line-row-${o.id}-${l.sku}`}>
-                  <td className="dash-td-id">{o.id}</td><td>{fmt(o.date)}</td><td><span className={`dash-pill tone-${statusTone[o.status]}`}><i />{o.status}</span></td>
-                  <td className="mono">{l.sku}</td><td><div className="ord-prod">{l.name}</div></td>
-                  <td>{o.estimated ? 'Est. ' : ''}{fmt(o.shipStart)}</td><td>{o.shipment ? <span className="dash-pill tone-blue">{o.shipment}</span> : <span className="muted">—</span>}</td><td>{l.qty}</td><td>{money(l.price)}</td><td className="dash-td-total">{money(l.qty * l.price)}</td>
-                </tr>
-              ))}</tbody>
-            </>
-          )}
-        </table></div>
-        {list.length === 0 && <div className="mk-empty ord-empty" data-testid="orders-empty"><FileText /><strong>No orders match</strong><span>Try another search or clear the filters.</span><button onClick={() => { setQuery(''); setPay(payments[0]); setScope('All'); }}>Clear filters</button></div>}
-      </section>
+              </thead>
+              <tbody>
+                {sorted.length === 0 && (
+                  <tr>
+                    <td colSpan={11}>
+                      <div className="flex flex-col items-center justify-center gap-2" style={{ padding: '72px 24px' }} data-testid="orders-empty">
+                        <Package size={48} strokeWidth={1.4} style={{ color: SLATE_300 }} />
+                        <p style={{ fontSize: 15, fontWeight: 600, color: SLATE_700, margin: 0 }}>No open orders match your filters</p>
+                        <p style={{ fontSize: 13, color: SLATE_500, margin: 0 }}>Try a different filter or search</p>
+                        <button
+                          type="button"
+                          onClick={clearFilters}
+                          className="transition-colors duration-150"
+                          style={{ marginTop: 4, padding: '4px 8px', background: 'transparent', color: CORAL_DK, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                          data-testid="orders-empty-clear"
+                        >
+                          Clear filters
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+
+                {sorted.map((o, idx) => {
+                  const overdue = isOverdue(o.expectedShip, o.status);
+                  const hasLines = o.lines.length > 0;
+                  const isOpen = !!expanded[o.orderNo];
+                  const borderStyle = idx === 0 ? 'none' : `1px solid ${SLATE_100}`;
+                  return (
+                    <>
+                      <tr
+                        key={o.orderNo}
+                        className="transition-colors duration-150"
+                        style={{ borderTop: borderStyle }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        data-testid={`order-row-${o.orderNo}`}
+                      >
+                        <td style={{ width: 44, textAlign: 'center' }}>
+                          {hasLines ? (
+                            <button
+                              type="button"
+                              onClick={() => setExpanded((s) => ({ ...s, [o.orderNo]: !s[o.orderNo] }))}
+                              style={{ display: 'inline-grid', placeItems: 'center', width: 24, height: 24, borderRadius: 6, background: 'transparent', color: SLATE_500, cursor: 'pointer', transition: 'background .13s ease' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_100; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                              aria-label={isOpen ? 'Collapse line items' : 'Expand line items'}
+                              aria-expanded={isOpen}
+                              data-testid={`order-expand-${o.orderNo}`}
+                            >
+                              {isOpen ? <ChevronDown size={14} strokeWidth={2} /> : <ChevronRight size={14} strokeWidth={2} />}
+                            </button>
+                          ) : null}
+                        </td>
+                        <td style={{ padding: '16px', fontSize: 14, color: INK, letterSpacing: '0.02em', whiteSpace: 'nowrap', fontWeight: 500 }}>{o.orderNo}</td>
+                        <td style={{ padding: '16px' }}>
+                          <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: INK }}>{o.customer}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 12, color: SLATE_500 }}>{o.city}</p>
+                        </td>
+                        <td style={{ padding: '16px', fontSize: 14, color: SLATE_700 }}>
+                          <span className="inline-flex items-center gap-2">
+                            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: SEG_COLORS[o.channel] || SLATE_500 }} />
+                            {o.channel}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px', fontSize: 13, color: SLATE_700, whiteSpace: 'nowrap' }}>{o.po}</td>
+                        <td style={{ padding: '16px' }}><StatusBadge s={o.status} /></td>
+                        <td style={{ padding: '16px', fontSize: 13, color: SLATE_700, whiteSpace: 'nowrap' }}>{fmtDate(o.orderDate)}</td>
+                        <td style={{ padding: '16px', fontSize: 14, color: INK, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtInt(o.units)}</td>
+                        <td style={{ padding: '16px', fontSize: 14, fontWeight: 500, color: INK, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtUsd(o.value)}</td>
+                        <td style={{ padding: '16px', fontSize: 13, color: overdue ? CORAL_DK : SLATE_700, whiteSpace: 'nowrap', fontWeight: overdue ? 600 : 400 }}>
+                          <span className="inline-flex items-center gap-1">
+                            {overdue && <Clock size={13} strokeWidth={2} style={{ color: CORAL_DK }} />}
+                            {fmtDate(o.expectedShip)}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'right' }}>
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              type="button"
+                              aria-label={`View ${o.orderNo}`}
+                              className="transition-colors duration-150"
+                              style={{ display: 'grid', placeItems: 'center', width: 28, height: 28, borderRadius: 6, background: 'transparent', color: SLATE_500, cursor: 'pointer' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.color = INK; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SLATE_500; }}
+                              data-testid={`order-view-${o.orderNo}`}
+                            >
+                              <Eye size={14} strokeWidth={2} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`More options ${o.orderNo}`}
+                              className="transition-colors duration-150"
+                              style={{ display: 'grid', placeItems: 'center', width: 28, height: 28, borderRadius: 6, background: 'transparent', color: SLATE_500, cursor: 'pointer' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.color = INK; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SLATE_500; }}
+                              data-testid={`order-more-${o.orderNo}`}
+                            >
+                              <MoreHorizontal size={14} strokeWidth={2} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {hasLines && isOpen && o.lines.map((l, li) => (
+                        <tr
+                          key={`${o.orderNo}-line-${li}`}
+                          style={{ background: SLATE_50, borderTop: `1px solid ${SLATE_100}` }}
+                          data-testid={`order-line-${o.orderNo}-${li}`}
+                        >
+                          <td />
+                          <td colSpan={6} style={{ padding: '12px 16px 12px 44px', fontSize: 13, color: SLATE_700 }}>
+                            <span style={{ fontWeight: 500, color: INK, marginRight: 8 }}>{l.name}</span>
+                            <span style={{ color: SLATE_500 }}>{l.sku}</span>
+                          </td>
+                          <td style={{ padding: '12px 16px', fontSize: 13, color: INK, textAlign: 'right' }}>{fmtInt(l.units)}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 13, color: INK, textAlign: 'right' }}>{fmtUsd(l.value)}</td>
+                          <td colSpan={2} />
+                        </tr>
+                      ))}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,6 @@ import {
   ClipboardList,
   Command,
   DollarSign,
-  FileText,
   History,
   KeyRound,
   LayoutGrid,
@@ -22,7 +21,6 @@ import {
   Shield,
   Sparkles,
   Target,
-  TrendingUp,
   User,
   UserPlus,
   Wallet,
@@ -33,25 +31,29 @@ import AuthPage from './AuthPage';
 import DashboardPage from './DashboardPage';
 import MyOrdersPage from './MyOrdersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
-import SalesHistoryPage from './pages/SalesHistoryPage';
+import CustomReportingPage from './pages/CustomReportingPage';
 import PnlPage from './pages/PnlPage';
 import ProfitabilityPage from './pages/ProfitabilityPage';
 import CashFlowPage from './pages/CashFlowPage';
-import ForecastingPage from './pages/ForecastingPage';
 import ForecastGoalsPage from './pages/ForecastGoalsPage';
 import InventoryPage from './pages/InventoryPage';
 import { navSlug } from '@/lib/nav';
 
-type NavItem = { label: string; icon: typeof BarChart2 };
+type NavItem = { label: string; icon: typeof BarChart2; children?: NavItem[] };
 
 const navGroups: { title: string; items: NavItem[] }[] = [
   {
     title: 'Analytics',
     items: [
       { label: 'Dashboard', icon: LayoutGrid },
-      { label: 'Analytics', icon: BarChart2 },
-      { label: 'Open Orders', icon: ClipboardList },
-      { label: 'Sales History', icon: FileText },
+      {
+        label: 'Analytics',
+        icon: BarChart2,
+        children: [
+          { label: 'Operational',      icon: BarChart2 },
+          { label: 'Custom Reporting', icon: BarChart2 },
+        ],
+      },
     ],
   },
   {
@@ -60,19 +62,25 @@ const navGroups: { title: string; items: NavItem[] }[] = [
       { label: 'P&L', icon: DollarSign },
       { label: 'Profitability', icon: PieChartIcon },
       { label: 'Cash Flow', icon: Wallet },
-      { label: 'Forecasting', icon: TrendingUp },
     ],
   },
   {
-    title: 'Tools',
+    title: 'Planning',
     items: [
       { label: 'Forecast Goals', icon: Target },
+    ],
+  },
+  {
+    title: 'Operations',
+    items: [
+      { label: 'Open Orders', icon: ClipboardList },
       { label: 'Inventory', icon: Boxes },
     ],
   },
 ];
 
-const allLabels = () => navGroups.flatMap((g) => g.items.map((i) => i.label));
+const flattenNav = (): NavItem[] => navGroups.flatMap((g) => g.items.flatMap((i) => i.children ? [i, ...i.children] : [i]));
+const allLabels = () => flattenNav().map((i) => i.label);
 
 function App() {
   return <StaffApp />;
@@ -116,7 +124,7 @@ function StaffApp() {
 
   const ActiveIcon = useMemo(() => {
     if (activeNav === 'Settings') return Settings;
-    const all = navGroups.flatMap((g) => g.items);
+    const all = flattenNav();
     return (all.find((i) => i.label === activeNav) ?? all[0]).icon;
   }, [activeNav]);
 
@@ -166,18 +174,56 @@ function StaffApp() {
           {navGroups.map((group) => (
             <div className="nav-group" key={group.title}>
               {!sidebarCollapsed && <p className="nav-label">{group.title}</p>}
-              {group.items.map(({ label, icon: Icon }) => (
-                <button
-                  className={`nav-item ${activeNav === label ? 'active' : ''}`}
-                  key={label}
-                  onClick={() => goto(label)}
-                  title={sidebarCollapsed ? label : undefined}
-                  data-testid={`nav-${navSlug(label)}`}
-                >
-                  <Icon size={21} strokeWidth={1.8} />
-                  {!sidebarCollapsed && <span>{label}</span>}
-                </button>
-              ))}
+              {group.items.map(({ label, icon: Icon, children }) => {
+                if (children && children.length > 0) {
+                  const childActive = children.some((c) => c.label === activeNav);
+                  const expanded = childActive || activeNav === label;
+                  return (
+                    <div key={label}>
+                      <button
+                        className={`nav-item ${childActive ? 'parent-active' : ''}`}
+                        onClick={() => goto(childActive ? label : children[0].label)}
+                        title={sidebarCollapsed ? label : undefined}
+                        aria-expanded={expanded}
+                        data-testid={`nav-${navSlug(label)}`}
+                      >
+                        <Icon size={21} strokeWidth={1.8} />
+                        {!sidebarCollapsed && <span>{label}</span>}
+                        {!sidebarCollapsed && (
+                          <ChevronDown
+                            size={14}
+                            strokeWidth={2}
+                            className="nav-chevron"
+                            style={{ marginLeft: 'auto', color: '#9aa09b', transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform .15s ease' }}
+                          />
+                        )}
+                      </button>
+                      {expanded && !sidebarCollapsed && children.map((c) => (
+                        <button
+                          key={c.label}
+                          className={`nav-item nav-item-child ${activeNav === c.label ? 'active' : ''}`}
+                          onClick={() => goto(c.label)}
+                          data-testid={`nav-${navSlug(c.label)}`}
+                        >
+                          <span>{c.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                }
+                return (
+                  <button
+                    className={`nav-item ${activeNav === label ? 'active' : ''}`}
+                    key={label}
+                    onClick={() => goto(label)}
+                    title={sidebarCollapsed ? label : undefined}
+                    data-testid={`nav-${navSlug(label)}`}
+                  >
+                    <Icon size={21} strokeWidth={1.8} />
+                    {!sidebarCollapsed && <span>{label}</span>}
+                  </button>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -288,13 +334,12 @@ function StaffApp() {
 
         <div className="page-content">
           {activeNav === 'Dashboard' && <DashboardPage name="Ryan" onNavigate={goto} />}
-          {activeNav === 'Analytics' && <AnalyticsPage />}
+          {(activeNav === 'Analytics' || activeNav === 'Operational') && <AnalyticsPage />}
+          {activeNav === 'Custom Reporting' && <CustomReportingPage />}
           {activeNav === 'Open Orders' && <MyOrdersPage />}
-          {activeNav === 'Sales History' && <SalesHistoryPage />}
           {activeNav === 'P&L' && <PnlPage />}
           {activeNav === 'Profitability' && <ProfitabilityPage />}
           {activeNav === 'Cash Flow' && <CashFlowPage />}
-          {activeNav === 'Forecasting' && <ForecastingPage />}
           {activeNav === 'Forecast Goals' && <ForecastGoalsPage />}
           {activeNav === 'Inventory' && <InventoryPage />}
           {isPlaceholder && (

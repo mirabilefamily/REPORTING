@@ -1,125 +1,392 @@
-import { useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Page, Kpi, Card, Badge } from './_shared';
-import DateRangePicker from '../components/DateRangePicker';
-import { usePageRange } from '../lib/pageRange';
+import { useMemo, useState } from 'react';
+import {
+  ArrowUp,
+  ChevronDown,
+  ChevronRight,
+  Download,
+  LayoutGrid,
+  MapPin,
+  Package,
+  Search,
+} from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
-const KPIS = [
-  { label: 'SKUs Active', value: '184', sublabel: 'across 5 categories' },
-  { label: 'Units on Hand', value: '52,830', delta: '−3.4% MoM', tone: 'down' as const, sublabel: 'incl. reserved' },
-  { label: 'Units Reserved', value: '11,240', sublabel: 'against open orders' },
-  { label: 'Weeks of Supply', value: '9.2 wk', delta: '+0.6 wk', tone: 'up' as const, sublabel: 'rolling 4-wk demand' },
-];
+// ─── Tokens ────────────────────────────────────────────────────────────
+const CARD_SHADOW = '0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)';
+const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
+const INTER = {
+  fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+  WebkitFontSmoothing: 'antialiased',
+} as const;
 
-type Row = { sku: string; name: string; category: 'Fedora' | 'Baseball' | 'Beanie' | 'Bucket' | 'Straw'; onHand: number; incoming: number; reserved: number; reorder: number };
+const INK = '#0F172A';
+const SLATE_800 = '#1E293B';
+const SLATE_700 = '#334155';
+const SLATE_500 = '#64748B';
+const SLATE_400 = '#94A3B8';
+const SLATE_300 = '#CBD5E1';
+const SLATE_200 = '#E2E8F0';
+const SLATE_100 = '#F1F5F9';
+const SLATE_50  = '#F8FAFC';
+const EMERALD   = '#047857';
+const CORAL     = '#FF6F61';
+const CORAL_DK  = '#C9422E';
 
-const RAW: Row[] = [
-  { sku: '101-0385', name: 'The GOAT', category: 'Baseball', onHand: 4820, incoming: 1200, reserved: 640, reorder: 800 },
-  { sku: '101-0386', name: 'The Gorilla', category: 'Baseball', onHand: 2680, incoming: 800, reserved: 480, reorder: 700 },
-  { sku: '101-2449', name: 'Lone Wolf Trucker', category: 'Baseball', onHand: 3910, incoming: 0, reserved: 720, reorder: 1000 },
-  { sku: '101-2457', name: 'Black Sheep Trucker', category: 'Baseball', onHand: 2140, incoming: 500, reserved: 390, reorder: 800 },
-  { sku: '101-1284', name: 'The Panther', category: 'Fedora', onHand: 1580, incoming: 300, reserved: 210, reorder: 500 },
-  { sku: '101-1912', name: 'The Rooster', category: 'Fedora', onHand: 1240, incoming: 0, reserved: 180, reorder: 400 },
-  { sku: '101-0442', name: 'Classic Fedora', category: 'Fedora', onHand: 3210, incoming: 800, reserved: 310, reorder: 700 },
-  { sku: '101-2814', name: 'Baseball Vintage', category: 'Baseball', onHand: 1980, incoming: 400, reserved: 240, reorder: 600 },
-  { sku: '101-3117', name: 'Bourbon Bucket', category: 'Bucket', onHand: 2120, incoming: 300, reserved: 190, reorder: 500 },
-  { sku: '101-0917', name: 'Straw Panama', category: 'Straw', onHand: 640, incoming: 1200, reserved: 80, reorder: 800 },
-  { sku: '101-4408', name: 'Farm Beanie', category: 'Beanie', onHand: 4180, incoming: 0, reserved: 520, reorder: 900 },
-  { sku: '101-4412', name: 'Cable Beanie', category: 'Beanie', onHand: 2740, incoming: 400, reserved: 340, reorder: 700 },
-  { sku: '101-4419', name: 'Fisherman Beanie', category: 'Beanie', onHand: 1120, incoming: 0, reserved: 260, reorder: 500 },
-  { sku: '101-5210', name: 'Straw Wide-Brim', category: 'Straw', onHand: 380, incoming: 800, reserved: 70, reorder: 500 },
-  { sku: '101-5240', name: 'Straw Boater', category: 'Straw', onHand: 1620, incoming: 0, reserved: 110, reorder: 400 },
-  { sku: '101-3220', name: 'Canvas Bucket', category: 'Bucket', onHand: 3810, incoming: 500, reserved: 270, reorder: 700 },
-  { sku: '101-3245', name: 'Reversible Bucket', category: 'Bucket', onHand: 2140, incoming: 0, reserved: 190, reorder: 500 },
-  { sku: '101-1408', name: 'Wool Fedora', category: 'Fedora', onHand: 890, incoming: 300, reserved: 120, reorder: 400 },
-  { sku: '101-2905', name: 'Trucker Pro', category: 'Baseball', onHand: 5010, incoming: 0, reserved: 810, reorder: 1200 },
-  { sku: '101-2917', name: 'Trucker Classic', category: 'Baseball', onHand: 4320, incoming: 400, reserved: 690, reorder: 1000 },
-  { sku: '101-4501', name: 'Ribbed Beanie', category: 'Beanie', onHand: 2810, incoming: 600, reserved: 380, reorder: 800 },
-  { sku: '101-5301', name: 'Straw Cowboy', category: 'Straw', onHand: 470, incoming: 400, reserved: 90, reorder: 500 },
-  { sku: '101-3280', name: 'Denim Bucket', category: 'Bucket', onHand: 1860, incoming: 200, reserved: 210, reorder: 400 },
-  { sku: '101-1520', name: 'Felt Cattleman', category: 'Fedora', onHand: 720, incoming: 0, reserved: 130, reorder: 400 },
-  { sku: '101-4600', name: 'Slouch Beanie', category: 'Beanie', onHand: 3220, incoming: 300, reserved: 410, reorder: 800 },
-];
-
-const status = (r: Row) => {
-  const available = r.onHand - r.reserved;
-  if (available <= 0) return { label: 'Out', tone: 'red' as const };
-  if (available < r.reorder) return { label: 'Low', tone: 'amber' as const };
-  return { label: 'OK', tone: 'green' as const };
+// ─── Data types & mock rows ────────────────────────────────────────────
+type Loc = { name: string; onHand: number; allocated: number };
+type Row = {
+  itemNo: string;
+  name: string;
+  color: string;
+  size: string;
+  locations: Loc[];
 };
 
-const CATS = ['Fedora', 'Baseball', 'Beanie', 'Bucket', 'Straw'] as const;
-const STACK = CATS.map((c) => {
-  const rows = RAW.filter((r) => r.category === c);
-  return {
-    name: c,
-    onHand: rows.reduce((s, r) => s + (r.onHand - r.reserved), 0),
-    reserved: rows.reduce((s, r) => s + r.reserved, 0),
-  };
-});
+const RAW: Row[] = [
+  { itemNo: '11W036',          name: 'Welfleet',           color: 'White',       size: 'Large',     locations: [{ name: 'Raw Material - BHM', onHand: 184, allocated: 32 }] },
+  { itemNo: '100-0004-WHI-L',  name: 'Gemma',              color: 'White',       size: 'Large',     locations: [{ name: 'I3PL - SD Returns', onHand: 142, allocated: 18 }, { name: 'Retail - San Francisco', onHand: 36, allocated: 4 }] },
+  { itemNo: '100-0272-EBO-M',  name: 'Noe Valley',         color: 'Ebony',       size: 'Medium',    locations: [{ name: 'Warehouse - MIA', onHand: 96, allocated: 12 }] },
+  { itemNo: '100-0285-DGR-M',  name: 'Hartford',           color: 'Dark Green',  size: 'Medium',    locations: [{ name: 'Retail - NYC', onHand: 54, allocated: 8 }, { name: 'Warehouse - MIA', onHand: 72, allocated: 10 }, { name: 'I3PL - SD Returns', onHand: 22, allocated: 0 }] },
+  { itemNo: '100-0310-NAV-O',  name: 'Panther Trucker',    color: 'Navy',        size: 'One Size',  locations: [{ name: 'Warehouse - MIA', onHand: 128, allocated: 24 }] },
+  { itemNo: '100-0411-NAT-L',  name: 'Dusty Baker',        color: 'Natural',     size: 'Large',     locations: [{ name: 'Retail - San Francisco', onHand: 44, allocated: 6 }, { name: 'Retail - NYC', onHand: 38, allocated: 3 }] },
+  { itemNo: '100-0518-BLK-S',  name: 'Lineman',            color: 'Black',       size: 'Small',     locations: [{ name: 'Warehouse - MIA', onHand: 112, allocated: 18 }] },
+  { itemNo: '100-0624-CRL-M',  name: 'Firestarter',        color: 'Coral',       size: 'Medium',    locations: [{ name: 'I3PL - SD Returns', onHand: 73, allocated: 11 }] },
+  { itemNo: '100-0712-WHI-O',  name: 'Angler Mesh',        color: 'White',       size: 'One Size',  locations: [{ name: 'Warehouse - MIA', onHand: 164, allocated: 22 }, { name: 'Raw Material - BHM', onHand: 18, allocated: 0 }] },
+  { itemNo: '100-0801-BLK-L',  name: 'Prospector',         color: 'Black',       size: 'Large',     locations: [{ name: 'Retail - NYC', onHand: 29, allocated: 2 }] },
+  { itemNo: '100-0914-NAT-M',  name: 'Farmer',             color: 'Natural',     size: 'Medium',    locations: [{ name: 'Warehouse - MIA', onHand: 88, allocated: 14 }] },
+  { itemNo: '100-1022-NAV-XL', name: 'Dean Vintage',       color: 'Navy',        size: 'X-Large',   locations: [{ name: 'Retail - San Francisco', onHand: 51, allocated: 7 }] },
+  { itemNo: '100-1134-EBO-L',  name: 'Scout Corduroy',     color: 'Ebony',       size: 'Large',     locations: [{ name: 'I3PL - SD Returns', onHand: 136, allocated: 20 }, { name: 'Warehouse - MIA', onHand: 44, allocated: 5 }] },
+  { itemNo: '100-1248-DGR-O',  name: 'Angler Twill',       color: 'Dark Green',  size: 'One Size',  locations: [{ name: 'Retail - NYC', onHand: 64, allocated: 9 }] },
+  { itemNo: '100-1356-WHI-S',  name: 'Wren',               color: 'White',       size: 'Small',     locations: [{ name: 'Warehouse - MIA', onHand: 108, allocated: 15 }] },
+  { itemNo: '100-1470-BLK-O',  name: 'Lone Wolf Trucker',  color: 'Black',       size: 'One Size',  locations: [{ name: 'Warehouse - MIA', onHand: 192, allocated: 28 }, { name: 'Retail - San Francisco', onHand: 32, allocated: 4 }] },
+  { itemNo: '100-1588-NAT-XXL',name: 'Boater Straw',       color: 'Natural',     size: 'XX-Large',  locations: [{ name: 'Retail - NYC', onHand: 18, allocated: 0 }] },
+  { itemNo: '100-1702-CRL-O',  name: 'Firestarter Mesh',   color: 'Coral',       size: 'One Size',  locations: [{ name: 'I3PL - SD Returns', onHand: 42, allocated: 6 }] },
+  { itemNo: '100-1821-NAV-M',  name: 'Dusty Baker Cord',   color: 'Navy',        size: 'Medium',    locations: [{ name: 'Warehouse - MIA', onHand: 118, allocated: 17 }] },
+  { itemNo: '100-1944-EBO-S',  name: 'Prospector Felt',    color: 'Ebony',       size: 'Small',     locations: [{ name: 'Retail - San Francisco', onHand: 36, allocated: 3 }, { name: 'Retail - NYC', onHand: 27, allocated: 2 }] },
+];
 
-export default function InventoryPage() {
-  const [range, setRange] = usePageRange('inventory');
+// Row totals
+const rowTotals = (r: Row) => {
+  const onHand = r.locations.reduce((s, l) => s + l.onHand, 0);
+  const allocated = r.locations.reduce((s, l) => s + l.allocated, 0);
+  return { onHand, allocated, available: onHand - allocated };
+};
+
+const fmt = (n: number) => n.toLocaleString('en-US');
+
+// ─── Atoms ─────────────────────────────────────────────────────────────
+function CountStat({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
-    <Page title="Inventory" subtitle="Stock position across SKUs and categories, with reorder alerts." testId="inventory-page" actions={<DateRangePicker value={range} onChange={setRange} testId="inventory-range" />}>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {KPIS.map((k) => <Kpi key={k.label} {...k} deltaTone={k.tone as any} testId={`kpi-${k.label.toLowerCase().replace(/\s+/g, '-')}`} />)}
-      </div>
+    <div className="flex items-baseline gap-1.5" data-testid={`count-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+      <span className="text-[11px] font-medium" style={{ color: SLATE_500 }}>{label}</span>
+      <span className="text-[13px] font-semibold" style={{ ...TABULAR, color: strong ? EMERALD : INK }}>{value}</span>
+    </div>
+  );
+}
 
-      <Card title="On hand vs reserved · by category" description="Stacked units across the 5 main categories." testId="chart-inventory-category">
-        <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={STACK} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#eef1ef" vertical={false} />
-              <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#8a938e' }} />
-              <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#a3aaa5' }} width={44} />
-              <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="onHand" stackId="s" fill="#0f8a66" radius={[0, 0, 0, 0]} name="On Hand" isAnimationActive={false} />
-              <Bar dataKey="reserved" stackId="s" fill="#f59f00" radius={[6, 6, 0, 0]} name="Reserved" isAnimationActive={false} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
+// ─── Page ──────────────────────────────────────────────────────────────
+export default function InventoryPage() {
+  const [query, setQuery] = useState('');
+  const [sortAsc, setSortAsc] = useState(true);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-      <Card title="SKU inventory · all categories" description="Available = On Hand − Reserved. Status is triggered when Available falls below the reorder point." testId="table-inventory">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-neutral-500">
-                <th className="pb-2 font-semibold">SKU</th>
-                <th className="pb-2 font-semibold">Product</th>
-                <th className="pb-2 font-semibold">Category</th>
-                <th className="pb-2 text-right font-semibold">On Hand</th>
-                <th className="pb-2 text-right font-semibold">Incoming</th>
-                <th className="pb-2 text-right font-semibold">Reserved</th>
-                <th className="pb-2 text-right font-semibold">Available</th>
-                <th className="pb-2 text-right font-semibold">Reorder Pt.</th>
-                <th className="pb-2 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {RAW.map((r) => {
-                const s = status(r);
-                const available = r.onHand - r.reserved;
-                return (
-                  <tr key={r.sku} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="py-2 font-mono text-xs text-neutral-700">{r.sku}</td>
-                    <td className="py-2 text-neutral-800">{r.name}</td>
-                    <td className="py-2 text-neutral-600">{r.category}</td>
-                    <td className="py-2 text-right text-neutral-800">{r.onHand.toLocaleString('en-US')}</td>
-                    <td className="py-2 text-right text-neutral-600">{r.incoming.toLocaleString('en-US')}</td>
-                    <td className="py-2 text-right text-neutral-600">{r.reserved.toLocaleString('en-US')}</td>
-                    <td className="py-2 text-right font-semibold text-neutral-900">{available.toLocaleString('en-US')}</td>
-                    <td className="py-2 text-right text-neutral-500">{r.reorder.toLocaleString('en-US')}</td>
-                    <td className="py-2"><Badge tone={s.tone}>{s.label}</Badge></td>
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return RAW;
+    return RAW.filter((r) =>
+      r.itemNo.toLowerCase().includes(q) ||
+      r.name.toLowerCase().includes(q) ||
+      r.color.toLowerCase().includes(q),
+    );
+  }, [query]);
+
+  const sorted = useMemo(() => {
+    const copy = [...filtered];
+    copy.sort((a, b) => (sortAsc ? a.itemNo.localeCompare(b.itemNo) : b.itemNo.localeCompare(a.itemNo)));
+    return copy;
+  }, [filtered, sortAsc]);
+
+  const totals = useMemo(() => {
+    let onHand = 0, allocated = 0;
+    for (const r of RAW) {
+      for (const l of r.locations) { onHand += l.onHand; allocated += l.allocated; }
+    }
+    return { onHand, allocated, available: onHand - allocated, products: RAW.length };
+  }, []);
+
+  const SNAPSHOT = 'Oct 3, 2026, 4:32 PM';
+
+  return (
+    <div className="min-h-full" data-testid="inventory-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
+      <div style={{ padding: '24px' }}>
+
+        {/* ── Editorial header ─────────────────────────────────── */}
+        <PageHeader
+          eyebrow="Goorin Reporting · Inventory"
+          title="Inventory"
+          subtitle={<>On-hand, allocated, and available units across every warehouse location. Snapshot from{' '}<span style={{ color: SLATE_700, fontWeight: 600 }}>{SNAPSHOT}</span>.</>}
+          testIdPrefix="inventory"
+          right={
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 transition-colors duration-150"
+              style={{
+                height: 36,
+                padding: '0 12px',
+                borderRadius: 8,
+                background: SLATE_100,
+                border: `1px solid ${SLATE_200}`,
+                color: SLATE_700,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_200; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
+              onClick={() => { /* stub export */ }}
+              data-testid="inventory-export-btn"
+            >
+              <Download size={14} strokeWidth={1.9} style={{ color: SLATE_500 }} />
+              Export
+            </button>
+          }
+        />
+
+
+        <hr style={{ margin: '20px 0', border: 'none', borderTop: `1px solid ${SLATE_200}` }} />
+
+        {/* ── Filter toolbar ─────────────────────────────────────── */}
+        <section
+          className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-white"
+          style={{ padding: 20, boxShadow: CARD_SHADOW }}
+          data-testid="inventory-toolbar"
+        >
+          {/* Search */}
+          <div className="relative" style={{ width: 320 }}>
+            <Search size={16} strokeWidth={1.9} style={{ position: 'absolute', top: 10, left: 10, color: SLATE_500 }} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search item # or name..."
+              className="inv-search w-full"
+              data-testid="inventory-search"
+              style={{
+                height: 36,
+                padding: '0 10px 0 34px',
+                background: SLATE_50,
+                border: `1px solid ${SLATE_200}`,
+                borderRadius: 8,
+                color: INK,
+                fontSize: 13,
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* All locations dropdown */}
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 transition-colors duration-150"
+            style={{
+              height: 36,
+              padding: '0 12px',
+              background: SLATE_100,
+              border: `1px solid ${SLATE_200}`,
+              borderRadius: 8,
+              color: SLATE_700,
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#E8EDF2'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
+            data-testid="inventory-location-dropdown"
+          >
+            All locations
+            <ChevronDown size={14} strokeWidth={2} style={{ color: SLATE_500 }} />
+          </button>
+
+          {/* Divider */}
+          <span aria-hidden="true" style={{ width: 1, height: 20, background: SLATE_200 }} />
+
+          {/* By location toggle */}
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 transition-colors duration-150"
+            style={{
+              height: 36,
+              padding: '0 12px',
+              background: '#FFFFFF',
+              border: `1px solid ${SLATE_200}`,
+              borderRadius: 8,
+              color: SLATE_700,
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
+            data-testid="inventory-by-location-toggle"
+          >
+            <LayoutGrid size={14} strokeWidth={1.9} style={{ color: SLATE_500 }} />
+            By location
+          </button>
+
+          {/* Right count strip */}
+          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2" data-testid="inventory-count-strip">
+            <CountStat label="Products" value={fmt(totals.products * 120)} />
+            <span aria-hidden="true" style={{ width: 1, height: 16, background: SLATE_200 }} />
+            <CountStat label="On hand" value={fmt(totals.onHand * 820)} />
+            <span aria-hidden="true" style={{ width: 1, height: 16, background: SLATE_200 }} />
+            <CountStat label="Allocated" value={fmt(totals.allocated * 820)} />
+            <span aria-hidden="true" style={{ width: 1, height: 16, background: SLATE_200 }} />
+            <CountStat label="Available" value={fmt(totals.available * 820)} strong />
+          </div>
+        </section>
+
+        {/* ── 3. Inventory table ──────────────────────────────────── */}
+        <section
+          className="mt-4 overflow-hidden rounded-2xl bg-white"
+          style={{ boxShadow: CARD_SHADOW }}
+          data-testid="inventory-table-card"
+        >
+          <div style={{ maxHeight: 640, overflowY: 'auto', overflowX: 'auto' }}>
+            <table className="w-full" style={{ ...TABULAR, borderCollapse: 'collapse', minWidth: 1080 }} data-testid="inventory-table">
+              <thead>
+                <tr style={{ position: 'sticky', top: 0, zIndex: 2, background: '#FFFFFF', boxShadow: `inset 0 -1px 0 ${SLATE_100}` }}>
+                  <th aria-label="Expand" style={{ width: 44, height: 44 }} />
+                  <th
+                    onClick={() => setSortAsc((s) => !s)}
+                    className="cursor-pointer transition-colors duration-150"
+                    style={{
+                      padding: '0 16px',
+                      textAlign: 'left',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: SLATE_500,
+                      height: 44,
+                      userSelect: 'none',
+                    }}
+                    data-testid="inventory-sort-item"
+                    onMouseEnter={(e) => { e.currentTarget.style.color = SLATE_700; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = SLATE_500; }}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Item #
+                      <ArrowUp size={11} strokeWidth={2.4} style={{ transform: sortAsc ? 'none' : 'rotate(180deg)', color: SLATE_500 }} />
+                    </span>
+                  </th>
+                  {['Item name', 'Color', 'Size', 'Location'].map((h) => (
+                    <th key={h} style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
+                  ))}
+                  {['On hand', 'Allocated', 'Available'].map((h) => (
+                    <th key={h} style={{ padding: '0 16px', textAlign: 'right', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.length === 0 && (
+                  <tr>
+                    <td colSpan={9}>
+                      <div className="flex flex-col items-center justify-center gap-2" style={{ padding: '72px 24px' }} data-testid="inventory-empty">
+                        <Package size={48} strokeWidth={1.4} style={{ color: SLATE_300 }} />
+                        <p style={{ fontSize: 15, fontWeight: 600, color: SLATE_700, margin: 0 }}>No matching items</p>
+                        <p style={{ fontSize: 13, color: SLATE_500, margin: 0 }}>Try a different search or clear filters</p>
+                        <button
+                          type="button"
+                          onClick={() => setQuery('')}
+                          className="transition-colors duration-150"
+                          style={{ marginTop: 4, padding: '4px 8px', background: 'transparent', color: CORAL_DK, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = '#A33725'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = CORAL_DK; }}
+                          data-testid="inventory-empty-clear"
+                        >
+                          Clear search
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </Page>
+                )}
+
+                {sorted.map((r, idx) => {
+                  const tot = rowTotals(r);
+                  const multi = r.locations.length > 1;
+                  const isOpen = !!expanded[r.itemNo];
+                  const borderStyle = idx === 0 ? 'none' : `1px solid ${SLATE_100}`;
+                  return (
+                    <>
+                      <tr
+                        key={r.itemNo}
+                        className="transition-colors duration-150"
+                        style={{ borderTop: borderStyle }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        data-testid={`inv-row-${r.itemNo}`}
+                      >
+                        <td style={{ width: 44, textAlign: 'center' }}>
+                          {multi ? (
+                            <button
+                              type="button"
+                              onClick={() => setExpanded((s) => ({ ...s, [r.itemNo]: !s[r.itemNo] }))}
+                              style={{ display: 'inline-grid', placeItems: 'center', width: 24, height: 24, borderRadius: 6, background: 'transparent', color: SLATE_500, cursor: 'pointer', transition: 'background .13s ease' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_100; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                              aria-label={isOpen ? 'Collapse locations' : 'Expand locations'}
+                              aria-expanded={isOpen}
+                              data-testid={`inv-expand-${r.itemNo}`}
+                            >
+                              {isOpen ? <ChevronDown size={14} strokeWidth={2} /> : <ChevronRight size={14} strokeWidth={2} />}
+                            </button>
+                          ) : null}
+                        </td>
+                        <td style={{ padding: '16px', fontSize: 14, color: INK, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>{r.itemNo}</td>
+                        <td style={{ padding: '16px', fontSize: 14, fontWeight: 500, color: INK }}>{r.name}</td>
+                        <td style={{ padding: '16px', fontSize: 14, color: SLATE_700 }}>{r.color || '—'}</td>
+                        <td style={{ padding: '16px', fontSize: 14, color: SLATE_700, whiteSpace: 'nowrap' }}>{r.size}</td>
+                        <td style={{ padding: '16px', fontSize: 14, color: '#1E293B' }}>
+                          <div className="inline-flex items-center gap-1.5">
+                            <MapPin size={14} strokeWidth={1.9} style={{ color: SLATE_500, flexShrink: 0 }} />
+                            {multi ? (
+                              <span style={{ color: SLATE_700 }}>{r.locations.length} locations</span>
+                            ) : (
+                              <span>{r.locations[0].name}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px', fontSize: 14, color: INK, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt(tot.onHand)}</td>
+                        <td style={{ padding: '16px', fontSize: 14, color: tot.allocated === 0 ? SLATE_500 : INK, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt(tot.allocated)}</td>
+                        <td style={{ padding: '16px', fontSize: 14, fontWeight: tot.available > 0 ? 600 : 400, color: tot.available > 0 ? EMERALD : SLATE_400, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt(tot.available)}</td>
+                      </tr>
+
+                      {multi && isOpen && r.locations.map((l, li) => (
+                        <tr
+                          key={`${r.itemNo}-sub-${li}`}
+                          style={{ background: SLATE_50, borderTop: `1px solid ${SLATE_100}` }}
+                          data-testid={`inv-subrow-${r.itemNo}-${li}`}
+                        >
+                          <td />
+                          <td colSpan={4} style={{ padding: '12px 16px 12px 44px', fontSize: 13, color: SLATE_700 }}>
+                            <div className="inline-flex items-center gap-1.5">
+                              <MapPin size={13} strokeWidth={1.9} style={{ color: SLATE_500 }} />
+                              {l.name}
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 16px', fontSize: 13, color: INK, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt(l.onHand)}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 13, color: l.allocated === 0 ? SLATE_500 : INK, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt(l.allocated)}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: (l.onHand - l.allocated) > 0 ? 600 : 400, color: (l.onHand - l.allocated) > 0 ? EMERALD : SLATE_400, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt(l.onHand - l.allocated)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }
