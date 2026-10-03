@@ -200,8 +200,55 @@ button { font: inherit; border: 0; cursor: pointer; }
 .brand-textmark-word { font-family: 'Barlow Condensed', 'Outfit', sans-serif; font-weight: 800; font-size: 40px; letter-spacing: -0.01em; line-height: 1; color: #fff; }
 .brand-textmark-underline { display: block; width: 110px; height: 3px; border-radius: 2px; background: var(--accent, #00d4a1); }
 .brand-textmark-sub { font-family: 'Outfit', 'DM Sans', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.22em; color: #cfd3d0; text-transform: uppercase; }
-.sidebar-collapsed .brand-textmark { display: none !important; }
-.nav-item { position: relative; }
+/* ─ Sidebar active-item polish (slate-800 pill, 2px coral accent, 12px radius) ─ */
+.sidebar .nav-item { height: 42px; padding: 0 12px; border-radius: 12px; margin-bottom: 2px; color: #94A3B8; transition: background 120ms ease-out, color 120ms ease-out; }
+.sidebar .nav-item:hover { background: #1E293B; color: #F1F5F9; transform: none; }
+.sidebar .nav-item.active { background: #1E293B; color: #FFFFFF; }
+.sidebar .nav-item.active::before { width: 2px; height: 20px; left: 4px; border-radius: 2px; }
+.sidebar .nav-item.nav-item-child { height: 36px; padding: 0 12px 0 44px; border-radius: 10px; margin-bottom: 2px; color: #94A3B8; transition: background 120ms ease-out, color 120ms ease-out; }
+.sidebar .nav-item.nav-item-child:hover { background: #1E293B; color: #F1F5F9; transform: none; }
+.sidebar .nav-item.nav-item-child.active { background: #1E293B; color: #FFFFFF; box-shadow: none; }
+.sidebar .nav-item.nav-item-child.active::before { content: ''; position: absolute; left: 4px; top: 50%; width: 2px; height: 18px; margin-top: -9px; border-radius: 2px; background: var(--goorin-coral); display: block; }
+/* Parent-with-children (expandable group header, e.g., "Analytics"): keep hover subtle so it reads as container not destination */
+.sidebar .nav-item.parent-active { color: #E2E8F0; }
+.sidebar .nav-item.parent-active:hover,
+.sidebar .nav-item[aria-expanded]:hover { background: rgba(30,41,59,0.55); color: #F1F5F9; }
+.sidebar .nav-label { color: #CBD5E1; font-size: 11px; font-weight: 700; letter-spacing: .14em; }
+
+/* ─ Collapsed-rail parent group: coral indicator dot when child route active ─ */
+.sidebar-collapsed .nav-item .nav-group-dot { position: absolute; top: 8px; right: 10px; width: 6px; height: 6px; border-radius: 999px; background: var(--goorin-coral); box-shadow: 0 0 0 2px #17191A; }
+
+/* ─ Collapsed-rail flyout panel ─ */
+.sidebar-flyout-overlay { position: fixed; inset: 0; z-index: 55; background: transparent; }
+.sidebar-flyout { position: fixed; left: calc(76px + 6px); z-index: 70; width: 220px; padding: 10px; background: #0F172A; border: 1px solid #1E293B; border-radius: 12px; box-shadow: 0 16px 48px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.03) inset; display: flex; flex-direction: column; gap: 2px; animation: flyout-in 150ms ease-out both; }
+@keyframes flyout-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateX(0); } }
+.sidebar-flyout-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px 10px; margin-bottom: 2px; border-bottom: 1px solid #1E293B; color: #E2E8F0; font-size: 13px; font-weight: 600; letter-spacing: -.005em; }
+.sidebar-flyout-item { position: relative; height: 36px; padding: 0 12px 0 20px; display: flex; align-items: center; background: transparent; color: #94A3B8; font-size: 13px; font-weight: 500; border-radius: 10px; text-align: left; transition: background 120ms ease-out, color 120ms ease-out; cursor: pointer; }
+.sidebar-flyout-item:hover { background: #1E293B; color: #F1F5F9; }
+.sidebar-flyout-item.active { background: #1E293B; color: #FFFFFF; }
+.sidebar-flyout-item.active::before { content: ''; position: absolute; left: 6px; top: 50%; width: 2px; height: 18px; margin-top: -9px; border-radius: 2px; background: var(--goorin-coral); }
+.sidebar-flyout-item:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(255,111,97,0.45); }
+
+/* Hide flyout entirely when mobile drawer is in use */
+@media (max-width: 760px) { .sidebar-flyout, .sidebar-flyout-overlay { display: none !important; } }
+@media (max-width: 767px) {
+  [data-testid$="-report-header"] { flex-direction: column; align-items: stretch !important; gap: 12px !important; }
+  [data-testid$="-report-header"] > [data-testid$="-right"] { align-self: flex-start; width: 100%; }
+  [data-testid$="-report-header"] [data-testid$="-right"] > * { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; max-width: 100%; }
+  [data-testid$="-report-header"] [data-testid$="-right"] > *::-webkit-scrollbar { display: none; }
+}
+
+/* Hide drawer-only backdrop on desktop, let mobile media query show it */
+.sidebar-backdrop { position: fixed; inset: 0; z-index: 45; background: rgba(15,23,42,0.6); backdrop-filter: blur(2px); animation: canvas-fade .18s ease; }
+@media (min-width: 761px) { .sidebar-backdrop { display: none !important; } }
+
+@keyframes canvas-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ─ Mobile table overflow safety ─ */
+@media (max-width: 767px) {
+  [data-testid="dashboard-page"] section, [data-testid="pnl-page"] section, [data-testid="profitability-page"] section, [data-testid="cashflow-page"] section, [data-testid="orders-page"] section, [data-testid="inventory-page"] section, [data-testid="forecast-goals-page"] section, [data-testid="analytics-page"] section { padding-left: 16px !important; padding-right: 16px !important; }
+}
+
 
 /* ---- Phase 2: sidebar coral accent + 300px lock + new logo sizing ---- */
 :root { --goorin-coral: #FF6F61; }

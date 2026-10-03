@@ -26,6 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import DateRangePicker from './components/DateRangePicker';
+import PageHeader from './components/PageHeader';
 import { usePageRange } from './lib/pageRange';
 import AccountDrilldown from './AccountDrilldown';
 
@@ -939,14 +940,20 @@ export default function DashboardPage(_props: DashProps) {
   return (
     <div className="min-h-full" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR, background: CANVAS }}>
       <div style={{ padding: '24px' }}>
-        {/* ── 1. Unified filter pill ───────────────────────────── */}
-        <div className="flex justify-end" data-testid="dashboard-filter-row">
-          <div className="inline-flex items-center rounded-2xl p-1" style={{ background: '#EEEEEC' }} data-testid="dashboard-filter-pill">
-            <SegTabs tabs={SEGMENTS as unknown as readonly string[]} value={seg} onChange={(v: any) => setSeg(v)} testId="dash-seg-tabs" slugPrefix="dash-seg" background="transparent" />
-            <span aria-hidden="true" className="mx-2" style={{ width: 1, height: 20, background: '#CBD5E1' }} />
-            <DateRangePicker value={range} onChange={setRange} testId="dashboard-range" />
-          </div>
-        </div>
+        {/* ── 1. Unified editorial header ────────────────────── */}
+        <PageHeader
+          eyebrow="Goorin Reporting · Overview"
+          title="Dashboard"
+          subtitle="Operating snapshot across channels and performance."
+          testIdPrefix="dashboard"
+          right={
+            <div className="inline-flex items-center rounded-2xl p-1" style={{ background: '#EEEEEC' }} data-testid="dashboard-filter-pill">
+              <SegTabs tabs={SEGMENTS as unknown as readonly string[]} value={seg} onChange={(v: any) => setSeg(v)} testId="dash-seg-tabs" slugPrefix="dash-seg" background="transparent" />
+              <span aria-hidden="true" className="mx-2" style={{ width: 1, height: 20, background: '#CBD5E1' }} />
+              <DateRangePicker value={range} onChange={setRange} testId="dashboard-range" />
+            </div>
+          }
+        />
 
         {/* ── 2. Hero row 70/30 ─────────────────────────────────── */}
         <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[7fr_3fr]" data-testid="dashboard-hero-row">

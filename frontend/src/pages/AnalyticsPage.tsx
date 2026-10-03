@@ -6,6 +6,7 @@ import {
 import { Plus, X } from 'lucide-react';
 import { SEG_COLORS, SegTabs } from '../DashboardPage';
 import DateRangePicker from '../components/DateRangePicker';
+import PageHeader from '../components/PageHeader';
 import { usePageRange } from '../lib/pageRange';
 
 // ─── Tokens ────────────────────────────────────────────────────────────
@@ -415,16 +416,15 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-full" data-testid="analytics-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
       <div style={{ padding: '24px' }}>
-        <div className="flex flex-wrap items-center justify-between gap-3" data-testid="an-workspace-header">
-          <div className="flex items-center gap-2.5">
-            <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: SLATE_500 }}>Analytics Workspace</span>
-            <span aria-hidden="true" style={{ color: SLATE_300 }}>·</span>
-            <span style={{ fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }} data-testid="an-current-view">{view}</span>
-          </div>
-          <SegTabs tabs={COMPARE as unknown as readonly string[]} value={compare} onChange={(v: string) => setCompare(v)} testId="an-compare-tabs" slugPrefix="an-compare" />
-        </div>
-
-        <hr style={{ margin: '16px 0 0', border: 'none', borderTop: `1px solid ${SLATE_200}` }} />
+        <PageHeader
+          eyebrow="Goorin Reporting · Analytics"
+          title="Operational"
+          subtitle={`Health, funnels, products, and customers — ${view} view.`}
+          testIdPrefix="an"
+          right={
+            <SegTabs tabs={COMPARE as unknown as readonly string[]} value={compare} onChange={(v: string) => setCompare(v)} testId="an-compare-tabs" slugPrefix="an-compare" />
+          }
+        />
 
         <div role="tablist" aria-label="Analytics views" className="flex items-center" style={{ borderBottom: `1px solid ${SLATE_100}` }} data-testid="an-view-tabs">
           {VIEWS.map((v) => {

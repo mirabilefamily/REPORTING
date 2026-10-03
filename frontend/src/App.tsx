@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   BarChart2,
@@ -6,6 +6,7 @@ import {
   Boxes,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   ClipboardList,
   Command,
   DollarSign,
@@ -99,6 +100,8 @@ function StaffApp() {
   });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [flyoutGroup, setFlyoutGroup] = useState<{ label: string; top: number } | null>(null);
+  const flyoutCloseTimer = useRef<number | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationDismissed, setNotificationDismissed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -120,7 +123,35 @@ function StaffApp() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  const goto = (label: string) => { setActiveNav(label); setMobileOpen(false); };
+  const goto = (label: string) => { setActiveNav(label); setMobileOpen(false); setFlyoutGroup(null); };
+
+  // Close flyout on ESC
+  useEffect(() => {
+    if (!flyoutGroup) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFlyoutGroup(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [flyoutGroup]);
+
+  // Close flyout if sidebar expands or user opens mobile drawer
+  useEffect(() => {
+    if (!sidebarCollapsed || mobileOpen) setFlyoutGroup(null);
+  }, [sidebarCollapsed, mobileOpen]);
+
+  const openFlyout = (label: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (flyoutCloseTimer.current !== null) { window.clearTimeout(flyoutCloseTimer.current); flyoutCloseTimer.current = null; }
+    setFlyoutGroup({ label, top: rect.top });
+  };
+
+  const scheduleFlyoutClose = () => {
+    if (flyoutCloseTimer.current !== null) window.clearTimeout(flyoutCloseTimer.current);
+    flyoutCloseTimer.current = window.setTimeout(() => setFlyoutGroup(null), 300);
+  };
+
+  const cancelFlyoutClose = () => {
+    if (flyoutCloseTimer.current !== null) { window.clearTimeout(flyoutCloseTimer.current); flyoutCloseTimer.current = null; }
+  };
 
   const ActiveIcon = useMemo(() => {
     if (activeNav === 'Settings') return Settings;
@@ -178,6 +209,23 @@ function StaffApp() {
                 if (children && children.length > 0) {
                   const childActive = children.some((c) => c.label === activeNav);
                   const expanded = childActive || activeNav === label;
+                  // Collapsed rail: icon opens flyout; never expand inline.
+                  if (sidebarCollapsed && !mobileOpen) {
+                    return (
+                      <button
+                        key={label}
+                        className={`nav-item ${childActive ? 'parent-active' : ''}`}
+                        onClick={(e) => openFlyout(label, e)}
+                        title={label}
+                        aria-haspopup="menu"
+                        aria-expanded={flyoutGroup?.label === label}
+                        data-testid={`nav-${navSlug(label)}`}
+                      >
+                        <Icon size={21} strokeWidth={1.8} />
+                        {childActive && <span className="nav-group-dot" aria-hidden="true" />}
+                      </button>
+                    );
+                  }
                   return (
                     <div key={label}>
                       <button
@@ -241,6 +289,43 @@ function StaffApp() {
         </div>
         <button className="collapse-button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label="Toggle sidebar"><PanelLeftClose size={16} /></button>
       </aside>
+
+      {/* Collapsed sidebar flyout for expandable groups */}
+      {flyoutGroup && sidebarCollapsed && !mobileOpen && (() => {
+        const g = navGroups.flatMap((gr) => gr.items).find((it) => it.label === flyoutGroup.label);
+        if (!g || !g.children) return null;
+        return (
+          <>
+            <div className="sidebar-flyout-overlay" onClick={() => setFlyoutGroup(null)} aria-hidden="true" />
+            <div
+              className="sidebar-flyout"
+              style={{ top: Math.max(12, flyoutGroup.top) }}
+              role="menu"
+              aria-label={`${flyoutGroup.label} sub navigation`}
+              onMouseEnter={cancelFlyoutClose}
+              onMouseLeave={scheduleFlyoutClose}
+              data-testid={`sidebar-flyout-${navSlug(flyoutGroup.label)}`}
+            >
+              <div className="sidebar-flyout-head">
+                <span>{flyoutGroup.label}</span>
+                <ChevronLeft size={14} strokeWidth={2} style={{ color: '#CBD5E1' }} />
+              </div>
+              {g.children.map((c) => (
+                <button
+                  key={c.label}
+                  className={`sidebar-flyout-item ${activeNav === c.label ? 'active' : ''}`}
+                  onClick={() => goto(c.label)}
+                  role="menuitem"
+                  autoFocus={activeNav === c.label}
+                  data-testid={`sidebar-flyout-item-${navSlug(c.label)}`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </>
+        );
+      })()}
 
       {mobileOpen && <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} aria-hidden="true" />}
 

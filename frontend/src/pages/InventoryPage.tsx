@@ -153,8 +153,6 @@ export default function InventoryPage() {
         />
 
 
-        <hr style={{ margin: '20px 0', border: 'none', borderTop: `1px solid ${SLATE_200}` }} />
-
         {/* ── Filter toolbar ─────────────────────────────────────── */}
         <section
           className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-white"

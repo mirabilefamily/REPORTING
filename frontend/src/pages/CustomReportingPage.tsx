@@ -174,8 +174,6 @@ export default function CustomReportingPage() {
           </div>
         </div>
 
-        <hr style={{ margin: '20px 0', border: 'none', borderTop: `1px solid ${SLATE_200}` }} />
-
         {/* ── Module 1: Saved reports ─────────────────────── */}
         <section className="overflow-hidden rounded-2xl bg-white" style={{ boxShadow: CARD_SHADOW }} data-testid="cr-saved-card">
           <header style={{ padding: '20px 24px 16px' }}>
