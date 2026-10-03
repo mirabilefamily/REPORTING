@@ -302,13 +302,10 @@ export default function PnlPage() {
           title="Profit & Loss"
           subtitle="Operating performance across revenue, cost of goods, and operating expenses."
           testIdPrefix="pnl"
-          right={
-            <div className="flex items-center shrink-0 rounded-2xl p-1" style={{ background: '#EEEEEC' }}>
-              <SegTabs tabs={SEGS as unknown as readonly string[]} value={seg} onChange={(v: string) => setSeg(v)} testId="pnl-seg" slugPrefix="pnl-seg" background="transparent" />
-              <span aria-hidden="true" className="mx-2" style={{ width: 1, height: 20, background: SLATE_300 }} />
-              <DateRangePicker value={range} onChange={setRange} testId="pnl-range" />
-            </div>
-          }
+          channels={SEGS}
+          activeChannel={seg}
+          onChannelChange={(v: string) => setSeg(v)}
+          dateControl={<DateRangePicker value={range} onChange={setRange} testId="pnl-range" />}
         />
 
         {/* Hero 3-col KPI */}

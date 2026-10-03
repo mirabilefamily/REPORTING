@@ -29,6 +29,7 @@ import {
 import type { Session } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import AuthPage from './AuthPage';
+import SettingsPage from './pages/SettingsPage';
 import DashboardPage from './DashboardPage';
 import MyOrdersPage from './MyOrdersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -183,7 +184,7 @@ function StaffApp() {
   if (!authReady) return null;
   if (!session && !guest) return <AuthPage />;
 
-  const isPlaceholder = activeNav === 'Settings';
+  const isPlaceholder = false;
 
   return (
     <div className="app-shell">
@@ -427,6 +428,7 @@ function StaffApp() {
           {activeNav === 'Cash Flow' && <CashFlowPage />}
           {activeNav === 'Forecast Goals' && <ForecastGoalsPage />}
           {activeNav === 'Inventory' && <InventoryPage />}
+          {activeNav === 'Settings' && <SettingsPage />}
           {isPlaceholder && (
             <div className="page-heading" data-testid="placeholder-page">
               <div><h1>{activeNav}</h1><p>This section is coming soon.</p></div>

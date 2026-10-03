@@ -173,10 +173,28 @@ const fmtMetric = (m: string, v: number) => {
 function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 2000); return () => clearTimeout(t); }, [onDone]);
   return (
-    <div style={{ position: 'fixed', right: 24, bottom: 24, zIndex: 100, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: INK, color: '#fff', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', fontSize: 13, fontWeight: 500, animation: 'cr-toast-in 180ms ease-out both' }} data-testid="cr-toast">
-      <CheckCircle2 size={16} strokeWidth={2.2} />{message}
+    <div style={{ position: 'fixed', right: 24, bottom: 24, zIndex: 100, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: INK, color: '#fff', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', fontSize: 12.5, fontWeight: 500, animation: 'cr-toast-in 180ms ease-out both' }} data-testid="cr-toast">
+      <CheckCircle2 size={13} strokeWidth={2.2} />{message}
       <style>{`@keyframes cr-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>
+  );
+}
+
+function vizIcon(viz: string) {
+  if (viz === 'Bar') return BarChart3;
+  if (viz === 'Line') return LineChart;
+  if (viz === 'Area') return TrendingUp;
+  if (viz === 'Pie') return PieChartIcon;
+  if (viz === 'KPI') return Activity;
+  if (viz === 'Pivot') return Grid3x3;
+  return Grid3x3;
+}
+
+function MetaChip({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1" style={{ padding: '3px 8px', background: SLATE_50, color: SLATE_700, borderRadius: 6, fontSize: 10.5, fontWeight: 500, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
+      {icon}{children}
+    </span>
   );
 }
 
@@ -207,21 +225,22 @@ function Spark({ data, color = INK, height = 24 }: { data: number[]; color?: str
 function ReportCard({ r, onOpen, onAction }: { r: Report; onOpen: () => void; onAction: (a: string) => void }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const Icon = vizIcon(r.viz);
   return (
     <div
       className="rounded-2xl bg-white relative transition-shadow duration-150 cursor-pointer"
-      style={{ padding: 20, boxShadow: hover ? CARD_SHADOW_HOVER : CARD_SHADOW }}
+      style={{ padding: 20, boxShadow: hover ? '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px #EDEDEF' : CARD_SHADOW }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => { setHover(false); setMenuOpen(false); }}
       onClick={onOpen}
       data-testid={`cr-report-card-${r.id}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div style={{ display: 'grid', placeItems: 'center', width: 36, height: 36, background: CORAL_50, color: CORAL_600, borderRadius: 10 }}>
-          <BarChart3 size={18} strokeWidth={1.9} />
+      <div className="flex items-start justify-between">
+        <div style={{ display: 'grid', placeItems: 'center', width: 32, height: 32, background: CORAL_50, color: CORAL_600, borderRadius: 8 }}>
+          <Icon size={16} strokeWidth={1.9} />
         </div>
         <div className="relative" onClick={(e) => e.stopPropagation()}>
-          <button type="button" onClick={() => setMenuOpen((v) => !v)} className="transition-colors duration-150" style={{ display: 'grid', placeItems: 'center', width: 28, height: 28, color: SLATE_500, borderRadius: 8, cursor: 'pointer', background: menuOpen ? SLATE_100 : 'transparent' }} data-testid={`cr-card-menu-${r.id}`}>
+          <button type="button" onClick={() => setMenuOpen((v) => !v)} className="transition-colors duration-150" style={{ display: 'grid', placeItems: 'center', width: 24, height: 24, color: menuOpen ? INK : SLATE_400, borderRadius: 6, cursor: 'pointer', background: menuOpen ? SLATE_50 : 'transparent' }} data-testid={`cr-card-menu-${r.id}`}>
             <MoreHorizontal size={16} />
           </button>
           {menuOpen && (
@@ -241,15 +260,20 @@ function ReportCard({ r, onOpen, onAction }: { r: Report; onOpen: () => void; on
           )}
         </div>
       </div>
-      <h3 className="mt-3" style={{ margin: '12px 0 2px', fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>{r.name}</h3>
-      <p style={{ margin: 0, fontSize: 12, color: SLATE_500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.description}</p>
-      <div className="mt-3"><Spark data={r.spark} color={CORAL} /></div>
-      <div className="mt-3 flex items-center justify-between gap-2" style={{ fontSize: 11, color: SLATE_500 }}>
-        <span style={TABULAR}>Updated {relativeTime(r.updatedAt)}</span>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1" style={{ padding: '2px 8px', borderRadius: 999, background: r.visibility === 'Shared' ? CORAL_50 : SLATE_100, color: r.visibility === 'Shared' ? CORAL_DK : SLATE_700, fontSize: 11, fontWeight: 500 }}>{r.visibility}</span>
-          <span style={{ display: 'grid', placeItems: 'center', width: 24, height: 24, background: SLATE_100, color: SLATE_700, borderRadius: 999, fontSize: 10, fontWeight: 600, letterSpacing: '0.02em' }}>{r.ownerInitials}</span>
+      <h3 style={{ margin: '14px 0 0', fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</h3>
+      <p style={{ margin: '4px 0 0', fontSize: 12.5, color: SLATE_500, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 38 }}>{r.description}</p>
+      <div className="flex flex-wrap" style={{ gap: 6, marginTop: 16 }}>
+        <MetaChip>{r.viz}</MetaChip>
+        <MetaChip>{r.dimensions.length} {r.dimensions.length === 1 ? 'dim' : 'dims'}</MetaChip>
+        <MetaChip>{r.metrics.length} {r.metrics.length === 1 ? 'metric' : 'metrics'}</MetaChip>
+        <MetaChip icon={<Clock size={10} strokeWidth={2} />}>Run {relativeTime(r.updatedAt)}</MetaChip>
+      </div>
+      <div className="flex items-center justify-between" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #F1F1F3' }}>
+        <div className="flex items-center gap-2 min-w-0">
+          <span style={{ display: 'grid', placeItems: 'center', width: 24, height: 24, background: SLATE_100, color: SLATE_700, borderRadius: 999, fontSize: 10, fontWeight: 600 }}>{r.ownerInitials}</span>
+          <span style={{ fontSize: 12, color: '#52525B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.owner}</span>
         </div>
+        <span style={{ padding: '3px 8px', borderRadius: 6, background: r.visibility === 'Shared' ? CORAL_50 : SLATE_50, color: r.visibility === 'Shared' ? CORAL_DK : SLATE_700, fontSize: 10.5, fontWeight: 500 }}>{r.visibility}</span>
       </div>
     </div>
   );
@@ -260,14 +284,22 @@ function TemplateCard({ t, onUse }: { t: Template; onUse: () => void }) {
   const [hover, setHover] = useState(false);
   const Icon = t.icon;
   return (
-    <div className="rounded-2xl bg-white transition-shadow duration-150" style={{ padding: 20, boxShadow: hover ? CARD_SHADOW_HOVER : CARD_SHADOW }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} data-testid={`cr-template-${t.id}`}>
-      <div style={{ display: 'grid', placeItems: 'center', width: 40, height: 40, background: CORAL_50, color: CORAL_600, borderRadius: 10 }}><Icon size={20} strokeWidth={1.8} /></div>
-      <h3 style={{ margin: '14px 0 4px', fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>{t.name}</h3>
-      <p style={{ margin: '0 0 14px', fontSize: 12, color: SLATE_500, minHeight: 32 }}>{t.description}</p>
-      <div className="flex items-center justify-between">
-        <span style={{ fontSize: 11, color: SLATE_400, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t.dataSource} · {t.viz}</span>
-        <button type="button" onClick={onUse} className="transition-colors duration-150" style={{ height: 32, padding: '0 12px', background: INK, color: '#fff', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }} data-testid={`cr-use-template-${t.id}`}>
-          <Play size={12} strokeWidth={2.2} />Use template
+    <div className="rounded-2xl bg-white transition-shadow duration-150" style={{ padding: 20, boxShadow: hover ? '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px #EDEDEF' : CARD_SHADOW }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} data-testid={`cr-template-${t.id}`}>
+      <div className="flex items-start justify-between">
+        <div style={{ display: 'grid', placeItems: 'center', width: 32, height: 32, background: CORAL_50, color: CORAL_600, borderRadius: 8 }}><Icon size={16} strokeWidth={1.9} /></div>
+        <span style={{ padding: '3px 8px', borderRadius: 6, background: INK, color: '#fff', fontSize: 10.5, fontWeight: 500 }}>Template</span>
+      </div>
+      <h3 style={{ margin: '14px 0 0', fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>{t.name}</h3>
+      <p style={{ margin: '4px 0 0', fontSize: 12.5, color: SLATE_500, lineHeight: 1.5, minHeight: 38 }}>{t.description}</p>
+      <div className="flex flex-wrap" style={{ gap: 6, marginTop: 16 }}>
+        <MetaChip>{t.dataSource}</MetaChip>
+        <MetaChip>{t.viz}</MetaChip>
+        <MetaChip>{t.dimensions.length} {t.dimensions.length === 1 ? 'dim' : 'dims'}</MetaChip>
+        <MetaChip>{t.metrics.length} {t.metrics.length === 1 ? 'metric' : 'metrics'}</MetaChip>
+      </div>
+      <div className="flex items-center justify-end" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #F1F1F3' }}>
+        <button type="button" onClick={onUse} className="inline-flex items-center gap-1.5 transition-colors duration-150" style={{ height: 28, padding: '0 10px', background: 'transparent', color: CORAL_DK, borderRadius: 6, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.background = CORAL_50; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }} data-testid={`cr-use-template-${t.id}`}>
+          Use template<Play size={11} strokeWidth={2.4} />
         </button>
       </div>
     </div>
@@ -469,7 +501,7 @@ export default function CustomReportingPage() {
           title="Custom Reporting"
           subtitle="Build, save, and share ad-hoc reports across every data source."
           testIdPrefix="cr"
-          right={<DateRangePicker value={range} onChange={setRange} testId="cr-range" />}
+          dateControl={<DateRangePicker value={range} onChange={setRange} testId="cr-range" />}
         />
 
         {view === 'library' && (
@@ -559,16 +591,26 @@ function LibraryView({ tab, setTab, reports, templates, onNew, onUseTemplate, on
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3" data-testid="cr-library-toolbar">
-        <SegTabs tabs={TABS as unknown as readonly string[]} value={tab} onChange={(v: any) => setTab(v)} testId="cr-tabs" slugPrefix="cr-tab" />
-        <button type="button" onClick={onNew} className="inline-flex items-center gap-1.5 transition-colors duration-150" style={{ height: 36, padding: '0 14px', background: INK, color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_800; }}
+        <div className="flex items-center" style={{ gap: 4 }} role="tablist">
+          {TABS.map((t) => {
+            const active = t === tab;
+            return (
+              <button key={t} type="button" role="tab" aria-selected={active} onClick={() => setTab(t)} className="ph-tab" data-active={active} data-testid={`cr-tab-${t.toLowerCase().replace(/\s+/g, '-')}`}>
+                <span>{t}</span>
+                <span className="ph-tab-underline" aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
+        <button type="button" onClick={onNew} className="inline-flex items-center gap-1.5 transition-colors duration-150" style={{ height: 36, padding: '0 14px', background: INK, color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#1A1A1C'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = INK; }}
           data-testid="cr-new-report">
           <Plus size={14} strokeWidth={2.2} />New Report
         </button>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="cr-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" style={{ marginTop: 24 }} data-testid="cr-grid">
         {tab === 'Templates'
           ? templates.map((t) => <TemplateCard key={t.id} t={t} onUse={() => onUseTemplate(t)} />)
           : reports.length === 0
@@ -636,7 +678,18 @@ function BuilderView(props: {
       </PanelSection>
 
       <PanelSection title="Visualization">
-        <SegTabs tabs={VIZ_TYPES as unknown as readonly string[]} value={viz} onChange={(v: any) => setViz(v)} testId="cr-viz-tabs" slugPrefix="cr-viz" />
+        <div className="grid grid-cols-2" style={{ gap: 8 }}>
+          {VIZ_TYPES.map((v) => {
+            const Icon = vizIcon(v);
+            const active = viz === v;
+            return (
+              <button key={v} type="button" onClick={() => setViz(v)} className="flex flex-col items-center justify-center transition-colors duration-150" style={{ height: 56, background: active ? CORAL_50 : '#FFFFFF', border: active ? `1.5px solid ${CORAL_600}` : `1px solid ${SLATE_200}`, borderRadius: 10, cursor: 'pointer', gap: 4 }} data-testid={`cr-viz-${v.toLowerCase()}`}>
+                <Icon size={16} strokeWidth={1.9} style={{ color: active ? CORAL_DK : SLATE_700 }} />
+                <span style={{ fontSize: 11, fontWeight: active ? 600 : 500, color: active ? CORAL_DK : SLATE_700 }}>{v}</span>
+              </button>
+            );
+          })}
+        </div>
       </PanelSection>
     </aside>
   );

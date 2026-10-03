@@ -104,13 +104,10 @@ export default function CashFlowPage() {
           title="Cash Flow"
           subtitle="Operating, investing, and financing activity across the period."
           testIdPrefix="cf"
-          right={
-            <div className="flex items-center shrink-0 rounded-2xl p-1" style={{ background: '#EEEEEC' }} data-testid="cf-filter-pill">
-              <SegTabs tabs={SEGS as unknown as readonly string[]} value={seg} onChange={(v: string) => setSeg(v)} testId="cf-seg" slugPrefix="cf-seg" background="transparent" />
-              <span aria-hidden="true" className="mx-2" style={{ width: 1, height: 20, background: '#CBD5E1' }} />
-              <DateRangePicker value={range} onChange={setRange} testId="cf-range" />
-            </div>
-          }
+          channels={SEGS}
+          activeChannel={seg}
+          onChannelChange={(v: string) => setSeg(v)}
+          dateControl={<DateRangePicker value={range} onChange={setRange} testId="cf-range" />}
         />
 
         {/* Hero */}

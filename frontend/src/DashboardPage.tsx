@@ -946,13 +946,10 @@ export default function DashboardPage(_props: DashProps) {
           title="Dashboard"
           subtitle="Operating snapshot across channels and performance."
           testIdPrefix="dashboard"
-          right={
-            <div className="inline-flex items-center rounded-2xl p-1" style={{ background: '#EEEEEC' }} data-testid="dashboard-filter-pill">
-              <SegTabs tabs={SEGMENTS as unknown as readonly string[]} value={seg} onChange={(v: any) => setSeg(v)} testId="dash-seg-tabs" slugPrefix="dash-seg" background="transparent" />
-              <span aria-hidden="true" className="mx-2" style={{ width: 1, height: 20, background: '#CBD5E1' }} />
-              <DateRangePicker value={range} onChange={setRange} testId="dashboard-range" />
-            </div>
-          }
+          channels={SEGMENTS}
+          activeChannel={seg}
+          onChannelChange={(v: string) => setSeg(v as any)}
+          dateControl={<DateRangePicker value={range} onChange={setRange} testId="dashboard-range" />}
         />
 
         {/* ── 2. Hero row 70/30 ─────────────────────────────────── */}
