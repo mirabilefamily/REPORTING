@@ -417,7 +417,7 @@ export default function AnalyticsPage() {
     <div className="min-h-full" data-testid="analytics-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
       <div className="page-canvas">
         <PageHeader
-          title="Operational"
+          title="Analytics"
           testIdPrefix="an"
           right={
             <SegTabs tabs={COMPARE as unknown as readonly string[]} value={compare} onChange={(v: string) => setCompare(v)} testId="an-compare-tabs" slugPrefix="an-compare" />

@@ -114,17 +114,11 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
 
 function Toggle({ on, onChange, testId }: { on: boolean; onChange: (v: boolean) => void; testId?: string }) {
   return (
-    <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} data-testid={testId} style={{ position: 'relative', width: 34, height: 20, borderRadius: 999, background: on ? CORAL : '#CBD5E1', cursor: 'pointer', transition: 'background 150ms ease', flexShrink: 0, border: 'none' }}>
-      <span style={{ position: 'absolute', top: 2, left: on ? 16 : 2, width: 16, height: 16, borderRadius: 999, background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,0.15)', transition: 'left 150ms ease' }} />
-    </button>
+    <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} className="ds-switch" data-on={on} data-testid={testId} />
   );
 }
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 36, padding: '0 10px', background: '#fff', border: `1px solid ${SLATE_200}`, borderRadius: 10, fontSize: 13, color: INK, outline: 'none', fontFamily: 'inherit' };
-const inputFocusCSS = '';
-const ghostBtn: React.CSSProperties = { height: 32, padding: '0 12px', background: '#fff', color: SLATE_700, border: `1px solid ${SLATE_200}`, borderRadius: 8, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' };
-const primaryBtn: React.CSSProperties = { height: 32, padding: '0 12px', background: INK, color: '#fff', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: 'none', fontFamily: 'inherit' };
-const coralBtn: React.CSSProperties = { height: 32, padding: '0 12px', background: CORAL_600, color: '#fff', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: 'none', fontFamily: 'inherit' };
+const inputStyle: React.CSSProperties = { width: '100%', maxWidth: 420, height: 36, padding: '0 10px', background: '#fff', border: `1px solid ${SLATE_200}`, borderRadius: 10, fontSize: 13, color: INK, outline: 'none', fontFamily: 'inherit' };
 
 function SectionCard({ id, title, help, children, danger }: { id: string; title: string; help?: string; children: React.ReactNode; danger?: boolean }) {
   return (
@@ -271,12 +265,12 @@ export default function SettingsPage() {
           </aside>
 
           {/* Main content */}
-          <main className="min-w-0 flex flex-col" style={{ gap: 24, maxWidth: 760 }}>
+          <main className="min-w-0 flex-1 flex flex-col" style={{ gap: 24 }}>
             {/* Profile */}
             <SectionCard id="profile" title="Profile" help="Your personal account details and preferences.">
               <div className="flex items-center gap-4" style={{ marginBottom: 20 }}>
                 <div style={{ display: 'grid', placeItems: 'center', width: 56, height: 56, borderRadius: 999, background: CORAL_50, color: CORAL_DK, fontSize: 20, fontWeight: 600 }}>RM</div>
-                <button type="button" onClick={() => show('Avatar picker (demo)')} style={ghostBtn} data-testid="settings-avatar-change">Change avatar</button>
+                <button type="button" onClick={() => show('Avatar picker (demo)')} className="btn-ghost btn-sm" data-testid="settings-avatar-change">Change avatar</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
                 <Field label="Full name"><input value={name} onChange={(e) => { setName(e.target.value); }} onBlur={() => show('Saved')} style={inputStyle} data-testid="settings-name" /></Field>
@@ -296,7 +290,7 @@ export default function SettingsPage() {
             <SectionCard id="workspace" title="Workspace" help="Company-wide defaults applied across reports.">
               <div className="flex items-center gap-4" style={{ marginBottom: 20 }}>
                 <div style={{ width: 56, height: 56, borderRadius: 10, background: INK, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 700 }}>G</div>
-                <button type="button" onClick={() => show('Upload (demo)')} style={ghostBtn} className="inline-flex items-center gap-1.5"><Upload size={13} />Upload logo</button>
+                <button type="button" onClick={() => show('Upload (demo)')} className="btn-ghost btn-sm"><Upload size={13} />Upload logo</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
                 <Field label="Company name"><input value={company} onChange={(e) => setCompany(e.target.value)} onBlur={() => show('Saved')} style={inputStyle} data-testid="settings-company" /></Field>
@@ -320,7 +314,7 @@ export default function SettingsPage() {
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={addChannel} className="inline-flex items-center gap-1.5" style={{ ...ghostBtn, marginTop: 12 }} data-testid="settings-add-channel"><Plus size={13} />Add channel</button>
+              <button type="button" onClick={addChannel} className="btn-ghost btn-sm" style={{ marginTop: 12 }} data-testid="settings-add-channel"><Plus size={13} />Add channel</button>
             </SectionCard>
 
             {/* Fiscal & Formatting */}
@@ -369,13 +363,13 @@ export default function SettingsPage() {
             {/* Team */}
             <SectionCard id="team" title="Team" help="Members with access to this workspace.">
               <div className="flex items-center justify-end" style={{ marginBottom: 12 }}>
-                <button type="button" onClick={() => setInviteOpen((v) => !v)} className="inline-flex items-center gap-1.5" style={coralBtn} data-testid="settings-invite-btn"><Plus size={13} />Invite member</button>
+                <button type="button" onClick={() => setInviteOpen((v) => !v)} className="btn-coral btn-sm" data-testid="settings-invite-btn"><Plus size={13} />Invite member</button>
               </div>
               {inviteOpen && (
                 <div className="flex flex-wrap gap-2" style={{ padding: 14, background: SLATE_50, border: `1px solid ${SLATE_200}`, borderRadius: 10, marginBottom: 16 }} data-testid="settings-invite-form">
                   <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="name@company.com" style={{ ...inputStyle, flex: 1, minWidth: 200, background: '#fff' }} />
                   <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as Role)} style={{ ...inputStyle, flex: '0 0 120px' }}>{(['Admin','Analyst','Viewer'] as Role[]).map((r) => <option key={r}>{r}</option>)}</select>
-                  <button type="button" onClick={addTeamMember} style={primaryBtn} data-testid="settings-invite-send">Send invite</button>
+                  <button type="button" onClick={addTeamMember} className="btn-primary btn-sm" data-testid="settings-invite-send">Send invite</button>
                 </div>
               )}
               <div style={{ overflowX: 'auto' }}>
@@ -411,7 +405,7 @@ export default function SettingsPage() {
 
             {/* Integrations */}
             <SectionCard id="integrations" title="Integrations" help="Connect data sources and delivery channels.">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="settings-integrations-grid">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="settings-integrations-grid">
                 {integrations.map((it: Integration) => (
                   <div key={it.id} className="flex items-start gap-3" style={{ padding: 14, border: `1px solid ${SLATE_200}`, borderRadius: 12 }} data-testid={`settings-integration-${it.id}`}>
                     <div style={{ display: 'grid', placeItems: 'center', width: 36, height: 36, background: SLATE_50, color: INK, borderRadius: 8, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em' }}>{it.mono}</div>
@@ -421,7 +415,7 @@ export default function SettingsPage() {
                         <span style={{ padding: '2px 8px', background: it.connected ? EMERALD_50 : SLATE_50, color: it.connected ? EMERALD : SLATE_700, borderRadius: 6, fontSize: 10.5, fontWeight: 500, whiteSpace: 'nowrap' }}>{it.connected ? 'Connected' : 'Not connected'}</span>
                       </div>
                       <p style={{ margin: '2px 0 10px', fontSize: 12, color: SLATE_500 }}>{it.blurb}</p>
-                      <button type="button" onClick={() => toggleIntegration(it.id)} style={{ ...ghostBtn, height: 28, padding: '0 10px' }} data-testid={`settings-integration-action-${it.id}`}>{it.connected ? 'Manage' : 'Connect'}</button>
+                      <button type="button" onClick={() => toggleIntegration(it.id)} className="btn-ghost btn-sm" style={{ height: 28, padding: '0 10px' }} data-testid={`settings-integration-action-${it.id}`}>{it.connected ? 'Manage' : 'Connect'}</button>
                     </div>
                   </div>
                 ))}
@@ -431,7 +425,7 @@ export default function SettingsPage() {
             {/* API Keys */}
             <SectionCard id="api" title="API Keys" help="Programmatic access to your workspace data.">
               <div className="flex items-center justify-end" style={{ marginBottom: 12 }}>
-                <button type="button" onClick={createKey} className="inline-flex items-center gap-1.5" style={primaryBtn} data-testid="settings-create-key"><Plus size={13} />Create key</button>
+                <button type="button" onClick={createKey} className="btn-primary btn-sm" data-testid="settings-create-key"><Plus size={13} />Create key</button>
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ ...TABULAR, width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
@@ -485,7 +479,7 @@ export default function SettingsPage() {
           <p style={{ margin: '0 0 12px', fontSize: 13, color: SLATE_500 }}>Copy this key now — it will only be shown once.</p>
           <div className="flex gap-2">
             <input readOnly value={newKeyModal.value} style={{ ...inputStyle, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', background: SLATE_50 }} data-testid="settings-newkey-value" />
-            <button type="button" onClick={() => { navigator.clipboard?.writeText(newKeyModal.value); show('Key copied'); setNewKeyModal(null); }} className="inline-flex items-center gap-1.5" style={primaryBtn}><Copy size={13} />Copy</button>
+            <button type="button" onClick={() => { navigator.clipboard?.writeText(newKeyModal.value); show('Key copied'); setNewKeyModal(null); }} className="btn-primary btn-sm"><Copy size={13} />Copy</button>
           </div>
         </ModalOverlay>
       )}
@@ -494,8 +488,8 @@ export default function SettingsPage() {
         <ModalOverlay onClose={() => setResetModal(false)} title="Reset local data?">
           <p style={{ margin: '0 0 20px', fontSize: 13, color: SLATE_500 }}>This clears all saved settings, team members, API keys, and integrations stored in this browser. The page will reload.</p>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setResetModal(false)} style={ghostBtn}>Cancel</button>
-            <button type="button" onClick={resetLocal} style={{ ...coralBtn, background: CORAL_600 }} data-testid="settings-reset-confirm">Reset data</button>
+            <button type="button" onClick={() => setResetModal(false)} className="btn-ghost btn-sm">Cancel</button>
+            <button type="button" onClick={resetLocal} className="btn-coral btn-sm" data-testid="settings-reset-confirm">Reset data</button>
           </div>
         </ModalOverlay>
       )}

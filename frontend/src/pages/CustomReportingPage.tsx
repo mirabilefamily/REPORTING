@@ -614,7 +614,7 @@ function LibraryView({ tab, setTab, reports, templates, onNew, onUseTemplate, on
             ? <div className="col-span-full rounded-2xl bg-white flex flex-col items-center justify-center text-center" style={{ minHeight: 220, padding: 40, boxShadow: CARD_SHADOW }}>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: INK }}>No reports yet</p>
                 <p style={{ margin: '4px 0 14px', fontSize: 12, color: SLATE_500 }}>Create a new report or pick a template.</p>
-                <button type="button" onClick={onNew} className="inline-flex items-center gap-1.5" style={{ height: 36, padding: '0 14px', background: INK, color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}><Plus size={14} />New Report</button>
+                <button type="button" onClick={onNew} className="btn-coral" data-testid="cr-new-report-btn"><Plus size={14} />New Report</button>
               </div>
             : reports.map((r) => <ReportCard key={r.id} r={r} onOpen={() => onOpenReport(r)} onAction={(a) => onCardAction(r, a)} />)
         }

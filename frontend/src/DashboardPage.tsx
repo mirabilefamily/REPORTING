@@ -320,12 +320,12 @@ function HeroTrendTooltip({ active, payload, label, monthly }: any) {
 }
 
 // ─── Atoms ────────────────────────────────────────────────────────────
-export function SegTabs({ tabs, value, onChange, testId, slugPrefix, background }: { tabs: readonly string[]; value: string; onChange: (v: any) => void; testId: string; slugPrefix: string; background?: string }) {
+export function SegTabs({ tabs, value, onChange, testId, slugPrefix }: { tabs: readonly string[]; value: string; onChange: (v: any) => void; testId: string; slugPrefix: string; background?: string }) {
   return (
     <div
-      className="inline-flex items-center gap-[2px] rounded-2xl p-1"
+      className="inline-flex items-center"
       role="tablist"
-      style={{ background: background ?? '#EEEEEC' }}
+      style={{ gap: 2 }}
       data-testid={testId}
     >
       {tabs.map((t) => {
@@ -333,31 +333,13 @@ export function SegTabs({ tabs, value, onChange, testId, slugPrefix, background 
         return (
           <button
             key={t}
+            type="button"
             role="tab"
             aria-selected={active}
             onClick={() => onChange(t)}
             data-testid={`${slugPrefix}-${t.toLowerCase().replace(/\s+/g, '-')}`}
-            className="rounded-[10px] px-4 py-2 text-[14px] tracking-tight transition-colors duration-150 focus:outline-none"
-            style={
-              active
-                ? {
-                    background: '#FFFFFF',
-                    color: '#0F1214',
-                    fontWeight: 600,
-                    boxShadow: '0 1px 2px rgba(15,17,20,0.06), 0 2px 8px rgba(15,17,20,0.04)',
-                    border: '1px solid rgba(15,17,20,0.06)',
-                  }
-                : {
-                    color: '#52525B',
-                    fontWeight: 500,
-                    border: '1px solid transparent',
-                    background: 'transparent',
-                  }
-            }
-            onFocus={(e) => { e.currentTarget.style.outline = '2px solid rgba(252,116,96,0.35)'; e.currentTarget.style.outlineOffset = '2px'; }}
-            onBlur={(e) => { e.currentTarget.style.outline = ''; e.currentTarget.style.outlineOffset = ''; }}
-            onMouseEnter={(e) => { if (!active) { e.currentTarget.style.color = '#27272A'; e.currentTarget.style.background = 'rgba(15,17,20,0.02)'; } }}
-            onMouseLeave={(e) => { if (!active) { e.currentTarget.style.color = '#52525B'; e.currentTarget.style.background = 'transparent'; } }}
+            className="ph-tab"
+            data-active={active}
           >
             {t}
           </button>

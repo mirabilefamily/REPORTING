@@ -50,7 +50,7 @@ const navGroups: NavGroup[] = [
     icon: BarChart2,
     items: [
       { label: 'Dashboard',        icon: LayoutGrid },
-      { label: 'Operational',      icon: BarChart2 },
+      { label: 'Analytics',        icon: BarChart2 },
       { label: 'Custom Reporting', icon: Sparkles },
     ],
   },
@@ -80,6 +80,23 @@ const navGroups: NavGroup[] = [
   },
 ];
 
+// Flat collapsed-rail order (not grouped). Separators are visual only.
+type RailEntry = { kind: 'item'; label: string; icon: typeof BarChart2 } | { kind: 'sep' };
+const RAIL: RailEntry[] = [
+  { kind: 'item', label: 'Dashboard',        icon: LayoutGrid },
+  { kind: 'item', label: 'Analytics',        icon: BarChart2 },
+  { kind: 'item', label: 'Custom Reporting', icon: Sparkles },
+  { kind: 'sep' },
+  { kind: 'item', label: 'P&L',              icon: DollarSign },
+  { kind: 'item', label: 'Profitability',    icon: PieChartIcon },
+  { kind: 'item', label: 'Cash Flow',        icon: Wallet },
+  { kind: 'sep' },
+  { kind: 'item', label: 'Forecast Goals',   icon: Target },
+  { kind: 'sep' },
+  { kind: 'item', label: 'Open Orders',      icon: ClipboardList },
+  { kind: 'item', label: 'Inventory',        icon: Boxes },
+];
+
 const flattenNav = (): NavItem[] => navGroups.flatMap((g) => g.items);
 const allLabels = () => flattenNav().map((i) => i.label);
 
@@ -100,8 +117,6 @@ function StaffApp() {
   });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [flyoutGroup, setFlyoutGroup] = useState<{ label: string; top: number } | null>(null);
-  const flyoutCloseTimer = useRef<number | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationDismissed, setNotificationDismissed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -123,35 +138,7 @@ function StaffApp() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  const goto = (label: string) => { setActiveNav(label); setMobileOpen(false); setFlyoutGroup(null); };
-
-  // Close flyout on ESC
-  useEffect(() => {
-    if (!flyoutGroup) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFlyoutGroup(null); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [flyoutGroup]);
-
-  // Close flyout if sidebar expands or user opens mobile drawer
-  useEffect(() => {
-    if (!sidebarCollapsed || mobileOpen) setFlyoutGroup(null);
-  }, [sidebarCollapsed, mobileOpen]);
-
-  const openFlyout = (label: string, e: React.MouseEvent<HTMLButtonElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (flyoutCloseTimer.current !== null) { window.clearTimeout(flyoutCloseTimer.current); flyoutCloseTimer.current = null; }
-    setFlyoutGroup({ label, top: rect.top });
-  };
-
-  const scheduleFlyoutClose = () => {
-    if (flyoutCloseTimer.current !== null) window.clearTimeout(flyoutCloseTimer.current);
-    flyoutCloseTimer.current = window.setTimeout(() => setFlyoutGroup(null), 300);
-  };
-
-  const cancelFlyoutClose = () => {
-    if (flyoutCloseTimer.current !== null) { window.clearTimeout(flyoutCloseTimer.current); flyoutCloseTimer.current = null; }
-  };
+  const goto = (label: string) => { setActiveNav(label); setMobileOpen(false); };
 
   const ActiveIcon = useMemo(() => {
     if (activeNav === 'Settings') return Settings;
@@ -203,25 +190,21 @@ function StaffApp() {
 
         <div className="sidebar-scroll">
           {sidebarCollapsed && !mobileOpen ? (
-            // ── Collapsed rail: ONE icon per nav group (no per-item icons) ──
-            navGroups.map((group) => {
-              const groupActive = group.items.some((i) => i.label === activeNav);
+            // ── Collapsed rail: FLAT list, every page icon visible, thin separators ──
+            RAIL.map((entry, i) => {
+              if (entry.kind === 'sep') return <div key={`sep-${i}`} className="rail-separator" aria-hidden="true" />;
+              const Icon = entry.icon;
+              const active = activeNav === entry.label;
               return (
-                <div className="nav-group" key={group.title}>
-                  <button
-                    className={`nav-item ${groupActive ? 'parent-active' : ''}`}
-                    onClick={(e) => openFlyout(group.title, e)}
-                    onMouseEnter={(e) => openFlyout(group.title, e)}
-                    onMouseLeave={scheduleFlyoutClose}
-                    title={group.title}
-                    aria-haspopup="menu"
-                    aria-expanded={flyoutGroup?.label === group.title}
-                    data-testid={`nav-group-${navSlug(group.title)}`}
-                  >
-                    <group.icon size={21} strokeWidth={1.8} />
-                    {groupActive && <span className="nav-group-dot" aria-hidden="true" />}
-                  </button>
-                </div>
+                <button
+                  key={entry.label}
+                  className={`nav-item nav-item-rail ${active ? 'active' : ''}`}
+                  onClick={() => goto(entry.label)}
+                  data-tooltip={entry.label}
+                  data-testid={`nav-${navSlug(entry.label)}`}
+                >
+                  <Icon size={20} strokeWidth={1.8} />
+                </button>
               );
             })
           ) : (
@@ -236,7 +219,7 @@ function StaffApp() {
                     onClick={() => goto(label)}
                     data-testid={`nav-${navSlug(label)}`}
                   >
-                    <Icon size={21} strokeWidth={1.8} />
+                    <Icon size={16} strokeWidth={1.75} />
                     <span>{label}</span>
                   </button>
                 ))}
@@ -247,54 +230,17 @@ function StaffApp() {
 
         <div className="sidebar-footer">
           <button
-            className={`nav-item ${activeNav === 'Settings' ? 'active' : ''}`}
+            className={`nav-item ${sidebarCollapsed ? 'nav-item-rail' : ''} ${activeNav === 'Settings' ? 'active' : ''}`}
             onClick={() => goto('Settings')}
-            title={sidebarCollapsed ? 'Settings' : undefined}
+            data-tooltip={sidebarCollapsed ? 'Settings' : undefined}
             data-testid="nav-settings"
           >
-            <Settings size={21} />
-            <span className={sidebarCollapsed ? 'sr-only' : ''}>Settings</span>
+            <Settings size={sidebarCollapsed ? 20 : 16} strokeWidth={1.75} />
+            {!sidebarCollapsed && <span>Settings</span>}
           </button>
         </div>
         <button className="collapse-button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label="Toggle sidebar"><PanelLeftClose size={16} /></button>
       </aside>
-
-      {/* Collapsed sidebar flyout — one per nav group */}
-      {flyoutGroup && sidebarCollapsed && !mobileOpen && (() => {
-        const g = navGroups.find((gr) => gr.title === flyoutGroup.label);
-        if (!g) return null;
-        return (
-          <>
-            <div className="sidebar-flyout-overlay" onClick={() => setFlyoutGroup(null)} aria-hidden="true" />
-            <div
-              className="sidebar-flyout"
-              style={{ top: Math.max(12, flyoutGroup.top) }}
-              role="menu"
-              aria-label={`${flyoutGroup.label} sub navigation`}
-              onMouseEnter={cancelFlyoutClose}
-              onMouseLeave={scheduleFlyoutClose}
-              data-testid={`sidebar-flyout-${navSlug(flyoutGroup.label)}`}
-            >
-              <div className="sidebar-flyout-head">
-                <span>{flyoutGroup.label}</span>
-                <ChevronLeft size={14} strokeWidth={2} style={{ color: '#CBD5E1' }} />
-              </div>
-              {g.items.map((item) => (
-                <button
-                  key={item.label}
-                  className={`sidebar-flyout-item ${activeNav === item.label ? 'active' : ''}`}
-                  onClick={() => goto(item.label)}
-                  role="menuitem"
-                  autoFocus={activeNav === item.label}
-                  data-testid={`sidebar-flyout-item-${navSlug(item.label)}`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </>
-        );
-      })()}
 
       {mobileOpen && <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} aria-hidden="true" />}
 
@@ -317,16 +263,16 @@ function StaffApp() {
           </div>
           <div className="top-actions">
             <button
-              className="ai-assist-btn"
+              className="btn-ai"
               onClick={() => { /* placeholder — no-op */ }}
               aria-label="AI Assist"
               data-testid="ai-assist-btn"
             >
-              <Sparkles size={15} strokeWidth={1.9} style={{ color: '#FF6F61' }} />
+              <Sparkles size={14} strokeWidth={1.9} />
               <span>AI Assist</span>
             </button>
             <div className="notification-wrap">
-              <button className="icon-button notification-button" onClick={() => { setNotificationsOpen(!notificationsOpen); setUserMenuOpen(false); }} aria-label="Notifications" aria-expanded={notificationsOpen} aria-haspopup="dialog" data-testid="notifications-button"><Bell size={17} />{!notificationDismissed && <span className="notification-dot" />}</button>
+              <button className="notification-button" onClick={() => { setNotificationsOpen(!notificationsOpen); setUserMenuOpen(false); }} aria-label="Notifications" aria-expanded={notificationsOpen} aria-haspopup="dialog" data-testid="notifications-button"><Bell />{!notificationDismissed && <span className="notification-dot" />}</button>
               {notificationsOpen && (
                 <div className="notification-popover" role="dialog" aria-label="Notifications">
                   <div className="notification-header">
@@ -359,7 +305,7 @@ function StaffApp() {
             <span className="top-divider" aria-hidden="true" />
             <div className="profile-menu-wrap">
               <button className={`user-profile ${userMenuOpen ? 'profile-open' : ''}`} onClick={() => { setUserMenuOpen(!userMenuOpen); setNotificationsOpen(false); }} aria-expanded={userMenuOpen} aria-haspopup="menu" data-testid="profile-button">
-                <div className="user-avatar">RM</div><div className="user-copy"><strong>Ryan M</strong><span>Goorin Bros. · Staff</span></div><ChevronDown className="profile-chevron" size={14} />
+                <div className="user-avatar">RM</div><div className="user-copy"><strong>Ryan M</strong><span>Admin</span></div><ChevronDown className="profile-chevron" size={14} />
               </button>
               {userMenuOpen && (
                 <div className="profile-menu" role="menu">
@@ -388,7 +334,7 @@ function StaffApp() {
 
         <div className="page-content">
           {activeNav === 'Dashboard' && <DashboardPage name="Ryan" onNavigate={goto} />}
-          {(activeNav === 'Analytics' || activeNav === 'Operational') && <AnalyticsPage />}
+          {activeNav === 'Analytics' && <AnalyticsPage />}
           {activeNav === 'Custom Reporting' && <CustomReportingPage />}
           {activeNav === 'Open Orders' && <MyOrdersPage />}
           {activeNav === 'P&L' && <PnlPage />}
