@@ -15,6 +15,7 @@ import {
   YAxis,
 } from 'recharts';
 import {
+  AlertCircle,
   ArrowDown,
   ArrowUp,
   ArrowUpRight,
@@ -22,6 +23,7 @@ import {
   FileSpreadsheet,
   FileText,
   Sparkles,
+  X,
 } from 'lucide-react';
 import DateRangePicker from './components/DateRangePicker';
 import { usePageRange } from './lib/pageRange';
@@ -30,7 +32,7 @@ import AccountDrilldown from './AccountDrilldown';
 type Props = { name?: string; onNavigate?: (label: string) => void };
 
 // ─── Design tokens ────────────────────────────────────────────────────
-const CORAL = '#FC7460';
+const CORAL = '#FF6F61';
 const CORAL_LIGHT = '#FF9678';
 const CORAL_SOFT = '#FF8A76';
 const CORAL_DEEP = '#EE5A44';
@@ -54,10 +56,10 @@ const INSET_TRACK = 'inset 0 1px 2px rgba(15,17,20,0.04)';
 // ─── Locked segment color palette (single source of truth) ────────────
 // Slate-900 anchor + 4-step coral ramp (dark → light). Used by Channel Mix + Revenue by month.
 const C_USW    = '#0F172A'; // slate-900 (anchor)
-const C_DIST   = '#C7452E'; // coral-700 (dark burnt coral)
-const C_ECOM   = '#FC7460'; // coral-500 (brand coral)
-const C_AMZN   = '#FDA595'; // coral-300 (light coral)
-const C_RETAIL = '#FDD5CB'; // coral-200 (pale coral)
+const C_DIST   = '#C9422E'; // coral-700 (dark burnt coral)
+const C_ECOM   = '#FF6F61'; // coral-500 (brand coral)
+const C_AMZN   = '#FFA195'; // coral-300 (light coral)
+const C_RETAIL = '#FFD2CB'; // coral-200 (pale coral)
 export const SEG_COLORS: Record<string, string> = {
   'US Wholesale': C_USW,
   'Distributors': C_DIST,
@@ -272,7 +274,7 @@ function HeroTrendTooltip({ active, payload, label, monthly }: any) {
       <p style={{ color: '#0F172A', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.10em', marginBottom: 6 }}>{label}</p>
       <p style={{ color: '#0F172A', fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', margin: 0 }}>{fmtM(t)}</p>
       {prev && (
-        <p style={{ marginTop: 4, fontSize: 11, fontWeight: 500, color: up ? '#047857' : '#C7452E' }}>
+        <p style={{ marginTop: 4, fontSize: 11, fontWeight: 500, color: up ? '#047857' : '#C9422E' }}>
           {up ? '↑' : '↓'} {Math.abs(mom.p).toFixed(1)}% MoM
         </p>
       )}
@@ -335,8 +337,8 @@ export function DeltaPill({ v }: { v: number }) {
       className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold"
       style={{
         ...TABULAR,
-        color: up ? '#047857' : '#C7452E',
-        background: up ? '#ECFDF5' : '#FFF1EE',
+        color: up ? '#047857' : '#C9422E',
+        background: up ? '#ECFDF5' : '#FFF1EF',
         padding: '3px 8px',
       }}
     >
@@ -572,18 +574,111 @@ function Swatch({ color, label, dashed = false, line = false, dim = false }: { c
   );
 }
 
+// ─── Micro-sparkline data (last 12 periods, millions where applicable) ─
+const SPARK_OPEN_ORDERS = [3.4, 3.7, 3.5, 3.9, 4.1, 3.8, 4.2, 4.3, 4.0, 4.4, 4.1, 4.18];
+const SPARK_TOTAL       = [22.1, 22.8, 23.4, 23.1, 23.9, 24.3, 24.0, 24.8, 25.2, 25.5, 25.9, 26.68];
+const SPARK_FORECAST    = [26.4, 26.3, 26.2, 26.15, 26.1, 26.05, 26.0, 26.0, 25.99, 25.98, 25.98, 25.98];
+
+function MiniSpark({ data, color }: { data: number[]; color: string }) {
+  const w = 100, h = 28;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = (max - min) || 1;
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * (h - 4) - 2}`).join(' ');
+  const lastX = w;
+  const lastY = h - ((data[data.length - 1] - min) / range) * (h - 4) - 2;
+  return (
+    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <circle cx={lastX - 1.5} cy={lastY} r={2.4} fill={color} />
+    </svg>
+  );
+}
+
+function InsightStrip({ goalPct, pace, segmentRows, period }: { goalPct: number; pace: number; segmentRows: Array<{ key: string; cur: number; tgt: number; pct: number }>; period: string }) {
+  const diff = goalPct - pace;
+  const ahead = diff >= 0;
+  const sorted = [...segmentRows].sort((a, b) => a.pct - b.pct);
+  const drag = sorted[0];
+  const mover = sorted[sorted.length - 1];
+  const dragGap = Math.max(0, drag.tgt - drag.cur);
+  return (
+    <div
+      className="flex items-center gap-3 rounded-xl transition-colors duration-150 hover:bg-slate-100"
+      style={{ background: '#F8FAFC', minHeight: 48, padding: '0 20px', borderLeft: '2px solid #FF6F61' }}
+      data-testid="insight-strip"
+      title={`${period} snapshot across all segments`}
+    >
+      <AlertCircle size={16} color="#FF6F61" strokeWidth={2} />
+      <p className="text-[13px] font-medium" style={{ color: '#1E293B', lineHeight: 1.4 }}>
+        You're <strong style={{ color: '#0F172A', fontWeight: 600 }}>{Math.abs(diff)} pts {ahead ? 'ahead of' : 'behind'}</strong> pace.{' '}
+        <strong style={{ color: '#0F172A', fontWeight: 600 }}>{drag.key}</strong> is the biggest drag,{' '}
+        <strong style={{ color: '#0F172A', fontWeight: 600 }}>{fmtM(dragGap)} below plan</strong>.{' '}
+        <strong style={{ color: '#0F172A', fontWeight: 600 }}>{mover.key}</strong> is pacing strongest at{' '}
+        <strong style={{ color: '#0F172A', fontWeight: 600 }}>{mover.pct}% attainment</strong>.
+      </p>
+    </div>
+  );
+}
+
+function ContextChip({ label, value, onReset, testId }: { label: string; value: string; onReset: () => void; testId: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onReset}
+      className="inline-flex items-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-colors duration-150 hover:bg-slate-200"
+      style={{ background: '#F1F5F9', color: '#334155', height: 24 }}
+      data-testid={testId}
+    >
+      <span style={{ color: '#64748B' }}>{label}:</span>
+      <span>{value}</span>
+      <X size={10} strokeWidth={2.4} color="#64748B" />
+    </button>
+  );
+}
+
+function ContextChips({ seg, rLabel, onResetSeg, onResetRange }: { seg: string; rLabel: string; onResetSeg: () => void; onResetRange: () => void }) {
+  const segNonDefault = seg !== 'All';
+  const rangeNonDefault = rLabel !== 'YTD';
+  if (!segNonDefault && !rangeNonDefault) return null;
+  return (
+    <div className="flex items-center gap-2 px-1 py-1" data-testid="context-chips" style={{ animation: 'dashFadeSlideUp 300ms ease-out both' }}>
+      <span className="text-[11px] font-medium" style={{ color: '#64748B' }}>Showing:</span>
+      {segNonDefault && <ContextChip label="Segment" value={seg} onReset={onResetSeg} testId="context-chip-seg" />}
+      {rangeNonDefault && <ContextChip label="Period" value={rLabel} onReset={onResetRange} testId="context-chip-period" />}
+    </div>
+  );
+}
+
 function MiniKPI({ label, target, delta, caption, testId }: { label: string; target: number; delta: React.ReactNode; caption: string; testId: string }) {
   const v = useCountUp(target, 700);
+  // Map KPI label to its sparkline data + color
+  const sparkMap: Record<string, { data: number[]; color: string }> = {
+    'Open Orders': { data: SPARK_OPEN_ORDERS, color: '#94A3B8' },
+    'Total':       { data: SPARK_TOTAL,       color: '#94A3B8' },
+    'Forecast':    { data: SPARK_FORECAST,    color: '#FF6F61' },
+  };
+  const spark = sparkMap[label];
+  const titleMap: Record<string, string> = {
+    'Open Orders': 'Dollar value of orders currently in-flight (not yet shipped).',
+    'Total':       'Period-to-date total net sales across all selected channels.',
+    'Forecast':    'Projected period-end total using current pace and seasonality.',
+  };
   return (
     <div className="px-6 pb-5 pt-5" data-testid={testId}>
       <div className="flex min-h-[26px] items-center justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>{label}</p>
         <span data-testid={`${testId}-delta`}>{delta}</span>
       </div>
-      <p className="mt-3 font-semibold" style={{ ...TABULAR, fontSize: 22, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>
+      <p className="mt-3 font-semibold" style={{ ...TABULAR, fontSize: 22, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }} title={titleMap[label]}>
         {usd0(Math.max(0, v))}
       </p>
       <p className="mt-2 text-[11px] font-medium" style={{ ...TABULAR, color: '#64748B' }}>{caption}</p>
+      {spark && (
+        <div className="mt-2.5" style={{ height: 28 }} data-testid={`${testId}-spark`}>
+          <MiniSpark data={spark.data} color={spark.color} />
+        </div>
+      )}
     </div>
   );
 }
@@ -704,6 +799,12 @@ export default function DashboardPage({ onNavigate }: Props) {
 
   return (
     <div className="min-h-full space-y-4 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
+      <InsightStrip
+        goalPct={goalPct}
+        pace={pace}
+        segmentRows={segmentRowsScaled}
+        period={rLabel}
+      />
       {/* ── 1) Unified Hero — Header + Net Sales + Annual Goal ─────── */}
       <section
         className="overflow-hidden rounded-2xl"
@@ -779,8 +880,8 @@ export default function DashboardPage({ onNavigate }: Props) {
               className="inline-flex items-center rounded-full text-[11px] font-semibold"
               style={{
                 ...TABULAR,
-                background: onPace ? '#ECFDF5' : '#FFF1EE',
-                color: onPace ? '#047857' : '#C7452E',
+                background: onPace ? '#ECFDF5' : '#FFF1EF',
+                color: onPace ? '#047857' : '#C9422E',
                 padding: '3px 8px',
               }}
               data-testid="annual-goal-pct-pill"
@@ -852,6 +953,13 @@ export default function DashboardPage({ onNavigate }: Props) {
         </div>
       </section>
 
+      <ContextChips
+        seg={seg}
+        rLabel={rLabel}
+        onResetSeg={() => setSeg('All')}
+        onResetRange={() => setRange('YTD')}
+      />
+
       {/* ── 2b) Unified KPI row: Open Orders / Total / Forecast ────── */}
       <section
         className="overflow-hidden rounded-2xl bg-white"
@@ -878,7 +986,7 @@ export default function DashboardPage({ onNavigate }: Props) {
           <MiniKPI
             label="Forecast"
             target={forecastVal}
-            delta={<span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold" style={{ ...TABULAR, background: '#FFF1EE', color: '#C7452E', padding: '3px 8px' }}><ArrowDown size={10} strokeWidth={2.6} />Trailing</span>}
+            delta={<span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold" style={{ ...TABULAR, background: '#FFF1EF', color: '#C9422E', padding: '3px 8px' }}><ArrowDown size={10} strokeWidth={2.6} />Trailing</span>}
             caption="attainment vs plan"
             testId="kpi-forecast"
           />
@@ -985,7 +1093,7 @@ export default function DashboardPage({ onNavigate }: Props) {
                   <span className="truncate text-[14px] font-medium" style={{ color: '#0F172A' }}>{s.key}</span>
                   <span className="text-right text-[14px] font-medium" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(s.cur)}</span>
                   <span className="text-right text-[14px] font-medium" style={{ ...TABULAR, color: '#0F172A' }}>{fmtM(s.tgt)}</span>
-                  <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: onPace ? '#0F172A' : '#C7452E' }}>{s.pct}%</span>
+                  <span className="text-right text-[14px] font-semibold" style={{ ...TABULAR, color: onPace ? '#0F172A' : '#C9422E' }}>{s.pct}%</span>
                 </div>
               );
             })}
@@ -1096,9 +1204,9 @@ export default function DashboardPage({ onNavigate }: Props) {
           </div>
           {svgVisibleRows.map((r) => {
             const onPace = r.pct >= 70;
-            const barColor = onPace ? '#0F172A' : '#FC7460';
-            const pctColor = onPace ? '#0F172A' : '#C7452E';
-            const varColor = r.variance < 0 ? '#C7452E' : r.variance > 0 ? '#0F172A' : '#64748B';
+            const barColor = onPace ? '#0F172A' : '#FF6F61';
+            const pctColor = onPace ? '#0F172A' : '#C9422E';
+            const varColor = r.variance < 0 ? '#C9422E' : r.variance > 0 ? '#0F172A' : '#64748B';
             return (
               <div
                 key={r.name}
@@ -1128,9 +1236,9 @@ export default function DashboardPage({ onNavigate }: Props) {
           })}
           {(() => {
             const onPace = svgTotalScaled.pct >= 70;
-            const barColor = onPace ? '#0F172A' : '#FC7460';
-            const pctColor = onPace ? '#0F172A' : '#C7452E';
-            const varColor = svgTotalScaled.variance < 0 ? '#C7452E' : svgTotalScaled.variance > 0 ? '#0F172A' : '#64748B';
+            const barColor = onPace ? '#0F172A' : '#FF6F61';
+            const pctColor = onPace ? '#0F172A' : '#C9422E';
+            const varColor = svgTotalScaled.variance < 0 ? '#C9422E' : svgTotalScaled.variance > 0 ? '#0F172A' : '#64748B';
             return (
               <div
                 className="grid min-w-[820px] md:min-w-0 grid-cols-[minmax(180px,1.4fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(160px,200px)_minmax(110px,1fr)] items-center gap-x-4 h-[52px] text-[15px] font-semibold"

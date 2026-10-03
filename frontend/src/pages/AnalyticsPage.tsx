@@ -176,8 +176,8 @@ function InlineDelta({ v, showArrow = true }: { v: number; showArrow?: boolean }
       className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-medium"
       style={{
         ...TABULAR,
-        color: up ? '#047857' : '#C7452E',
-        background: up ? '#ECFDF5' : '#FFF1EE',
+        color: up ? '#047857' : '#C9422E',
+        background: up ? '#ECFDF5' : '#FFF1EF',
         padding: '3px 8px',
       }}
     >
@@ -311,7 +311,7 @@ export default function AnalyticsPage() {
                     {i > 0 && (
                       <span
                         className="inline-flex items-center rounded-full text-[11px] font-medium"
-                        style={{ ...TABULAR, background: '#FFF1EE', color: '#C7452E', padding: '2px 8px' }}
+                        style={{ ...TABULAR, background: '#FFF1EF', color: '#C9422E', padding: '2px 8px' }}
                       >
                         −{dropPct.toFixed(1)}% drop-off
                       </span>
@@ -369,8 +369,8 @@ export default function AnalyticsPage() {
                 />
                 <ReferenceLine
                   x="9-12w"
-                  stroke="#FC7460" strokeDasharray="4 4" strokeWidth={1.5}
-                  label={{ value: 'Reorder benchmark', position: 'top', fill: '#C7452E', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em' }}
+                  stroke="#FF6F61" strokeDasharray="4 4" strokeWidth={1.5}
+                  label={{ value: 'Reorder benchmark', position: 'top', fill: '#C9422E', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em' }}
                 />
                 <Bar dataKey="count" radius={[3, 3, 0, 0]} isAnimationActive animationDuration={400}>
                   {reorderData.map((d, i) => (

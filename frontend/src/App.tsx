@@ -255,7 +255,7 @@ function StaffApp() {
               aria-label="AI Assist"
               data-testid="ai-assist-btn"
             >
-              <Sparkles size={15} strokeWidth={1.9} style={{ color: '#FC7460' }} />
+              <Sparkles size={15} strokeWidth={1.9} style={{ color: '#FF6F61' }} />
               <span>AI Assist</span>
             </button>
             <div className="notification-wrap">

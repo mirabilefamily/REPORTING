@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ArrowDown, ArrowUp, ArrowUpRight, X } from 'lucide-react';
 
-const CORAL = '#FC7460';
+const CORAL = '#FF6F61';
 const INK = '#0A0A0A';
 const BODY = '#171717';
 const MUTED = '#525252';
