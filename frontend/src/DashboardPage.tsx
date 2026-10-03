@@ -578,6 +578,8 @@ function Swatch({ color, label, dashed = false, line = false, dim = false }: { c
 const SPARK_OPEN_ORDERS = [3.4, 3.7, 3.5, 3.9, 4.1, 3.8, 4.2, 4.3, 4.0, 4.4, 4.1, 4.18];
 const SPARK_TOTAL       = [22.1, 22.8, 23.4, 23.1, 23.9, 24.3, 24.0, 24.8, 25.2, 25.5, 25.9, 26.68];
 const SPARK_FORECAST    = [26.4, 26.3, 26.2, 26.15, 26.1, 26.05, 26.0, 26.0, 25.99, 25.98, 25.98, 25.98];
+const SPARK_AT_RISK     = [16, 17, 18, 18, 19, 20, 20, 21, 22, 22, 23, 23];
+const SPARK_CART_ABAND  = [73.1, 72.8, 72.5, 72.3, 72.0, 71.9, 71.7, 71.6, 71.5, 71.5, 71.4, 71.4];
 
 function MiniSpark({ data, color }: { data: number[]; color: string }) {
   const w = 100, h = 28;
@@ -585,12 +587,9 @@ function MiniSpark({ data, color }: { data: number[]; color: string }) {
   const min = Math.min(...data);
   const range = (max - min) || 1;
   const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * (h - 4) - 2}`).join(' ');
-  const lastX = w;
-  const lastY = h - ((data[data.length - 1] - min) / range) * (h - 4) - 2;
   return (
     <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }} aria-hidden="true">
       <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-      <circle cx={lastX - 1.5} cy={lastY} r={2.4} fill={color} />
     </svg>
   );
 }
@@ -650,33 +649,30 @@ function ContextChips({ seg, rLabel, onResetSeg, onResetRange }: { seg: string; 
   );
 }
 
-function MiniKPI({ label, target, delta, caption, testId }: { label: string; target: number; delta: React.ReactNode; caption: string; testId: string }) {
+function MiniKPI({ label, target, delta, caption, testId, format }: { label: string; target: number; delta: React.ReactNode; caption: string; testId: string; format?: (n: number) => string }) {
   const v = useCountUp(target, 700);
-  // Map KPI label to its sparkline data + color
-  const sparkMap: Record<string, { data: number[]; color: string }> = {
-    'Open Orders': { data: SPARK_OPEN_ORDERS, color: '#94A3B8' },
-    'Total':       { data: SPARK_TOTAL,       color: '#94A3B8' },
-    'Forecast':    { data: SPARK_FORECAST,    color: '#FF6F61' },
+  const config: Record<string, { full: string; data: number[]; color: string }> = {
+    'Open Orders':      { full: 'Open Orders · In Flight',   data: SPARK_OPEN_ORDERS, color: '#94A3B8' },
+    'Total':            { full: 'Total · YTD',               data: SPARK_TOTAL,       color: '#94A3B8' },
+    'Forecast':         { full: 'Forecast · 2026 Full Year', data: SPARK_FORECAST,    color: '#FF6F61' },
+    'At Risk Accounts': { full: 'At Risk Accounts',          data: SPARK_AT_RISK,     color: '#FF6F61' },
+    'Cart Abandonment': { full: 'Cart Abandonment %',        data: SPARK_CART_ABAND,  color: '#FF6F61' },
   };
-  const spark = sparkMap[label];
-  const titleMap: Record<string, string> = {
-    'Open Orders': 'Dollar value of orders currently in-flight (not yet shipped).',
-    'Total':       'Period-to-date total net sales across all selected channels.',
-    'Forecast':    'Projected period-end total using current pace and seasonality.',
-  };
+  const cfg = config[label] || { full: label, data: [] as number[], color: '#94A3B8' };
+  const fmt = format || ((n: number) => usd0(Math.max(0, n)));
   return (
     <div className="px-6 pb-5 pt-5" data-testid={testId}>
       <div className="flex min-h-[26px] items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>{label}</p>
+        <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>{cfg.full}</p>
         <span data-testid={`${testId}-delta`}>{delta}</span>
       </div>
-      <p className="mt-3 font-semibold" style={{ ...TABULAR, fontSize: 22, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }} title={titleMap[label]}>
-        {usd0(Math.max(0, v))}
+      <p className="mt-3 font-semibold" style={{ ...TABULAR, fontSize: 24, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>
+        {fmt(v)}
       </p>
       <p className="mt-2 text-[11px] font-medium" style={{ ...TABULAR, color: '#64748B' }}>{caption}</p>
-      {spark && (
+      {cfg.data.length > 0 && (
         <div className="mt-2.5" style={{ height: 28 }} data-testid={`${testId}-spark`}>
-          <MiniSpark data={spark.data} color={spark.color} />
+          <MiniSpark data={cfg.data} color={cfg.color} />
         </div>
       )}
     </div>
@@ -756,14 +752,13 @@ function SectionAnchorNav() {
 function PaceTrack({ actual, expected }: { actual: number; expected: number }) {
   const diff = Math.round(actual - expected);
   const dotColor = Math.abs(diff) <= 1 ? '#475569' : diff < 0 ? '#FF6F61' : '#059669';
-  const label = Math.abs(diff) <= 1 ? 'On pace' : diff < 0 ? `Behind pace by ${Math.abs(diff)} pts` : `Ahead of pace by ${diff} pts`;
   const clamped = Math.min(Math.max(actual, 2), 98);
   return (
-    <div className="flex justify-end" title={label} data-testid="svg-pace-track">
-      <div className="relative" style={{ width: 60, height: 12 }}>
-        <div style={{ position: 'absolute', top: 5, left: 0, right: 0, height: 2, background: '#F1F5F9', borderRadius: 999 }} />
-        <div style={{ position: 'absolute', top: 1, left: `${expected}%`, width: 2, height: 10, background: '#94A3B8', transform: 'translateX(-50%)' }} />
-        <div style={{ position: 'absolute', top: 2, left: `${clamped}%`, width: 8, height: 8, borderRadius: 999, background: dotColor, transform: 'translateX(-50%)', transition: 'left 400ms cubic-bezier(0.22, 1, 0.36, 1)' }} />
+    <div className="flex justify-end" data-testid="svg-pace-track" aria-label={Math.abs(diff) <= 1 ? 'On pace' : diff < 0 ? `${Math.abs(diff)} pts behind` : `${diff} pts ahead`}>
+      <div className="relative" style={{ width: 50, height: 10 }}>
+        <div style={{ position: 'absolute', top: 4, left: 0, right: 0, height: 2, background: '#F1F5F9', borderRadius: 999 }} />
+        <div style={{ position: 'absolute', top: 1, left: `${expected}%`, width: 1, height: 8, background: '#94A3B8', transform: 'translateX(-50%)' }} />
+        <div style={{ position: 'absolute', top: 2, left: `${clamped}%`, width: 6, height: 6, borderRadius: 999, background: dotColor, transform: 'translateX(-50%)', transition: 'left 400ms cubic-bezier(0.22, 1, 0.36, 1)' }} />
       </div>
     </div>
   );
@@ -791,6 +786,15 @@ export default function DashboardPage({ onNavigate }: Props) {
   const openOrders = 4_182_650 * combined;
   const total = 26_679_135 * combined;
   const forecastVal = 25_980_800 * combined;
+  const isDTC = seg === 'Ecommerce' || seg === 'Amazon';
+  const atRiskCount = Math.max(1, Math.round(23 * combined));
+  const atRiskDollars = 486_000 * combined;
+  const [kpiOpacity, setKpiOpacity] = useState(1);
+  useEffect(() => {
+    setKpiOpacity(0.4);
+    const t = setTimeout(() => setKpiOpacity(1), 20);
+    return () => clearTimeout(t);
+  }, [seg]);
   const goalValue = 17_510_000 * combined;
   const goalMax = 25_980_000;
   const goalPct = Math.round((goalValue / goalMax) * 100);
@@ -885,7 +889,6 @@ export default function DashboardPage({ onNavigate }: Props) {
 
   return (
     <div className="min-h-full space-y-4 p-1" data-testid="dashboard-page" style={{ ...INTER, ...TABULAR }}>
-      <SectionAnchorNav />
       {/* ── 1) Unified Hero — Header + Net Sales + Annual Goal ─────── */}
       <section
         className="overflow-hidden rounded-2xl"
@@ -903,7 +906,6 @@ export default function DashboardPage({ onNavigate }: Props) {
         <div className="grid grid-cols-1 min-[900px]:grid-cols-[minmax(0,7fr)_1px_minmax(0,3fr)]" style={{ borderTop: '1px solid #F1F5F9' }}>
           <div className="px-6 py-5" data-testid="kpi-net-sales">
             <div className="flex min-h-[26px] items-center gap-2">
-              <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} aria-hidden="true" />
               <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>
                 Net Sales · {rLabel}
               </p>
@@ -915,21 +917,9 @@ export default function DashboardPage({ onNavigate }: Props) {
               style={{ ...TABULAR, background: '#ECFDF5', color: '#047857', padding: '3px 8px' }}
               data-testid="net-sales-delta"
             >
-              <ArrowUp size={10} strokeWidth={2.6} />25.6% vs $7.3M prior YTD
+              <ArrowUp size={10} strokeWidth={2.6} />25.6% YoY
             </span>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#047857' }}>
-              <ArrowUp size={10} strokeWidth={2.6} />8.2% <span className="ml-1" style={{ color: '#475569' }}>MoM</span>
-            </span>
-            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#047857' }}>
-              <ArrowUp size={10} strokeWidth={2.6} />12.4% <span className="ml-1" style={{ color: '#475569' }}>QoQ</span>
-            </span>
-            <span className="inline-flex items-center gap-0.5 text-[12px] font-medium" style={{ ...TABULAR, color: '#047857' }}>
-              <ArrowUp size={10} strokeWidth={2.6} />25.6% <span className="ml-1" style={{ color: '#475569' }}>YoY</span>
-            </span>
-          </div>
-          <p className="mt-2 text-[11px] font-medium leading-snug" style={{ color: '#64748B' }}>After discounts, returns &amp; tax · shipping included</p>
           <div className="mt-4" data-testid="hero-sparkline">
             <div style={{ height: 110 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -949,9 +939,6 @@ export default function DashboardPage({ onNavigate }: Props) {
                 <span key={d.m} style={{ flex: 1, textAlign: 'center' }}>{d.m}</span>
               ))}
             </div>
-            <p className="mt-2 text-right text-[11px] font-medium" style={{ color: '#94A3B8' }} data-testid="hero-freshness">
-              Updated 2 min ago · auto-refresh in 3 min
-            </p>
           </div>
         </div>
 
@@ -1015,7 +1002,7 @@ export default function DashboardPage({ onNavigate }: Props) {
           <div className="mt-2 flex items-center gap-1.5" data-testid="behind-pace-pill">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: onPace ? '#047857' : CORAL }} aria-hidden="true" />
             <span className="text-[12px] font-medium" style={{ ...TABULAR, color: onPace ? '#047857' : CORAL }}>
-              {onPace ? 'On pace' : `${Math.abs(pace - goalPct)} pts behind pace`}
+              {onPace ? 'On pace' : `${Math.abs(pace - goalPct)} pts behind`}
             </span>
           </div>
           <div className="mt-2 pt-2" style={{ borderTop: `1px solid #F1F5F9` }}>
@@ -1044,13 +1031,16 @@ export default function DashboardPage({ onNavigate }: Props) {
         onResetRange={() => setRange('YTD')}
       />
 
-      {/* ── 2b) Unified KPI row: Open Orders / Total / Forecast ────── */}
+      {/* ── 2b) Unified KPI row: Open Orders / (At Risk | Cart Abandonment) / Forecast ────── */}
       <section
         className="overflow-hidden rounded-2xl bg-white"
         style={{ boxShadow: CARD_SHADOW, ...enter(2) }}
         data-testid="kpi-row"
       >
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)_1px_minmax(0,1fr)]">
+        <div
+          className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)_1px_minmax(0,1fr)]"
+          style={{ opacity: kpiOpacity, transition: 'opacity 180ms ease-out' }}
+        >
           <MiniKPI
             label="Open Orders"
             target={openOrders}
@@ -1059,13 +1049,25 @@ export default function DashboardPage({ onNavigate }: Props) {
             testId="kpi-open-orders"
           />
           <div className="hidden md:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
-          <MiniKPI
-            label="Total"
-            target={total}
-            delta={<span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold" style={{ ...TABULAR, background: '#ECFDF5', color: '#047857', padding: '3px 8px' }}><ArrowUp size={10} strokeWidth={2.6} />8.1%</span>}
-            caption="vs LY"
-            testId="kpi-total"
-          />
+          {isDTC ? (
+            <MiniKPI
+              label="Cart Abandonment"
+              target={71.4}
+              delta={<span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold" style={{ ...TABULAR, background: '#ECFDF5', color: '#047857', padding: '3px 8px' }}><ArrowDown size={10} strokeWidth={2.6} />1.1 pts</span>}
+              caption="vs prior 7d"
+              testId="kpi-cart-abandonment"
+              format={(n) => `${n.toFixed(1)}%`}
+            />
+          ) : (
+            <MiniKPI
+              label="At Risk Accounts"
+              target={atRiskCount}
+              delta={<span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-semibold" style={{ ...TABULAR, background: '#FFF1EF', color: '#C9422E', padding: '3px 8px' }}><ArrowUp size={10} strokeWidth={2.6} />3</span>}
+              caption={`${fmtM(atRiskDollars)} at risk`}
+              testId="kpi-at-risk"
+              format={(n) => Math.round(n).toLocaleString('en-US')}
+            />
+          )}
           <div className="hidden md:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
           <MiniKPI
             label="Forecast"
@@ -1283,7 +1285,7 @@ export default function DashboardPage({ onNavigate }: Props) {
             <span className="text-right">Net Sales YTD</span>
             <span className="text-right">Goal YTD</span>
             <span className="text-right">Variance</span>
-            <span className="text-right">% to Goal</span>
+            <span className="text-right">% of 2026 Goal</span>
             <span className="text-right">Annual Goal</span>
             <span className="text-right">Pace</span>
           </div>
@@ -1431,24 +1433,11 @@ export default function DashboardPage({ onNavigate }: Props) {
 function NetSalesValue({ target }: { target: number }) {
   const v = useCountUp(target, 700);
   return (
-    <div className="relative inline-block" data-testid="hero-net-sales-value" title="YTD net sales across all selected channels. After discounts, returns & tax; shipping included.">
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute"
-        style={{
-          width: 320, height: 240,
-          left: '50%', top: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: 'radial-gradient(circle at center, rgba(255,111,97,0.08) 0%, transparent 60%)',
-          zIndex: 0,
-        }}
-      />
-      <p
-        className="relative font-semibold"
-        style={{ ...TABULAR, fontSize: 'clamp(44px, 4.6vw, 56px)', lineHeight: 1.05, letterSpacing: '-0.02em', color: INK, zIndex: 1 }}
-      >
-        {usd0(Math.max(0, v))}
-      </p>
-    </div>
+    <p
+      className="font-semibold"
+      style={{ ...TABULAR, fontSize: 'clamp(40px, 4vw, 48px)', lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}
+    >
+      {usd0(Math.max(0, v))}
+    </p>
   );
 }

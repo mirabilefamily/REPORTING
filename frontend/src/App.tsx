@@ -202,51 +202,18 @@ function StaffApp() {
         <header className="topbar">
           <button className="mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open menu"><Menu size={19} /></button>
           <div className="breadcrumb"><ActiveIcon size={17} /><strong>{activeNav}</strong></div>
-          <div className="search-wrap">
-            <div className="search-bar" onClick={() => setSearchOpen(true)}>
-              <Search size={16} />
+          <div className="search-wrap" style={{ maxWidth: 480 }}>
+            <div className="search-bar">
+              <Search size={14} />
               <input
-                type="text"
-                placeholder="Search reports, sections, metrics..."
+                type="search"
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
-                onFocus={() => setSearchOpen(true)}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search accounts, items, orders…"
                 aria-label="Search"
-                data-testid="global-search-input"
+                data-testid="topbar-search-input"
               />
-              <kbd><Command size={11} /> K</kbd>
             </div>
-            {searchOpen && (
-              <>
-                <div className="search-overlay" onClick={() => setSearchOpen(false)} />
-                <div className="search-tray" data-testid="search-tray">
-                  <div className="search-tray-section">
-                    <p className="search-tray-label">Analytics</p>
-                    {['Dashboard', 'Analytics', 'Open Orders', 'Sales History'].map((n) => (
-                      <button key={n} className="search-tray-item" onClick={() => { goto(n); setSearchOpen(false); }}>
-                        <History size={15} /><span>{n}</span><em>Page</em>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="search-tray-section">
-                    <p className="search-tray-label">Financials</p>
-                    {['P&L', 'Profitability', 'Cash Flow', 'Forecasting'].map((n) => (
-                      <button key={n} className="search-tray-item" onClick={() => { goto(n); setSearchOpen(false); }}>
-                        <History size={15} /><span>{n}</span><em>Page</em>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="search-tray-section">
-                    <p className="search-tray-label">Tools</p>
-                    {['Forecast Goals', 'Inventory'].map((n) => (
-                      <button key={n} className="search-tray-item" onClick={() => { goto(n); setSearchOpen(false); }}>
-                        <History size={15} /><span>{n}</span><em>Page</em>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
           <div className="top-actions">
             <button
