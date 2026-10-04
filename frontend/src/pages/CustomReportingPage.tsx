@@ -27,6 +27,7 @@ import {
 import PageHeader from '../components/PageHeader';
 import { SegTabs } from '../DashboardPage';
 import DateRangePicker from '../components/DateRangePicker';
+
 import { usePageRange } from '../lib/pageRange';
 
 // ─── Tokens ────────────────────────────────────────────────────────────
@@ -414,7 +415,6 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 // ─── Main component ────────────────────────────────────────────────────
 type View = 'library' | 'builder' | 'viewer';
 export default function CustomReportingPage() {
-  const [range, setRange] = usePageRange('custom-reporting');
   const [view, setView] = useState<View>('library');
   const [tab, setTab] = useState<Tab>('My Reports');
   const [reports, setReports] = useState<Report[]>(() => loadReports());
@@ -499,7 +499,6 @@ export default function CustomReportingPage() {
         <PageHeader
           title="Custom Reporting"
           testIdPrefix="cr"
-          dateControl={<DateRangePicker value={range} onChange={setRange} testId="cr-range" />}
         />
 
         {view === 'library' && (
@@ -546,7 +545,6 @@ export default function CustomReportingPage() {
               onShare={() => setShareModal(r)}
               onSchedule={() => setScheduleModal(r)}
               onExport={(fmt) => showToast(`Exported ${fmt.toUpperCase()}`)}
-              range={range} setRange={setRange}
             />
           );
         })()}
@@ -762,10 +760,9 @@ function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 }
 
 // ─── Viewer view ───────────────────────────────────────────────────────
-function ViewerView({ r, rows, onBack, onEdit, onRefresh, onShare, onSchedule, onExport, range, setRange }: {
+function ViewerView({ r, rows, onBack, onEdit, onRefresh, onShare, onSchedule, onExport }: {
   r: Report; rows: Record<string, string | number>[]; onBack: () => void; onEdit: () => void; onRefresh: () => void;
   onShare: () => void; onSchedule: () => void; onExport: (fmt: 'csv' | 'pdf') => void;
-  range: ReturnType<typeof usePageRange>[0]; setRange: ReturnType<typeof usePageRange>[1];
 }) {
   const [exportOpen, setExportOpen] = useState(false);
   return (
@@ -773,7 +770,6 @@ function ViewerView({ r, rows, onBack, onEdit, onRefresh, onShare, onSchedule, o
       <div className="flex flex-wrap items-center justify-between gap-3 mt-2" data-testid="cr-viewer-toolbar">
         <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5" style={{ background: 'transparent', color: SLATE_500, fontSize: 13, fontWeight: 500, cursor: 'pointer', padding: '0 4px' }} data-testid="cr-viewer-back"><ArrowLeft size={14} />Reports / <span style={{ color: INK, fontWeight: 600 }}>{r.name}</span></button>
         <div className="flex items-center gap-2 flex-wrap">
-          <DateRangePicker value={range} onChange={setRange} testId="cr-viewer-range" />
           <button type="button" onClick={onRefresh} style={ghostBtn} className="inline-flex items-center gap-1.5" data-testid="cr-refresh"><RefreshCw size={13} />Refresh</button>
           <button type="button" onClick={onShare} style={ghostBtn} className="inline-flex items-center gap-1.5" data-testid="cr-viewer-share"><Share2 size={13} />Share</button>
           <button type="button" onClick={onSchedule} style={ghostBtn} className="inline-flex items-center gap-1.5" data-testid="cr-viewer-schedule"><Clock size={13} />Schedule</button>
