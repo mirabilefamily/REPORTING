@@ -132,8 +132,7 @@ export default function CashFlowPage() {
         </section>
 
         {/* Monthly trend */}
-        <p className="mt-10"><Section>01 / Trend</Section></p>
-        <section className="mt-3 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="cf-trend">
+        <section className="mt-10 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="cf-trend">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>Monthly cash flow</h2>
@@ -176,8 +175,7 @@ export default function CashFlowPage() {
         </section>
 
         {/* Sources vs Uses */}
-        <p className="mt-10"><Section>02 / Sources &amp; Uses</Section></p>
-        <section className="mt-3 overflow-hidden rounded-2xl bg-white" style={{ boxShadow: CARD_SHADOW }} data-testid="cf-sources-uses">
+        <section className="mt-10 overflow-hidden rounded-2xl bg-white" style={{ boxShadow: CARD_SHADOW }} data-testid="cf-sources-uses">
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
             <div style={{ padding: 24 }} data-testid="cf-sources">
               <Eyebrow>Sources of cash</Eyebrow>
@@ -220,8 +218,7 @@ export default function CashFlowPage() {
         </section>
 
         {/* Working capital */}
-        <p className="mt-10"><Section>03 / Working capital</Section></p>
-        <section className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-3">
+        <section className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
           {WC_CARDS.map((w, i) => {
             const over = w.benchmark !== undefined && w.value > w.benchmark;
             return (
@@ -244,8 +241,7 @@ export default function CashFlowPage() {
         </section>
 
         {/* AR aging */}
-        <p className="mt-10"><Section>04 / AR aging</Section></p>
-        <section className="mt-3 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="cf-aging">
+        <section className="mt-10 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="cf-aging">
           <div>
             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>Accounts receivable aging</h2>
             <p style={{ margin: '4px 0 0', fontSize: 12, color: SLATE_500 }}>${fmtInt(agingTotal)} total outstanding · across {AGING.reduce((s, a) => s + a.accounts, 0)} accounts</p>

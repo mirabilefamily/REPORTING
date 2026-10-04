@@ -51,8 +51,8 @@ const CORAL_50 = '#FFF1EF';
 const CORAL_600 = '#DB4D3F';
 const EMERALD = '#047857';
 
-type Tab = 'My Reports' | 'Shared' | 'Templates';
-const TABS: readonly Tab[] = ['My Reports', 'Shared', 'Templates'] as const;
+type Tab = 'My Reports' | 'Shared' | 'Scheduled' | 'Templates';
+const TABS: readonly Tab[] = ['My Reports', 'Shared', 'Scheduled', 'Templates'] as const;
 const DATA_SOURCES = ['Sales', 'Orders', 'Inventory', 'Customers', 'Financials', 'Forecast'] as const;
 const DIMENSIONS = ['Channel', 'Customer', 'SKU', 'Category', 'Region', 'Rep', 'Date · Day', 'Date · Week', 'Date · Month', 'Date · Quarter', 'Order Status'] as const;
 const METRICS = ['Revenue', 'Gross Profit', 'Margin %', 'Units', 'AOV', 'Orders', 'Returns', 'Fill Rate', 'Days of Supply', 'Forecast Attainment'] as const;
@@ -62,6 +62,13 @@ type Operator = typeof OPERATORS[number];
 type FieldKind = 'string' | 'number' | 'date';
 
 const NUMERIC_FIELDS = new Set<string>(['Revenue', 'Gross Profit', 'Margin %', 'Units', 'AOV', 'Orders', 'Returns', 'Fill Rate', 'Days of Supply', 'Forecast Attainment']);
+// Enum value options for known fields — use DsSelect for these instead of a text input.
+const VALUE_OPTIONS: Record<string, readonly string[]> = {
+  'Channel':      ['Ecommerce', 'Amazon', 'US Wholesale', 'Distributors', 'Retail'],
+  'Order Status': ['Open', 'Partial', 'Fulfilled', 'Backordered', 'Canceled'],
+  'Status':       ['Healthy', 'Low', 'Critical', 'Out'],
+  'Region':       ['West', 'Central', 'East', 'International'],
+};
 function fieldKind(field: string): FieldKind {
   if (field.startsWith('Date')) return 'date';
   if (NUMERIC_FIELDS.has(field)) return 'number';
@@ -599,9 +606,25 @@ function LibraryView({ tab, setTab, reports, templates, onNew, onUseTemplate, on
   tab: Tab; setTab: (t: Tab) => void; reports: Report[]; templates: Template[];
   onNew: () => void; onUseTemplate: (t: Template) => void; onOpenReport: (r: Report) => void; onCardAction: (r: Report, a: string) => void;
 }) {
+  const counts = useMemo(() => ({
+    'My Reports': reports.filter((r) => r.tab === 'My Reports').length,
+    'Shared':     reports.filter((r) => r.tab === 'Shared').length,
+    'Scheduled':  reports.filter((r) => (r as any).scheduled).length,
+    'Templates':  templates.length,
+  }), [reports, templates]);
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3" data-testid="cr-library-toolbar">
+      {/* Top summary strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 16, marginTop: 16 }} data-testid="cr-summary-strip">
+        {(['My Reports', 'Shared', 'Scheduled', 'Templates'] as const).map((k) => (
+          <div key={k} className="rounded-2xl bg-white" style={{ padding: '18px 20px', boxShadow: CARD_SHADOW }} data-testid={`cr-summary-${k.toLowerCase().replace(/\s+/g, '-')}`}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6E6E73' }}>{k}</p>
+            <p style={{ margin: '6px 0 0', fontSize: 'clamp(22px, 2vw, 24px)', fontWeight: 600, lineHeight: 1.1, color: INK, letterSpacing: '-0.02em' }}>{counts[k]}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-6" data-testid="cr-library-toolbar">
         <div className="flex items-center" style={{ gap: 4 }} role="tablist">
           {TABS.map((t) => {
             const active = t === tab;
@@ -620,16 +643,29 @@ function LibraryView({ tab, setTab, reports, templates, onNew, onUseTemplate, on
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" style={{ marginTop: 24 }} data-testid="cr-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" style={{ marginTop: 16 }} data-testid="cr-grid">
         {tab === 'Templates'
           ? templates.map((t) => <TemplateCard key={t.id} t={t} onUse={() => onUseTemplate(t)} />)
-          : reports.length === 0
-            ? <div className="col-span-full rounded-2xl bg-white flex flex-col items-center justify-center text-center" style={{ minHeight: 220, padding: 40, boxShadow: CARD_SHADOW }}>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: INK }}>No reports yet</p>
-                <p style={{ margin: '4px 0 14px', fontSize: 12, color: SLATE_500 }}>Create a new report or pick a template.</p>
-                <button type="button" onClick={onNew} className="btn-coral" data-testid="cr-new-report-btn"><Plus size={14} />New Report</button>
-              </div>
-            : reports.map((r) => <ReportCard key={r.id} r={r} onOpen={() => onOpenReport(r)} onAction={(a) => onCardAction(r, a)} />)
+          : tab === 'Scheduled'
+            ? (() => {
+                const scheduled = reports.filter((r) => (r as any).scheduled);
+                if (scheduled.length === 0) {
+                  return (
+                    <div className="col-span-full rounded-2xl bg-white flex flex-col items-center justify-center text-center" style={{ minHeight: 220, padding: 40, boxShadow: CARD_SHADOW }} data-testid="cr-scheduled-empty">
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: INK }}>No scheduled reports</p>
+                      <p style={{ margin: '4px 0 14px', fontSize: 12, color: SLATE_500 }}>Open any report, then click Schedule to automate delivery.</p>
+                    </div>
+                  );
+                }
+                return scheduled.map((r) => <ReportCard key={r.id} r={r} onOpen={() => onOpenReport(r)} onAction={(a) => onCardAction(r, a)} />);
+              })()
+            : reports.length === 0
+              ? <div className="col-span-full rounded-2xl bg-white flex flex-col items-center justify-center text-center" style={{ minHeight: 220, padding: 40, boxShadow: CARD_SHADOW }}>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: INK }}>No reports yet</p>
+                  <p style={{ margin: '4px 0 14px', fontSize: 12, color: SLATE_500 }}>Create a new report or pick a template.</p>
+                  <button type="button" onClick={onNew} className="btn-coral" data-testid="cr-new-report-btn"><Plus size={14} />New Report</button>
+                </div>
+              : reports.slice().sort((a, b) => ((b as any).pinned ? 1 : 0) - ((a as any).pinned ? 1 : 0)).map((r) => <ReportCard key={r.id} r={r} onOpen={() => onOpenReport(r)} onAction={(a) => onCardAction(r, a)} />)
         }
       </div>
     </>
@@ -710,9 +746,27 @@ function BuilderView(props: {
   return (
     <>
       <div className="mt-4 flex flex-col lg:flex-row gap-4" data-testid="cr-builder">
-        <div className="hidden lg:block" style={{ width: 320, flexShrink: 0, position: 'sticky', top: 24, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>{LeftPanel}</div>
+        <div className="hidden lg:block" style={{ width: 360, flexShrink: 0, position: 'sticky', top: 24, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 48px)', overflowX: 'hidden', overflowY: 'auto' }}>{LeftPanel}</div>
 
         <div className="flex-1 min-w-0">
+          {/* Guided progress indicator (4 steps) */}
+          <div className="flex items-center flex-wrap rounded-2xl bg-white" style={{ padding: '14px 20px', boxShadow: CARD_SHADOW, marginBottom: 12, gap: 8 }} data-testid="cr-builder-steps">
+            {([
+              ['1', 'Source',    !!source],
+              ['2', 'Dimensions', dims.length > 0],
+              ['3', 'Metrics',    mets.length > 0],
+              ['4', 'Visualize',  !!viz && mets.length > 0],
+            ] as const).map(([n, lab, done], i, arr) => (
+              <div key={n} className="inline-flex items-center" style={{ gap: 8 }}>
+                <span style={{ display: 'inline-grid', placeItems: 'center', width: 22, height: 22, borderRadius: 999, background: done ? CORAL : '#F3F3F5', color: done ? '#FFFFFF' : SLATE_500, fontSize: 11, fontWeight: 700 }}>{done ? <CheckCircle2 size={13} strokeWidth={2.4} /> : n}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: done ? INK : SLATE_500 }}>{lab}</span>
+                {i < arr.length - 1 && <span style={{ width: 24, height: 1, background: SLATE_200, marginLeft: 4, marginRight: 4 }} />}
+              </div>
+            ))}
+            <div style={{ flex: 1 }} />
+            <span className="inline-flex items-center" style={{ gap: 6, fontSize: 11.5, color: SLATE_500 }} data-testid="cr-autosaved"><span style={{ width: 6, height: 6, borderRadius: 999, background: '#10B981' }} />Autosaved</span>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white" style={{ padding: '14px 20px', boxShadow: CARD_SHADOW, marginBottom: 16 }} data-testid="cr-builder-topstrip">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <input value={name} onChange={(e) => setName(e.target.value)} data-testid="cr-builder-name" style={{ flex: 1, minWidth: 160, maxWidth: 420, height: 32, padding: '0 10px', background: 'transparent', border: 'none', outline: 'none', fontSize: 16, fontWeight: 600, color: INK, letterSpacing: '-0.01em' }} />
@@ -760,7 +814,7 @@ const ghostBtn: React.CSSProperties = { height: 34, padding: '0 12px', backgroun
 const primaryBtn: React.CSSProperties = { height: 34, padding: '0 14px', background: INK, color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 const coralBtn: React.CSSProperties = { height: 34, padding: '0 14px', background: CORAL, color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 
-function FilterSelect({ label, value, options, onChange, minWidth = 110, testId }: { label?: string; value: string; options: readonly string[]; onChange: (v: string) => void; minWidth?: number; testId?: string }) {
+function FilterSelect({ label, value, options, onChange, minWidth = 110, width, testId }: { label?: string; value: string; options: readonly string[]; onChange: (v: string) => void; minWidth?: number; width?: number | string; testId?: string }) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   return (
@@ -770,17 +824,17 @@ function FilterSelect({ label, value, options, onChange, minWidth = 110, testId 
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="inline-flex items-center justify-between"
-        style={{ minWidth, height: 32, padding: '0 10px', gap: 8, background: '#FFFFFF', border: `1px solid ${open ? CORAL : SLATE_200}`, borderRadius: 10, fontSize: 13, fontWeight: 500, color: INK, cursor: 'pointer', outline: 'none', boxShadow: open ? '0 0 0 2px rgba(255,111,97,0.25)' : 'none', transition: 'border-color 120ms ease, box-shadow 120ms ease' }}
+        style={{ minWidth, width, height: 32, padding: '0 10px', gap: 8, background: '#FFFFFF', border: `1px solid ${open ? CORAL : SLATE_200}`, borderRadius: 10, fontSize: 13, fontWeight: 500, color: INK, cursor: 'pointer', outline: 'none', boxShadow: open ? `0 0 0 2px rgba(255,111,97,0.25)` : 'none', transition: 'border-color 120ms ease, box-shadow 120ms ease' }}
         onMouseEnter={(e) => { if (!open) { e.currentTarget.style.background = '#FAFAFA'; e.currentTarget.style.borderColor = '#D4D4D8'; } }}
         onMouseLeave={(e) => { if (!open) { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = SLATE_200; } }}
         aria-haspopup="listbox"
         aria-expanded={open}
         data-testid={testId}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || label}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{value || label}</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ color: SLATE_400, flexShrink: 0 }}><polyline points="6 9 12 15 18 9" /></svg>
       </button>
-      <PopoverPortal open={open} onClose={() => setOpen(false)} anchorRef={btnRef} placement="bottom-start" minWidth={Math.max(minWidth, 180)} padding={6} testId={testId ? `${testId}-menu` : undefined}>
+      <PopoverPortal open={open} onClose={() => setOpen(false)} anchorRef={btnRef} placement="bottom-start" minWidth={200} padding={6} testId={testId ? `${testId}-menu` : undefined}>
         {options.map((opt) => (
           <button
             key={opt}
@@ -851,53 +905,44 @@ function FilterRow({ index, rule, fieldOptions, onChange, onRemove, onConjChange
           })}
         </div>
       )}
-      <div className="flex items-center" style={{ gap: 8 }} data-testid={`cr-filter-row-${index}`}>
-        <FilterSelect value={rule.field} options={fieldOptions} onChange={handleFieldChange} minWidth={160} testId={`cr-filter-${index}-field`} />
-        <FilterSelect value={rule.op} options={availOps} onChange={handleOpChange} minWidth={110} testId={`cr-filter-${index}-op`} />
-        {!needsNoValue && !needsRange && (
-          <input
-            value={rule.value}
-            onChange={(e) => onChange({ ...rule, value: e.target.value })}
-            placeholder={placeholder}
-            className="ds-input"
-            style={{ flex: 1, minWidth: 0, height: 32, padding: '0 10px', fontSize: 13 }}
-            data-testid={`cr-filter-${index}-value`}
-          />
-        )}
-        {needsRange && (
-          <div className="flex items-center" style={{ gap: 6, flex: 1, minWidth: 0 }}>
-            <input
-              value={rule.value}
-              onChange={(e) => onChange({ ...rule, value: e.target.value })}
-              placeholder={isDate ? 'From' : 'Min'}
-              className="ds-input"
-              style={{ flex: 1, minWidth: 0, height: 32, padding: '0 10px', fontSize: 13 }}
-              data-testid={`cr-filter-${index}-value`}
-            />
-            <span style={{ fontSize: 12, color: SLATE_500, fontWeight: 500 }}>and</span>
-            <input
-              value={rule.value2 ?? ''}
-              onChange={(e) => onChange({ ...rule, value2: e.target.value })}
-              placeholder={isDate ? 'To' : 'Max'}
-              className="ds-input"
-              style={{ flex: 1, minWidth: 0, height: 32, padding: '0 10px', fontSize: 13 }}
-              data-testid={`cr-filter-${index}-value2`}
-            />
-          </div>
-        )}
-        {needsNoValue && <div style={{ flex: 1 }} aria-hidden="true" />}
-        <button
-          type="button"
-          onClick={onRemove}
-          className="btn-ghost"
-          style={{ width: 28, height: 28, padding: 0, display: 'grid', placeItems: 'center', borderRadius: 10, color: SLATE_400, flexShrink: 0 }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = '#F4F4F6'; e.currentTarget.style.color = '#B04435'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SLATE_400; }}
-          aria-label="Remove filter"
-          data-testid={`cr-filter-${index}-remove`}
-        >
-          <X size={14} strokeWidth={2} />
-        </button>
+      <div
+        style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}
+        data-testid={`cr-filter-row-${index}`}
+      >
+        {/* Row 1: Field (full width) */}
+        <FilterSelect value={rule.field} options={fieldOptions} onChange={handleFieldChange} minWidth={0} width="100%" testId={`cr-filter-${index}-field`} />
+
+        {/* Row 2: Op + Value + Remove */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(96px, 110px) minmax(0, 1fr) 28px', gap: 6, alignItems: 'center' }}>
+          <FilterSelect value={rule.op} options={availOps} onChange={handleOpChange} minWidth={0} width="100%" testId={`cr-filter-${index}-op`} />
+
+          {needsNoValue ? (
+            <span style={{ fontSize: 12, color: SLATE_400, fontStyle: 'italic', paddingLeft: 4 }} aria-hidden="true">—</span>
+          ) : needsRange ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 4, alignItems: 'center', minWidth: 0 }}>
+              <input value={rule.value} onChange={(e) => onChange({ ...rule, value: e.target.value })} placeholder={isDate ? 'From' : 'Min'} className="ds-input" style={{ minWidth: 0, width: '100%', height: 32, padding: '0 10px', fontSize: 13 }} data-testid={`cr-filter-${index}-value`} />
+              <span style={{ fontSize: 11, color: SLATE_500 }}>and</span>
+              <input value={rule.value2 ?? ''} onChange={(e) => onChange({ ...rule, value2: e.target.value })} placeholder={isDate ? 'To' : 'Max'} className="ds-input" style={{ minWidth: 0, width: '100%', height: 32, padding: '0 10px', fontSize: 13 }} data-testid={`cr-filter-${index}-value2`} />
+            </div>
+          ) : VALUE_OPTIONS[rule.field] ? (
+            <FilterSelect value={rule.value} options={VALUE_OPTIONS[rule.field]!} onChange={(v) => onChange({ ...rule, value: v })} minWidth={0} width="100%" testId={`cr-filter-${index}-value`} />
+          ) : (
+            <input value={rule.value} onChange={(e) => onChange({ ...rule, value: e.target.value })} placeholder={placeholder} className="ds-input" style={{ minWidth: 0, width: '100%', height: 32, padding: '0 10px', fontSize: 13 }} data-testid={`cr-filter-${index}-value`} />
+          )}
+
+          <button
+            type="button"
+            onClick={onRemove}
+            className="btn-ghost"
+            style={{ width: 28, height: 28, padding: 0, display: 'grid', placeItems: 'center', borderRadius: 10, color: SLATE_400, flexShrink: 0 }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#F4F4F6'; e.currentTarget.style.color = '#B04435'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SLATE_400; }}
+            aria-label="Remove filter"
+            data-testid={`cr-filter-${index}-remove`}
+          >
+            <X size={14} strokeWidth={2} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -924,27 +969,26 @@ function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 // ─── Viewer view ───────────────────────────────────────────────────────
 function ViewerView({ r, rows, onBack, onEdit, onRefresh, onShare, onSchedule, onExport }: {
   r: Report; rows: Record<string, string | number>[]; onBack: () => void; onEdit: () => void; onRefresh: () => void;
-  onShare: () => void; onSchedule: () => void; onExport: (fmt: 'csv' | 'pdf') => void;
+  onShare: () => void; onSchedule: () => void; onExport: (fmt: 'csv' | 'xlsx' | 'pdf' | 'image') => void;
 }) {
   const [exportOpen, setExportOpen] = useState(false);
+  const [comparePeriods, setComparePeriods] = useState(false);
+  const exportBtnRef = useRef<HTMLButtonElement | null>(null);
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mt-2" data-testid="cr-viewer-toolbar">
         <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5" style={{ background: 'transparent', color: SLATE_500, fontSize: 13, fontWeight: 500, cursor: 'pointer', padding: '0 4px' }} data-testid="cr-viewer-back"><ArrowLeft size={14} />Reports / <span style={{ color: INK, fontWeight: 600 }}>{r.name}</span></button>
         <div className="flex items-center gap-2 flex-wrap">
+          <button type="button" onClick={() => setComparePeriods((v) => !v)} className="inline-flex items-center gap-1.5" style={{ height: 34, padding: '0 12px', background: comparePeriods ? CORAL_50 : '#fff', color: comparePeriods ? CORAL_DK : SLATE_700, border: `1px solid ${comparePeriods ? CORAL_200 : SLATE_200}`, borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' }} data-testid="cr-viewer-compare"><Clock size={13} />Compare periods</button>
           <button type="button" onClick={onRefresh} style={ghostBtn} className="inline-flex items-center gap-1.5" data-testid="cr-refresh"><RefreshCw size={13} />Refresh</button>
           <button type="button" onClick={onShare} style={ghostBtn} className="inline-flex items-center gap-1.5" data-testid="cr-viewer-share"><Share2 size={13} />Share</button>
           <button type="button" onClick={onSchedule} style={ghostBtn} className="inline-flex items-center gap-1.5" data-testid="cr-viewer-schedule"><Clock size={13} />Schedule</button>
-          <div className="relative">
-            <button type="button" onClick={() => setExportOpen((v) => !v)} style={ghostBtn} data-testid="cr-viewer-export">Export</button>
-            {exportOpen && (<>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setExportOpen(false)} />
-              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 50, minWidth: 120, background: '#fff', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)', padding: 4 }}>
-                <button type="button" onClick={() => { setExportOpen(false); onExport('csv'); }} style={{ display: 'block', width: '100%', height: 32, padding: '0 10px', textAlign: 'left', background: 'transparent', color: SLATE_700, fontSize: 13, borderRadius: 6, cursor: 'pointer' }}>CSV</button>
-                <button type="button" onClick={() => { setExportOpen(false); onExport('pdf'); }} style={{ display: 'block', width: '100%', height: 32, padding: '0 10px', textAlign: 'left', background: 'transparent', color: SLATE_700, fontSize: 13, borderRadius: 6, cursor: 'pointer' }}>PDF</button>
-              </div>
-            </>)}
-          </div>
+          <button ref={exportBtnRef} type="button" onClick={() => setExportOpen((v) => !v)} style={ghostBtn} data-testid="cr-viewer-export">Export</button>
+          <PopoverPortal open={exportOpen} onClose={() => setExportOpen(false)} anchorRef={exportBtnRef} placement="bottom-start" minWidth={160} padding={4} testId="cr-viewer-export-menu">
+            {(['csv', 'xlsx', 'pdf', 'image'] as const).map((fmt) => (
+              <button key={fmt} type="button" onClick={() => { setExportOpen(false); onExport(fmt); }} className="w-full text-left" style={{ height: 32, padding: '0 10px', background: 'transparent', color: SLATE_700, fontSize: 13, fontWeight: 500, borderRadius: 6, cursor: 'pointer', border: 'none', fontFamily: 'inherit' }} onMouseEnter={(e) => { e.currentTarget.style.background = '#FAFAFA'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }} data-testid={`cr-export-${fmt}`}>{fmt.toUpperCase()}</button>
+            ))}
+          </PopoverPortal>
           <button type="button" onClick={onEdit} className="inline-flex items-center gap-1.5" style={primaryBtn} data-testid="cr-viewer-edit"><Pencil size={13} />Edit</button>
         </div>
       </div>

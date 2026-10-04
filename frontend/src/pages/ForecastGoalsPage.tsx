@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Lock, RotateCw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, Lock, RotateCw, TrendingUp, Target, Flag } from 'lucide-react';
 import { SegTabs } from '../DashboardPage';
 import PageHeader from '../components/PageHeader';
+import DsSelect from '../components/DsSelect';
 
 // ─── Tokens ────────────────────────────────────────────────────────────
 const CARD_SHADOW = '0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)';
@@ -87,6 +88,8 @@ export default function ForecastGoalsPage() {
   const [edits, setEdits] = useState<Record<string, number>>({});
   const [editing, setEditing] = useState<string | null>(null);
   const [editVal, setEditVal] = useState('');
+  const [scenario, setScenario] = useState<'Conservative' | 'Base' | 'Stretch'>('Base');
+  const [compareTo, setCompareTo] = useState<string>('Prior year');
 
   const locked = LOCKED[year];
 
@@ -113,6 +116,22 @@ export default function ForecastGoalsPage() {
   const grandTotal = totals.reduce((s, v) => s + v, 0);
 
   const unsavedCount = Object.keys(edits).length;
+
+  // Scenario multipliers
+  const scenarioMult = scenario === 'Conservative' ? 0.92 : scenario === 'Stretch' ? 1.08 : 1.0;
+  const planFY = grandTotal;
+  const forecastFY = Math.round(planFY * scenarioMult);
+  const varianceFY = forecastFY - planFY;
+  const ytdPlan = useMemo(() => applied.reduce((s, c) => s + c.months.slice(0, CURRENT_MONTH_IDX + 1).reduce((a: number, v) => a + (v ?? 0), 0), 0), [applied]);
+  const ytdActual = Math.round(ytdPlan * 0.962); // mock actuals
+  const attainment = ytdPlan > 0 ? (ytdActual / ytdPlan) * 100 : 0;
+
+  // Per-channel plan + forecast totals (for Annual Viz)
+  const channelTotals = useMemo(() => applied.map((c) => {
+    const plan = c.months.reduce((s: number, v) => s + (v ?? 0), 0);
+    return { name: c.name, plan, forecast: Math.round(plan * scenarioMult) };
+  }), [applied, scenarioMult]);
+  const maxChannel = Math.max(1, ...channelTotals.map((c) => Math.max(c.plan, c.forecast)));
 
   function startEdit(key: string, current: number | null) {
     if (locked) return;
@@ -220,6 +239,41 @@ export default function ForecastGoalsPage() {
             />
             Refresh
           </button>
+        </section>
+
+        {/* ── KPI strip (4-up: Attainment / Plan FY / Forecast FY / Variance) ── */}
+        <section className="mt-4 grid grid-cols-2 lg:grid-cols-4" style={{ gap: 16 }} data-testid="fg-kpi-row">
+          {[
+            { label: 'Attainment', value: `${attainment.toFixed(1)}%`, caption: `${fmtAnnual(ytdActual)} of ${fmtAnnual(ytdPlan)} YTD`, tone: attainment >= 100 ? 'emerald' : attainment >= 90 ? 'ink' : 'coral', test: 'attainment' },
+            { label: 'Plan FY',    value: fmtAnnual(planFY),    caption: `${year} plan commit`,                     tone: 'ink',     test: 'plan' },
+            { label: 'Forecast FY',value: fmtAnnual(forecastFY),caption: `${scenario} scenario · ${scenarioMult.toFixed(2)}×`, tone: 'ink',     test: 'forecast' },
+            { label: 'Variance',   value: `${varianceFY >= 0 ? '+' : ''}${fmtAnnual(varianceFY)}`, caption: `${varianceFY >= 0 ? 'Above' : 'Below'} plan`, tone: varianceFY >= 0 ? 'emerald' : 'coral', test: 'variance' },
+          ].map((k) => (
+            <div key={k.label} className="rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid={`fg-kpi-${k.test}`}>
+              <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: '#6E6E73', margin: 0 }}>{k.label}</p>
+              <p className="mt-2" style={{ ...TABULAR, fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: k.tone === 'emerald' ? EMERALD : k.tone === 'coral' ? CORAL_DK : '#0A0A0B', margin: 0 }}>{k.value}</p>
+              <p style={{ margin: '6px 0 0', fontSize: 12.5, color: SLATE_500 }}>{k.caption}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* ── Scenario bar ─────────────────────────────────────── */}
+        <section className="mt-4 flex flex-wrap items-center rounded-2xl bg-white" style={{ padding: '14px 20px', boxShadow: CARD_SHADOW, gap: 16 }} data-testid="fg-scenario-bar">
+          <div className="flex items-center" style={{ gap: 10 }}>
+            <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: '#6E6E73', margin: 0 }}>Scenario</p>
+            <SegTabs
+              tabs={['Conservative', 'Base', 'Stretch'] as const}
+              value={scenario}
+              onChange={(v: string) => setScenario(v as 'Conservative' | 'Base' | 'Stretch')}
+              testId="fg-scenario-tabs"
+              slugPrefix="fg-scenario"
+            />
+          </div>
+          <span aria-hidden="true" style={{ width: 1, height: 24, background: SLATE_200 }} />
+          <div className="flex items-center" style={{ gap: 10 }}>
+            <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: '#6E6E73', margin: 0 }}>Compare to</p>
+            <DsSelect value={compareTo} options={['Prior year', 'Plan', 'Previous forecast', 'None']} onChange={setCompareTo} minWidth={180} testId="fg-compare-to" />
+          </div>
         </section>
 
         {/* ── 4. Monthly Forecast by Channel ────────────────── */}
@@ -421,6 +475,93 @@ export default function ForecastGoalsPage() {
             </table>
           </div>
         </section>
+
+        {/* ── Annual Visualization ─────────────────────────────── */}
+        <section className="mt-4 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="fg-annual-viz">
+          <div className="flex items-center" style={{ gap: 8, marginBottom: 4 }}>
+            <TrendingUp size={14} strokeWidth={2.2} style={{ color: CORAL }} />
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>Annual visualization</h2>
+          </div>
+          <p style={{ margin: '2px 0 20px 22px', fontSize: 12, color: SLATE_500 }}>Plan vs {scenario.toLowerCase()} forecast by channel</p>
+
+          {/* Legend */}
+          <div className="flex items-center" style={{ gap: 16, marginBottom: 16 }}>
+            <div className="inline-flex items-center" style={{ gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: SLATE_300 }} /><span style={{ fontSize: 12, color: SLATE_700 }}>Plan</span></div>
+            <div className="inline-flex items-center" style={{ gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: CORAL }} /><span style={{ fontSize: 12, color: SLATE_700 }}>Forecast</span></div>
+          </div>
+
+          <div className="flex flex-col" style={{ gap: 14 }}>
+            {channelTotals.map((c) => {
+              const planW = (c.plan / maxChannel) * 100;
+              const fcW   = (c.forecast / maxChannel) * 100;
+              const delta = c.forecast - c.plan;
+              return (
+                <div key={c.name} data-testid={`fg-viz-${c.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+                    <div className="inline-flex items-center" style={{ gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 2, background: SEG_COLORS[c.name] || SLATE_400 }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: INK }}>{c.name}</span>
+                    </div>
+                    <div className="inline-flex items-center" style={{ gap: 12, fontSize: 12.5, color: SLATE_700, ...TABULAR }}>
+                      <span>Plan {fmtAnnual(c.plan)}</span>
+                      <span>·</span>
+                      <span style={{ color: INK, fontWeight: 600 }}>Fcst {fmtAnnual(c.forecast)}</span>
+                      <span style={{ color: delta >= 0 ? EMERALD : CORAL_DK, fontWeight: 600, minWidth: 48, textAlign: 'right' }}>{delta >= 0 ? '+' : ''}{fmtAnnual(delta)}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gap: 4 }}>
+                    <div style={{ width: `${planW}%`, height: 10, background: SLATE_300, borderRadius: 999 }} />
+                    <div style={{ width: `${fcW}%`,   height: 10, background: CORAL,     borderRadius: 999, transition: 'width 240ms ease' }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ── Goals Checklist ──────────────────────────────────── */}
+        <section className="mt-4 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="fg-goals-checklist">
+          <div className="flex items-center" style={{ gap: 8, marginBottom: 4 }}>
+            <Flag size={14} strokeWidth={2.2} style={{ color: CORAL }} />
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>Goals checklist</h2>
+          </div>
+          <p style={{ margin: '2px 0 20px 22px', fontSize: 12, color: SLATE_500 }}>Executive goals for FY {year}</p>
+
+          <div className="flex flex-col" style={{ gap: 10 }}>
+            {([
+              { label: 'Hit $12M US Wholesale revenue',          target: 12_000_000, actual: 10_240_000, status: 'On track' as const },
+              { label: 'Grow DTC Ecommerce 15% YoY',             target: 15,         actual: 18,         status: 'Ahead' as const,  unit: '%' },
+              { label: 'Maintain Amazon Buy Box ≥ 90%',          target: 90,         actual: 86,         status: 'At risk' as const, unit: '%' },
+              { label: 'Launch 2 new Distributor accounts (Q4)', target: 2,          actual: 1,          status: 'On track' as const, unit: '' },
+              { label: 'Reduce backorders below 500 units',      target: 500,        actual: 724,        status: 'Behind' as const,  unit: ' units' },
+            ] as const).map((g, i) => {
+              const chipMap = {
+                'On track': { bg: '#ECFDF5', fg: EMERALD,  bd: '#A7F3D0' },
+                'Ahead':    { bg: '#ECFDF5', fg: EMERALD,  bd: '#A7F3D0' },
+                'At risk':  { bg: '#FFF1EF', fg: CORAL_DK, bd: '#FFD2CB' },
+                'Behind':   { bg: '#FFF1EF', fg: CORAL_DK, bd: '#FFD2CB' },
+              };
+              const chip = chipMap[g.status];
+              return (
+                <div key={i} className="flex items-center justify-between" style={{ padding: '12px 14px', borderRadius: 10, border: `1px solid ${SLATE_100}`, background: SLATE_50 }} data-testid={`fg-goal-${i}`}>
+                  <div className="inline-flex items-center" style={{ gap: 10 }}>
+                    <Target size={14} strokeWidth={2} style={{ color: SLATE_500 }} />
+                    <div>
+                      <p style={{ margin: 0, fontSize: 13.5, fontWeight: 500, color: INK }}>{g.label}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 12, color: SLATE_500, ...TABULAR }}>
+                        Actual <span style={{ color: INK, fontWeight: 600 }}>{typeof g.actual === 'number' && g.actual >= 1000 ? fmtAnnual(g.actual) : `${g.actual}${(g as any).unit || ''}`}</span>
+                        <span> · Target </span>
+                        <span style={{ color: SLATE_700, fontWeight: 600 }}>{typeof g.target === 'number' && g.target >= 1000 ? fmtAnnual(g.target) : `${g.target}${(g as any).unit || ''}`}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center" style={{ height: 22, padding: '0 10px', borderRadius: 6, background: chip.bg, color: chip.fg, fontSize: 11.5, fontWeight: 600, border: `1px solid ${chip.bd}` }}>{g.status}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
       </div>
 
       {/* ── 5. Save bar (conditional) ───────────────────────── */}

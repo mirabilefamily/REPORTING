@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { SEG_COLORS } from './DashboardPage';
 import PageHeader from './components/PageHeader';
+import PopoverPortal from './components/PopoverPortal';
 
 // ─── Tokens ────────────────────────────────────────────────────────────
 const CARD_SHADOW = '0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)';
@@ -144,8 +145,6 @@ export default function MyOrdersPage() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<typeof STATUSES[number]>('All statuses');
   const [channelFilter, setChannelFilter] = useState<typeof CHANNELS[number]>('All channels');
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [channelOpen, setChannelOpen] = useState(false);
   const [sortDesc, setSortDesc] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -229,107 +228,28 @@ export default function MyOrdersPage() {
           </div>
 
           {/* Status dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => { setStatusOpen((o) => !o); setChannelOpen(false); }}
-              className="btn-secondary inline-flex items-center gap-2"
-              data-testid="orders-status-dropdown"
-            >
-              {statusFilter}
-              <ChevronDown size={12} strokeWidth={2} style={{ color: SLATE_400 }} />
-            </button>
-            {statusOpen && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={() => setStatusOpen(false)} />
-                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 80, minWidth: 180, padding: 6, background: '#FFFFFF', borderRadius: 10, boxShadow: '0 0 0 1px rgba(15,17,20,0.06), 0 16px 42px rgba(15,17,20,0.14)' }}>
-                  {STATUSES.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => { setStatusFilter(s); setStatusOpen(false); }}
-                      className="transition-colors duration-150"
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        height: 32,
-                        padding: '0 10px',
-                        background: 'transparent',
-                        color: s === statusFilter ? INK : SLATE_700,
-                        fontSize: 13,
-                        fontWeight: s === statusFilter ? 600 : 500,
-                        borderRadius: 7,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                      data-testid={`orders-status-opt-${s.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      {s}
-                      {s === statusFilter && <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} />}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <OrdersFilterSelect
+            value={statusFilter}
+            options={STATUSES}
+            onChange={setStatusFilter}
+            testId="orders-status-dropdown"
+          />
 
           <span aria-hidden="true" style={{ width: 1, height: 20, background: SLATE_200 }} />
 
           {/* Channel dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => { setChannelOpen((o) => !o); setStatusOpen(false); }}
-              className="btn-secondary inline-flex items-center gap-2"
-              data-testid="orders-channel-dropdown"
-            >
-              {channelFilter}
-              <ChevronDown size={12} strokeWidth={2} style={{ color: SLATE_400 }} />
-            </button>
-            {channelOpen && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={() => setChannelOpen(false)} />
-                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 80, minWidth: 180, padding: 6, background: '#FFFFFF', borderRadius: 10, boxShadow: '0 0 0 1px rgba(15,17,20,0.06), 0 16px 42px rgba(15,17,20,0.14)' }}>
-                  {CHANNELS.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => { setChannelFilter(c); setChannelOpen(false); }}
-                      className="transition-colors duration-150"
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        height: 32,
-                        padding: '0 10px',
-                        background: 'transparent',
-                        color: c === channelFilter ? INK : SLATE_700,
-                        fontSize: 13,
-                        fontWeight: c === channelFilter ? 600 : 500,
-                        borderRadius: 7,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                      data-testid={`orders-channel-opt-${c.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        {c !== 'All channels' && <span className="h-1.5 w-1.5 rounded-full" style={{ background: SEG_COLORS[c] || SLATE_500 }} />}
-                        {c}
-                      </span>
-                      {c === channelFilter && <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} />}
-                    </button>
-                  ))}
-                </div>
-              </>
+          <OrdersFilterSelect
+            value={channelFilter}
+            options={CHANNELS}
+            onChange={setChannelFilter}
+            testId="orders-channel-dropdown"
+            renderOption={(c) => (
+              <span className="inline-flex items-center gap-2">
+                {c !== 'All channels' && <span className="h-1.5 w-1.5 rounded-full" style={{ background: SEG_COLORS[c] || SLATE_500 }} />}
+                {c}
+              </span>
             )}
-          </div>
+          />
 
           <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2" data-testid="orders-count-strip">
             <CountStat label="Orders" value={fmtInt(totals.orders)} />
@@ -499,5 +419,41 @@ export default function MyOrdersPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+function OrdersFilterSelect<T extends string>({ value, options, onChange, testId, renderOption }: { value: T; options: readonly T[]; onChange: (v: T) => void; testId: string; renderOption?: (opt: T) => React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="btn-secondary inline-flex items-center gap-2"
+        data-testid={testId}
+      >
+        {value}
+        <ChevronDown size={12} strokeWidth={2} style={{ color: SLATE_400 }} />
+      </button>
+      <PopoverPortal open={open} onClose={() => setOpen(false)} anchorRef={btnRef} placement="bottom-start" minWidth={180} padding={6} testId={`${testId}-menu`}>
+        {options.map((o) => (
+          <button
+            key={o}
+            type="button"
+            onClick={() => { onChange(o); setOpen(false); }}
+            className="w-full flex items-center justify-between"
+            style={{ height: 34, padding: '0 10px', background: 'transparent', color: o === value ? INK : SLATE_700, fontSize: 13, fontWeight: o === value ? 600 : 500, borderRadius: 7, cursor: 'pointer', border: 'none', textAlign: 'left', fontFamily: 'inherit' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            data-testid={`${testId}-opt-${o.toString().toLowerCase().replace(/\s+/g, '-')}`}
+          >
+            {renderOption ? renderOption(o) : o}
+            {o === value && <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL, flexShrink: 0 }} />}
+          </button>
+        ))}
+      </PopoverPortal>
+    </>
   );
 }

@@ -677,6 +677,54 @@ function WholesaleView({ mode }: { mode: 'us' | 'dist' }) {
         <CardHeader title="Backorders" help="Open units by category" />
         <MiniBars data={BACKORDERS} color={CORAL_500} />
       </div>
+
+      {mode === 'dist' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 20 }} data-testid="dist-extra-row">
+          {/* Credit Terms */}
+          <div className="card" style={{ padding: 24, borderRadius: 16, background: '#FFFFFF' }}>
+            <CardHeader title="Credit terms" help="Open AR exposure vs limits" />
+            <div className="flex items-end" style={{ gap: 24, marginTop: 10 }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6E6E73' }}>Total exposure</p>
+                <p style={{ margin: '6px 0 0', fontSize: 'clamp(22px, 2vw, 24px)', fontWeight: 600, color: INK, letterSpacing: '-0.02em', ...TNUM }}>$3.42M</p>
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6E6E73' }}>Avg DSO</p>
+                <p style={{ margin: '6px 0 0', fontSize: 'clamp(22px, 2vw, 24px)', fontWeight: 600, color: INK, letterSpacing: '-0.02em', ...TNUM }}>42d</p>
+              </div>
+            </div>
+            <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {([
+                ['Net 30',  '$1.84M', 42, EMERALD],
+                ['Net 60',  '$1.08M', 38, SLATE_400],
+                ['Net 90',  '$402K',  14, CORAL],
+                ['Net 120+', '$96K',  6,  CORAL_600],
+              ] as const).map(([term, amt, pct, color]) => (
+                <div key={term} className="flex items-center" style={{ gap: 10 }}>
+                  <span style={{ width: 70, fontSize: 12.5, color: SLATE_700, fontWeight: 500 }}>{term}</span>
+                  <div style={{ flex: 1, height: 8, borderRadius: 999, background: SLATE_100, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: color }} />
+                  </div>
+                  <span style={{ width: 72, textAlign: 'right', fontSize: 12.5, color: INK, fontWeight: 600, ...TNUM }}>{amt}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Days-to-ship trend */}
+          <div className="card" style={{ padding: 24, borderRadius: 16, background: '#FFFFFF' }}>
+            <CardHeader title="Days-to-ship" help="12-week rolling average" />
+            <div className="flex items-end" style={{ gap: 12, marginTop: 10 }}>
+              <p style={{ margin: 0, fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: INK, ...TNUM }}>4.2<span style={{ fontSize: 18, fontWeight: 500, color: SLATE_500, marginLeft: 2 }}>d</span></p>
+              <Delta value={-0.6} suffix="d" positive />
+            </div>
+            <div style={{ marginTop: 16 }}>
+              <Sparkline data={[5.1, 5.0, 4.9, 4.8, 4.7, 4.6, 4.5, 4.4, 4.3, 4.3, 4.2, 4.2]} w={320} h={64} color={CORAL_500} />
+            </div>
+            <p style={{ margin: '12px 0 0', fontSize: 12, color: SLATE_500 }}>Target 4.0d · currently 0.2d above target</p>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -863,6 +911,40 @@ function AmazonView() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 20 }} data-testid="amazon-review-row">
+        <div className="lg:col-span-7 card" style={{ padding: 24, borderRadius: 16, background: '#FFFFFF' }}>
+          <CardHeader title="Review score trend" help="12-month average star rating · all ASINs" />
+          <div className="flex items-end" style={{ gap: 12, marginTop: 10 }}>
+            <p style={{ margin: 0, fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: INK, ...TNUM }}>4.6<span style={{ fontSize: 18, fontWeight: 500, color: '#F59E0B', marginLeft: 4 }}>★</span></p>
+            <Delta value={0.2} suffix=" pts" positive />
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <Sparkline data={[4.2, 4.3, 4.3, 4.4, 4.4, 4.4, 4.5, 4.5, 4.6, 4.6, 4.6, 4.6]} w={420} h={80} color={CORAL_500} />
+          </div>
+          <p style={{ margin: '12px 0 0', fontSize: 12, color: SLATE_500 }}>Reviews collected · 11,420 YTD · 14,180 LTM</p>
+        </div>
+        <div className="lg:col-span-5 card" style={{ padding: 24, borderRadius: 16, background: '#FFFFFF' }}>
+          <CardHeader title="Reviews by star rating" help="Last 12 months" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+            {([
+              [5, 68, '#10B981'],
+              [4, 22, EMERALD],
+              [3, 6,  SLATE_400],
+              [2, 2,  CORAL],
+              [1, 2,  CORAL_600],
+            ] as const).map(([stars, pct, color]) => (
+              <div key={stars} className="flex items-center" style={{ gap: 10 }}>
+                <span style={{ width: 44, fontSize: 12.5, color: SLATE_700, fontWeight: 500, ...TNUM }}>{stars}★</span>
+                <div style={{ flex: 1, height: 8, borderRadius: 999, background: SLATE_100, overflow: 'hidden' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: color }} />
+                </div>
+                <span style={{ width: 42, textAlign: 'right', fontSize: 12.5, color: INK, fontWeight: 600, ...TNUM }}>{pct}%</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </>

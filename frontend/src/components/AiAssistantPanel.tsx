@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUp, Check, Copy, Mail, MoreHorizontal, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, Check, Copy, Mail, MoreHorizontal, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import PopoverPortal from './PopoverPortal';
 
 // ─── Types ─────────────────────────────────────────────────────────────
@@ -36,11 +36,9 @@ const MAX_CHATS = 50;
 const MAX_MESSAGES_PER_CHAT = 100;
 
 const SUGGESTIONS = [
-  "What's my top SKU by margin?",
   'Which channel is growing fastest QTD?',
   'Show me at-risk accounts',
   'Draft a weekly recap email',
-  'Compare March P&L vs February',
   'Explain my gross margin drop',
 ];
 
@@ -302,11 +300,30 @@ export default function AiAssistantPanel({ open, onClose, onToast, onNavigate }:
     setChats((prev) => prev.map((c) => c.id === activeId ? { ...c, draft: input } : c));
   }, [input, activeId]);
 
-  // Autoscroll on new messages
+  // Autoscroll on new messages + track scroll-up state for "New message ↓" pill
+  const [atBottom, setAtBottom] = useState(true);
+  const [showNewPill, setShowNewPill] = useState(false);
   useLayoutEffect(() => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (atBottom) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      setShowNewPill(false);
+    } else {
+      setShowNewPill(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, chats, typing, open, mobileView]);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const atBot = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+      setAtBottom(atBot);
+      if (atBot) setShowNewPill(false);
+    };
+    el.addEventListener('scroll', onScroll);
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [open]);
 
   // Autoresize textarea
   useEffect(() => {
@@ -564,6 +581,24 @@ export default function AiAssistantPanel({ open, onClose, onToast, onNavigate }:
                 )}
               </div>
 
+              {/* Floating "New message ↓" scroll pill */}
+              {showNewPill && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!scrollRef.current) return;
+                    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                    setShowNewPill(false);
+                  }}
+                  className="inline-flex items-center"
+                  style={{ position: 'absolute', bottom: 92, left: '50%', transform: 'translateX(-50%)', zIndex: 10, gap: 6, height: 30, padding: '0 12px', borderRadius: 999, background: INK, color: '#FFFFFF', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 8px 24px rgba(10,10,11,0.26)', fontFamily: 'inherit' }}
+                  data-testid="ai-new-message-pill"
+                >
+                  New messages
+                  <ArrowDown size={13} strokeWidth={2.2} />
+                </button>
+              )}
+
               {/* Input */}
               <div style={{ padding: 16, borderTop: '1px solid #EDEDEF', flexShrink: 0 }}>
                 <div className="flex items-end" style={{ gap: 8 }}>
@@ -735,19 +770,34 @@ function EmptyState({ onPick }: { onPick: (p: string) => void }) {
       <p style={{ margin: '2px 0 14px', fontSize: 13, color: SLATE_500, lineHeight: 1.5, maxWidth: 320 }}>
         I can analyze sales, surface risks, and draft insights across your data.
       </p>
-      <div className="grid grid-cols-2 w-full" style={{ gap: 8 }} data-testid="ai-suggestions">
+      <div className="flex flex-col w-full" style={{ gap: 8 }} data-testid="ai-suggestions">
         {SUGGESTIONS.map((s) => (
           <button
             key={s}
             type="button"
             onClick={() => onPick(s)}
-            className="card card-hover"
-            style={{ padding: 12, borderRadius: 10, textAlign: 'left', background: '#FFFFFF', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: INK, lineHeight: 1.4, fontFamily: 'inherit' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
+            className="inline-flex items-center w-full"
+            style={{
+              gap: 10,
+              padding: '10px 14px',
+              borderRadius: 999,
+              textAlign: 'left',
+              background: '#FFFFFF',
+              color: INK,
+              border: `1px solid ${SLATE_200}`,
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 500,
+              lineHeight: 1.3,
+              fontFamily: 'inherit',
+              transition: 'background 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = CORAL_50; e.currentTarget.style.borderColor = CORAL; e.currentTarget.style.color = CORAL_DK; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = SLATE_200; e.currentTarget.style.color = INK; }}
             data-testid={`ai-suggestion-${s.toLowerCase().slice(0, 24).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`}
           >
-            {s}
+            <Sparkles size={12} strokeWidth={2.2} style={{ color: CORAL, flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>{s}</span>
           </button>
         ))}
       </div>

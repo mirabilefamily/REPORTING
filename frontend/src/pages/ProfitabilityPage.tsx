@@ -132,8 +132,7 @@ export default function ProfitabilityPage() {
         </section>
 
         {/* Margin trend */}
-        <p className="mt-10"><Section>01 / Margin trend</Section></p>
-        <section className="mt-3 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="prof-margin-trend">
+        <section className="mt-10 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="prof-margin-trend">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>Margin lanes · 12 months</h2>
@@ -174,8 +173,7 @@ export default function ProfitabilityPage() {
         </section>
 
         {/* By channel */}
-        <p className="mt-10"><Section>02 / By channel</Section></p>
-        <section className="mt-3 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="prof-by-channel">
+        <section className="mt-10 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="prof-by-channel">
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>Profitability by channel</h2>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: SLATE_500 }}>Sorted by Gross Margin %</p>
           <div className="mt-5">
@@ -217,8 +215,7 @@ export default function ProfitabilityPage() {
         </section>
 
         {/* By product line */}
-        <p className="mt-10"><Section>03 / By product line</Section></p>
-        <section className="mt-3 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="prof-by-line">
+        <section className="mt-10 rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="prof-by-line">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>Product line profitability</h2>
@@ -269,8 +266,7 @@ export default function ProfitabilityPage() {
         </section>
 
         {/* Leaders & Laggers */}
-        <p className="mt-10"><Section>04 / Customer margin</Section></p>
-        <section className="mt-3 grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <section className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2">
           <div className="rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid="prof-leaders">
             <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: INK }}>Top 5 margin leaders</h3>
             <p style={{ margin: '2px 0 12px', fontSize: 12, color: SLATE_500 }}>Highest margin %</p>

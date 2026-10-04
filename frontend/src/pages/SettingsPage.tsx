@@ -26,6 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
+import DsSelect from '../components/DsSelect';
 import IntegrationsPanel from './settings/IntegrationsPanel';
 
 // ─── Tokens ────────────────────────────────────────────────────────────
@@ -320,9 +321,7 @@ export default function SettingsPage() {
                   <span style={{ display: 'inline-flex', alignItems: 'center', height: 36, padding: '0 12px', background: SLATE_50, color: SLATE_700, borderRadius: 10, fontSize: 13, fontWeight: 500, border: `1px solid ${SLATE_200}` }}>Owner</span>
                 </Field>
                 <Field label="Timezone">
-                  <select value={timezone} onChange={(e) => { setTimezone(e.target.value); show('Saved'); }} className={selectCls} style={inputStyle} data-testid="settings-tz">
-                    {TIMEZONES.map((t) => <option key={t}>{t}</option>)}
-                  </select>
+                  <DsSelect value={timezone} options={TIMEZONES} onChange={(v) => { setTimezone(v); show('Saved'); }} minWidth={220} testId="settings-tz" />
                 </Field>
               </div>
             </SectionCard>
@@ -337,8 +336,8 @@ export default function SettingsPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
                 <Field label="Company name"><input value={company} onChange={(e) => setCompany(e.target.value)} onBlur={() => show('Saved')} className={inputCls} style={inputStyle} data-testid="settings-company" /></Field>
-                <Field label="Default currency"><select value={currency} onChange={(e) => { setCurrency(e.target.value); show('Saved'); }} className={selectCls} style={inputStyle} data-testid="settings-currency">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
-                <Field label="Default date range"><select value={defaultRange} onChange={(e) => { setDefaultRange(e.target.value); show('Saved'); }} className={selectCls} style={inputStyle} data-testid="settings-range">{DATE_RANGES.map((r) => <option key={r}>{r}</option>)}</select></Field>
+                <Field label="Default currency"><DsSelect value={currency} options={CURRENCIES} onChange={(v) => { setCurrency(v); show('Saved'); }} minWidth={160} testId="settings-currency" /></Field>
+                <Field label="Default date range"><DsSelect value={defaultRange} options={DATE_RANGES} onChange={(v) => { setDefaultRange(v); show('Saved'); }} minWidth={160} testId="settings-range" /></Field>
               </div>
             </SectionCard>
             )}
@@ -367,7 +366,7 @@ export default function SettingsPage() {
             {active === 'fiscal' && (
             <SectionCard id="fiscal" title="Fiscal & Formatting" help="Fiscal year, week start, and number formatting conventions.">
               <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
-                <Field label="Fiscal year starts"><select value={fiscalMonth} onChange={(e) => { setFiscalMonth(e.target.value); show('Saved'); }} className={selectCls} style={inputStyle} data-testid="settings-fy-month">{FISCAL_MONTHS.map((m) => <option key={m}>{m}</option>)}</select></Field>
+                <Field label="Fiscal year starts"><DsSelect value={fiscalMonth} options={FISCAL_MONTHS} onChange={(v) => { setFiscalMonth(v); show('Saved'); }} minWidth={180} testId="settings-fy-month" /></Field>
                 <Field label="Week starts on">
                   <div role="radiogroup" aria-label="Week starts on" className="flex items-center" style={{ gap: 14, height: 36, maxWidth: 420 }}>
                     {(['Sun', 'Mon'] as const).map((d) => (
@@ -378,7 +377,7 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 </Field>
-                <Field label="Number format"><select value={numFormat} onChange={(e) => { setNumFormat(e.target.value); show('Saved'); }} className={selectCls} style={inputStyle} data-testid="settings-num-format">{NUM_FORMATS.map((n) => <option key={n}>{n}</option>)}</select></Field>
+                <Field label="Number format"><DsSelect value={numFormat} options={NUM_FORMATS} onChange={(v) => { setNumFormat(v); show('Saved'); }} minWidth={180} testId="settings-num-format" /></Field>
                 <Field label="Negative numbers">
                   <div role="radiogroup" aria-label="Negative numbers" className="flex items-center" style={{ gap: 14, height: 36, maxWidth: 420 }}>
                     {NEG_FORMATS.map((n) => (
@@ -425,7 +424,7 @@ export default function SettingsPage() {
               {inviteOpen && (
                 <div className="flex flex-wrap gap-2" style={{ padding: 14, background: SLATE_50, border: `1px solid ${SLATE_200}`, borderRadius: 10, marginBottom: 16 }} data-testid="settings-invite-form">
                   <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="name@company.com" className={inputCls} style={{ flex: 1, minWidth: 200 }} />
-                  <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as Role)} className={selectCls} style={{ flex: '0 0 140px', width: 140 }}>{(['Admin','Analyst','Viewer'] as Role[]).map((r) => <option key={r}>{r}</option>)}</select>
+                  <DsSelect value={inviteRole} options={['Admin', 'Analyst', 'Viewer']} onChange={(v) => setInviteRole(v as Role)} minWidth={140} testId="settings-invite-role" />
                   <button type="button" onClick={addTeamMember} className="btn-primary btn-sm" data-testid="settings-invite-send">Send invite</button>
                 </div>
               )}
