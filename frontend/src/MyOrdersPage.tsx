@@ -138,10 +138,10 @@ function StatusBadge({ s }: { s: Status }) {
         background: t.bg,
         color: t.color,
         border: `1px solid ${t.border}`,
-        height: 24,
-        padding: '0 10px',
+        height: 22,
+        padding: '0 8px',
         borderRadius: 6,
-        fontSize: 12,
+        fontSize: 11.5,
         fontWeight: 500,
         whiteSpace: 'nowrap',
       }}
@@ -206,6 +206,22 @@ export default function MyOrdersPage() {
           testIdPrefix="orders"
         />
 
+        {/* ── KPI strip ────────────────────────────────────────── */}
+        <section className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4" data-testid="orders-kpi-row">
+          {[
+            { label: 'Open value', value: fmtUsd(totals.value), test: 'open-value', support: 'Not yet shipped' },
+            { label: 'Orders', value: fmtInt(totals.orders), test: 'orders', support: 'Active in pipeline' },
+            { label: 'Units', value: fmtInt(totals.units), test: 'units', support: 'Across all orders' },
+            { label: 'Behind SLA', value: fmtInt(totals.behindSLA), test: 'behind-sla', support: 'Past expected ship', warn: totals.behindSLA > 0 },
+          ].map((k) => (
+            <div key={k.label} className="rounded-2xl bg-white" style={{ padding: 20, boxShadow: CARD_SHADOW }} data-testid={`orders-kpi-${k.test}`}>
+              <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: '#6E6E73', margin: 0 }}>{k.label}</p>
+              <p className="mt-2" style={{ ...TABULAR, fontSize: 28, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em', color: k.warn ? CORAL_DK : '#0A0A0B', margin: 0 }}>{k.value}</p>
+              <p style={{ margin: '6px 0 0', fontSize: 12.5, color: SLATE_500 }}>{k.support}</p>
+            </div>
+          ))}
+        </section>
+
         {/* ── Filter toolbar ───────────────────────────────────── */}
         <section
           className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-white"
@@ -213,24 +229,15 @@ export default function MyOrdersPage() {
           data-testid="orders-toolbar"
         >
           <div className="relative" style={{ width: 320 }}>
-            <Search size={16} strokeWidth={1.9} style={{ position: 'absolute', top: 10, left: 10, color: SLATE_500 }} />
+            <Search size={14} strokeWidth={1.9} style={{ position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', color: SLATE_400, pointerEvents: 'none' }} />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search order #, customer, PO..."
-              className="inv-search w-full"
+              className="ds-input w-full"
               data-testid="orders-search"
-              style={{
-                height: 36,
-                padding: '0 10px 0 34px',
-                background: SLATE_50,
-                border: `1px solid ${SLATE_200}`,
-                borderRadius: 8,
-                color: INK,
-                fontSize: 13,
-                outline: 'none',
-              }}
+              style={{ paddingLeft: 36 }}
             />
           </div>
 
@@ -239,24 +246,11 @@ export default function MyOrdersPage() {
             <button
               type="button"
               onClick={() => { setStatusOpen((o) => !o); setChannelOpen(false); }}
-              className="inline-flex items-center gap-2 transition-colors duration-150"
-              style={{
-                height: 36,
-                padding: '0 12px',
-                background: SLATE_100,
-                border: `1px solid ${SLATE_200}`,
-                borderRadius: 8,
-                color: SLATE_700,
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#E8EDF2'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
+              className="btn-secondary inline-flex items-center gap-2"
               data-testid="orders-status-dropdown"
             >
               {statusFilter}
-              <ChevronDown size={14} strokeWidth={2} style={{ color: SLATE_500 }} />
+              <ChevronDown size={12} strokeWidth={2} style={{ color: SLATE_400 }} />
             </button>
             {statusOpen && (
               <>
@@ -303,24 +297,11 @@ export default function MyOrdersPage() {
             <button
               type="button"
               onClick={() => { setChannelOpen((o) => !o); setStatusOpen(false); }}
-              className="inline-flex items-center gap-2 transition-colors duration-150"
-              style={{
-                height: 36,
-                padding: '0 12px',
-                background: SLATE_100,
-                border: `1px solid ${SLATE_200}`,
-                borderRadius: 8,
-                color: SLATE_700,
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#E8EDF2'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
+              className="btn-secondary inline-flex items-center gap-2"
               data-testid="orders-channel-dropdown"
             >
               {channelFilter}
-              <ChevronDown size={14} strokeWidth={2} style={{ color: SLATE_500 }} />
+              <ChevronDown size={12} strokeWidth={2} style={{ color: SLATE_400 }} />
             </button>
             {channelOpen && (
               <>
@@ -461,7 +442,7 @@ export default function MyOrdersPage() {
                             </button>
                           ) : null}
                         </td>
-                        <td style={{ padding: '16px', fontSize: 14, color: INK, letterSpacing: '0.02em', whiteSpace: 'nowrap', fontWeight: 500 }}>{o.orderNo}</td>
+                        <td style={{ padding: '16px', fontSize: 14, color: '#0A0A0B', letterSpacing: '0.02em', whiteSpace: 'nowrap', fontWeight: 600 }}>{o.orderNo}</td>
                         <td style={{ padding: '16px' }}>
                           <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: INK }}>{o.customer}</p>
                           <p style={{ margin: '2px 0 0', fontSize: 12, color: SLATE_500 }}>{o.city}</p>
@@ -488,10 +469,8 @@ export default function MyOrdersPage() {
                             <button
                               type="button"
                               aria-label={`View ${o.orderNo}`}
-                              className="transition-colors duration-150"
-                              style={{ display: 'grid', placeItems: 'center', width: 28, height: 28, borderRadius: 6, background: 'transparent', color: SLATE_500, cursor: 'pointer' }}
-                              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.color = INK; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SLATE_500; }}
+                              className="btn-ghost"
+                              style={{ width: 32, height: 32, padding: 0 }}
                               data-testid={`order-view-${o.orderNo}`}
                             >
                               <Eye size={14} strokeWidth={2} />
@@ -499,10 +478,8 @@ export default function MyOrdersPage() {
                             <button
                               type="button"
                               aria-label={`More options ${o.orderNo}`}
-                              className="transition-colors duration-150"
-                              style={{ display: 'grid', placeItems: 'center', width: 28, height: 28, borderRadius: 6, background: 'transparent', color: SLATE_500, cursor: 'pointer' }}
-                              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.color = INK; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SLATE_500; }}
+                              className="btn-ghost"
+                              style={{ width: 32, height: 32, padding: 0 }}
                               data-testid={`order-more-${o.orderNo}`}
                             >
                               <MoreHorizontal size={14} strokeWidth={2} />
@@ -532,6 +509,10 @@ export default function MyOrdersPage() {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="flex flex-wrap items-center justify-between" style={{ padding: '12px 20px', background: '#FAFAFA', borderTop: `1px solid #EDEDEF`, gap: 8 }} data-testid="orders-footer">
+            <span style={{ fontSize: 12.5, color: SLATE_500 }}>Showing 1–{sorted.length} of {sorted.length}</span>
+            <span style={{ fontSize: 12.5, color: SLATE_500 }}>Snapshot · {SNAPSHOT}</span>
           </div>
         </section>
       </div>

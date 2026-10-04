@@ -500,7 +500,7 @@ export default function PnlPage() {
 
                   const codeText = r.code || '';
                   const stickyBg = s.bg;
-                  const stickyYtdBg = isSection ? s.bg : '#FAFAFA';
+                  const stickyYtdBg = '#FFFFFF';
 
                   return (
                     <tr key={`${r.name}-${ri}`}

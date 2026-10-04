@@ -125,8 +125,8 @@ export default function InventoryPage() {
             { label: 'Available', value: fmt(totals.available * 820), test: 'available' },
           ].map((k) => (
             <div key={k.label} className="rounded-2xl bg-white" style={{ padding: 20, boxShadow: CARD_SHADOW }} data-testid={`inv-kpi-${k.test}`}>
-              <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: SLATE_500, margin: 0 }}>{k.label}</p>
-              <p className="mt-2 font-semibold" style={{ ...TABULAR, fontSize: 28, lineHeight: 1.1, letterSpacing: '-0.02em', color: INK, margin: 0 }}>{k.value}</p>
+              <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: '#6E6E73', margin: 0 }}>{k.label}</p>
+              <p className="mt-2" style={{ ...TABULAR, fontSize: 28, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B', margin: 0 }}>{k.value}</p>
             </div>
           ))}
         </section>
@@ -139,48 +139,26 @@ export default function InventoryPage() {
         >
           {/* Search */}
           <div className="relative" style={{ width: 320 }}>
-            <Search size={16} strokeWidth={1.9} style={{ position: 'absolute', top: 10, left: 10, color: SLATE_500 }} />
+            <Search size={14} strokeWidth={1.9} style={{ position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', color: SLATE_400, pointerEvents: 'none' }} />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search item # or name..."
-              className="inv-search w-full"
+              className="ds-input w-full"
               data-testid="inventory-search"
-              style={{
-                height: 36,
-                padding: '0 10px 0 34px',
-                background: SLATE_50,
-                border: `1px solid ${SLATE_200}`,
-                borderRadius: 8,
-                color: INK,
-                fontSize: 13,
-                outline: 'none',
-              }}
+              style={{ paddingLeft: 36 }}
             />
           </div>
 
           {/* All locations dropdown */}
           <button
             type="button"
-            className="inline-flex items-center gap-2 transition-colors duration-150"
-            style={{
-              height: 36,
-              padding: '0 12px',
-              background: SLATE_100,
-              border: `1px solid ${SLATE_200}`,
-              borderRadius: 8,
-              color: SLATE_700,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#E8EDF2'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
+            className="btn-secondary inline-flex items-center gap-2"
             data-testid="inventory-location-dropdown"
           >
             All locations
-            <ChevronDown size={14} strokeWidth={2} style={{ color: SLATE_500 }} />
+            <ChevronDown size={12} strokeWidth={2} style={{ color: SLATE_400 }} />
           </button>
 
           {/* Divider */}
@@ -189,20 +167,7 @@ export default function InventoryPage() {
           {/* By location toggle */}
           <button
             type="button"
-            className="inline-flex items-center gap-2 transition-colors duration-150"
-            style={{
-              height: 36,
-              padding: '0 12px',
-              background: '#FFFFFF',
-              border: `1px solid ${SLATE_200}`,
-              borderRadius: 8,
-              color: SLATE_700,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
+            className="btn-secondary inline-flex items-center gap-2"
             data-testid="inventory-by-location-toggle"
           >
             <LayoutGrid size={14} strokeWidth={1.9} style={{ color: SLATE_500 }} />
@@ -307,7 +272,7 @@ export default function InventoryPage() {
                             </button>
                           ) : null}
                         </td>
-                        <td style={{ padding: '16px', fontSize: 14, color: INK, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>{r.itemNo}</td>
+                        <td style={{ padding: '16px', fontSize: 14, color: '#0A0A0B', letterSpacing: '0.02em', whiteSpace: 'nowrap', fontWeight: 600 }}>{r.itemNo}</td>
                         <td style={{ padding: '16px', fontSize: 14, fontWeight: 500, color: INK }}>{r.name}</td>
                         <td style={{ padding: '16px', fontSize: 14, color: SLATE_700 }}>{r.color || '—'}</td>
                         <td style={{ padding: '16px', fontSize: 14, color: SLATE_700, whiteSpace: 'nowrap' }}>{r.size}</td>
@@ -349,6 +314,10 @@ export default function InventoryPage() {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="flex flex-wrap items-center justify-between" style={{ padding: '12px 20px', background: '#FAFAFA', borderTop: `1px solid #EDEDEF`, gap: 8 }} data-testid="inventory-footer">
+            <span style={{ fontSize: 12.5, color: SLATE_500 }}>Showing 1–{sorted.length} of {sorted.length}</span>
+            <span style={{ fontSize: 12.5, color: SLATE_500 }}>Snapshot · {SNAPSHOT}</span>
           </div>
         </section>
       </div>
