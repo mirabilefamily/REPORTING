@@ -339,7 +339,7 @@ function VizPreview({ viz, rows, dims, mets }: { viz: string; rows: Record<strin
     return (
       <div className="rounded-2xl bg-white flex items-center justify-center" style={{ minHeight: 260, padding: 40, boxShadow: CARD_SHADOW }} data-testid="cr-viz-kpi">
         <div className="text-center">
-          <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: SLATE_500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{first}</p>
+          <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{first}</p>
           <p style={{ ...TABULAR, margin: '8px 0 0', fontSize: 56, fontWeight: 600, color: INK, letterSpacing: '-0.025em', lineHeight: 1 }}>{fmtMetric(first, total)}</p>
         </div>
       </div>
@@ -392,8 +392,8 @@ function PreviewTable({ rows, dims, mets }: { rows: Record<string, string | numb
         <table className="data-numeric-center" style={{ ...TABULAR, width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
           <thead>
             <tr style={{ background: SLATE_50 }}>
-              {dims.map((d) => (<th key={d} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: SLATE_500, textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{d}</th>))}
-              {mets.map((m) => (<th key={m} style={{ padding: '12px 16px', textAlign: 'right', fontSize: 10, fontWeight: 700, color: SLATE_500, textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{m}</th>))}
+              {dims.map((d) => (<th key={d} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: SLATE_500, textTransform: 'uppercase', letterSpacing: '0.14em', whiteSpace: 'nowrap' }}>{d}</th>))}
+              {mets.map((m) => (<th key={m} style={{ padding: '12px 16px', textAlign: 'right', fontSize: 10, fontWeight: 700, color: SLATE_500, textTransform: 'uppercase', letterSpacing: '0.14em', whiteSpace: 'nowrap' }}>{m}</th>))}
             </tr>
           </thead>
           <tbody>
@@ -730,7 +730,7 @@ function BuilderView(props: {
 
           {mets.length > 0 && (
             <div className="mt-4" data-testid="cr-builder-table">
-              <h4 style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Columns · {dims.join(' · ') || 'no dimension'}</h4>
+              <h4 style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Columns · {dims.join(' · ') || 'no dimension'}</h4>
               <PreviewTable rows={previewRows} dims={dims} mets={mets} />
             </div>
           )}
@@ -844,7 +844,7 @@ function FilterRow({ index, rule, fieldOptions, onChange, onRemove, onConjChange
                 onClick={() => onConjChange(c)}
                 className="ph-tab"
                 data-active={active}
-                style={{ height: 24, padding: '0 10px', fontSize: 11, letterSpacing: '0.08em' }}
+                style={{ height: 24, padding: '0 10px', fontSize: 11, letterSpacing: '0.14em' }}
                 data-testid={`cr-filter-${index}-conj-${c.toLowerCase()}`}
               >{c}</button>
             );
@@ -907,7 +907,7 @@ function FilterRow({ index, rule, fieldOptions, onChange, onRemove, onConjChange
 function PanelSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ padding: '14px 0', borderTop: `1px solid ${SLATE_100}` }}>
-      <h4 style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{title}</h4>
+      <h4 style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{title}</h4>
       {children}
     </div>
   );
@@ -957,7 +957,7 @@ function ViewerView({ r, rows, onBack, onEdit, onRefresh, onShare, onSchedule, o
 
         <div className="flex flex-col gap-4">
           <div className="rounded-2xl bg-white" style={{ padding: 20, boxShadow: CARD_SHADOW }} data-testid="cr-viewer-about">
-            <h4 style={{ margin: 0, fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>About this report</h4>
+            <h4 style={{ margin: 0, fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase' }}>About this report</h4>
             <div className="mt-3" style={{ fontSize: 12, color: SLATE_700, lineHeight: 1.6 }}>
               <AboutRow label="Owner" value={<span className="inline-flex items-center gap-1.5"><span style={{ display: 'grid', placeItems: 'center', width: 20, height: 20, background: SLATE_100, color: SLATE_700, borderRadius: 999, fontSize: 10, fontWeight: 600 }}>{r.ownerInitials}</span>{r.owner}</span>} />
               <AboutRow label="Visibility" value={<span style={{ padding: '2px 8px', borderRadius: 999, background: r.visibility === 'Shared' ? CORAL_50 : SLATE_100, color: r.visibility === 'Shared' ? CORAL_DK : SLATE_700, fontSize: 11, fontWeight: 500 }}>{r.visibility}</span>} />
@@ -982,7 +982,7 @@ function ViewerView({ r, rows, onBack, onEdit, onRefresh, onShare, onSchedule, o
           </div>
 
           <div className="rounded-2xl bg-white" style={{ padding: 20, boxShadow: CARD_SHADOW }} data-testid="cr-viewer-scheduled">
-            <h4 style={{ margin: 0, fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Scheduled sends</h4>
+            <h4 style={{ margin: 0, fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Scheduled sends</h4>
             <p style={{ margin: '10px 0 12px', fontSize: 13, color: SLATE_500 }}>No sends scheduled yet.</p>
             <button type="button" onClick={onSchedule} className="inline-flex items-center gap-1.5" style={{ ...ghostBtn, width: '100%', justifyContent: 'center' }} data-testid="cr-viewer-schedule-add"><Plus size={13} />Schedule</button>
           </div>
@@ -1011,21 +1011,21 @@ function ScheduleModal({ r, onClose, onSave }: { r: Report; onClose: () => void;
     <Modal title={`Schedule "${r.name}"`} onClose={onClose}>
       <div style={{ display: 'grid', gap: 14 }}>
         <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Frequency</label>
+          <label style={{ fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Frequency</label>
           <SegTabs tabs={['Daily', 'Weekly', 'Monthly'] as unknown as readonly string[]} value={freq} onChange={(v: any) => setFreq(v)} testId="cr-sch-freq" slugPrefix="cr-sch-freq" />
         </div>
         {freq === 'Weekly' && (
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Day</label>
+            <label style={{ fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Day</label>
             <SegTabs tabs={['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as unknown as readonly string[]} value={day} onChange={(v: any) => setDay(v)} testId="cr-sch-day" slugPrefix="cr-sch-day" />
           </div>
         )}
         <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Time</label>
+          <label style={{ fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Time</label>
           <input type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ width: '100%', height: 36, padding: '0 10px', border: `1px solid ${SLATE_200}`, borderRadius: 8, fontSize: 13, color: INK, outline: 'none' }} />
         </div>
         <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Recipients</label>
+          <label style={{ fontSize: 11, fontWeight: 700, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Recipients</label>
           <div className="flex flex-wrap gap-1.5" style={{ marginBottom: 8 }}>{recipients.map((e) => (<Chip key={e} label={e} active variant="coral" onToggle={() => setRecipients(recipients.filter((x) => x !== e))} />))}</div>
           <div className="flex gap-2">
             <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && newEmail.includes('@')) { setRecipients([...recipients, newEmail]); setNewEmail(''); } }} placeholder="Add email" style={{ flex: 1, height: 36, padding: '0 10px', border: `1px solid ${SLATE_200}`, borderRadius: 8, fontSize: 13, color: INK, outline: 'none' }} />

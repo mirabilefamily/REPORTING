@@ -547,7 +547,7 @@ export default function SettingsPage() {
   );
 }
 
-const headTh: React.CSSProperties = { padding: '10px 12px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: SLATE_500, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${SLATE_100}`, whiteSpace: 'nowrap' };
+const headTh: React.CSSProperties = { padding: '10px 12px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: SLATE_500, textTransform: 'uppercase', letterSpacing: '0.14em', borderBottom: `1px solid ${SLATE_100}`, whiteSpace: 'nowrap' };
 
 function ModalOverlay({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   useEffect(() => { const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [onClose]);

@@ -694,7 +694,7 @@ function MiniKPI({ label, target, delta, caption, testId, format }: { label: str
   return (
     <div className="px-6 pb-5 pt-5" data-testid={testId}>
       <div className="flex min-h-[26px] items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: '#64748B' }}>{cfg.full}</p>
+        <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: '#64748B' }}>{cfg.full}</p>
         <span data-testid={`${testId}-delta`}>{delta}</span>
       </div>
       <p className="mt-3 font-semibold" style={{ ...TABULAR, fontSize: 24, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>
@@ -836,7 +836,7 @@ function HeroAreaTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{ background: '#FFFFFF', borderRadius: 10, padding: 10, boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)', ...TABULAR }}>
-      <p style={{ color: MUTED, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{label}</p>
+      <p style={{ color: MUTED, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', margin: 0 }}>{label}</p>
       <p style={{ color: '#0F172A', fontSize: 13, fontWeight: 600, margin: '4px 0 0' }}>{fmtM(payload[0].value)}</p>
     </div>
   );
@@ -848,7 +848,7 @@ function RevByMonthTooltip({ active, payload, label }: any) {
   const total = payload.find((p: any) => p.dataKey === 'total');
   return (
     <div style={{ background: '#FFFFFF', borderRadius: 12, padding: 12, boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)', minWidth: 200, ...TABULAR }}>
-      <p style={{ color: '#64748B', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{label}</p>
+      <p style={{ color: '#64748B', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', margin: 0 }}>{label}</p>
       {rows.map((r: any) => (
         <div key={r.dataKey} className="flex items-baseline justify-between gap-3" style={{ marginTop: 4 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#64748B' }}>
@@ -940,7 +940,7 @@ export default function DashboardPage(props: DashProps) {
           <div style={cardStyle} data-testid="hero-netsales">
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} aria-hidden="true" />
-              <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: MUTED }}>Net Sales · YTD</span>
+              <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>Net Sales · YTD</span>
             </div>
             <div className="mt-3 flex flex-wrap items-end gap-x-4 gap-y-2">
               <p style={{ ...TABULAR, margin: 0, fontSize: 'clamp(32px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }} data-testid="hero-netsales-value">{fmtM(netSales)}</p>
@@ -972,7 +972,7 @@ export default function DashboardPage(props: DashProps) {
             <div className="flex items-center justify-between">
               <div className="inline-flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} aria-hidden="true" />
-                <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: MUTED }}>Annual Goal</span>
+                <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>Annual Goal</span>
               </div>
               <span className="inline-flex items-center rounded-full text-[12px] font-semibold" style={{ ...TABULAR, color: '#C9422E', background: '#FFF1EF', padding: '3px 10px' }}>{Math.round(goalPct)}%</span>
             </div>
@@ -1015,14 +1015,14 @@ export default function DashboardPage(props: DashProps) {
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr_1px_1fr]">
             {/* Open Orders */}
             <div style={{ padding: '20px 24px' }} data-testid="kpi-open-orders">
-              <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: MUTED }}>Open Orders</span>
+              <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>Open Orders</span>
               <p style={{ ...TABULAR, margin: '6px 0 4px', fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }}>{fmtM(openOrders)}</p>
               <p style={{ margin: 0, fontSize: 12.5, color: MUTED }}>Booked, not yet invoiced</p>
             </div>
             <div className="hidden md:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
             {/* Total */}
             <div style={{ padding: '20px 24px' }} data-testid="kpi-total">
-              <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: MUTED }}>Total</span>
+              <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>Total</span>
               <p style={{ ...TABULAR, margin: '6px 0 4px', fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }}>{fmtM(total)}</p>
               <p style={{ margin: 0, fontSize: 12.5, color: MUTED }}>Net Sales + Open Orders</p>
             </div>
@@ -1030,7 +1030,7 @@ export default function DashboardPage(props: DashProps) {
             {/* Forecast */}
             <div style={{ padding: '20px 24px' }} data-testid="kpi-forecast">
               <div className="flex items-start justify-between">
-                <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: MUTED }}>Forecast</span>
+                <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>Forecast</span>
                 <span className="inline-flex items-center gap-1 rounded-full text-[12px] font-medium" style={{ color: '#C9422E', background: '#FFF1EF', padding: '3px 8px' }}>
                   <ArrowDown size={10} strokeWidth={2.6} />Trailing
                 </span>
@@ -1094,7 +1094,7 @@ export default function DashboardPage(props: DashProps) {
           <div style={cardStyle} data-testid="segments-card">
             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0F172A', letterSpacing: '-0.005em' }}>Segments</h2>
             <p style={{ margin: '4px 0 16px', fontSize: 12, color: MUTED }}>Attainment vs annual goal</p>
-            <div className="grid gap-x-3 pb-3 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 72px', letterSpacing: '0.08em', color: MUTED, borderBottom: '1px solid #F1F5F9' }}>
+            <div className="grid gap-x-3 pb-3 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 72px', letterSpacing: '0.14em', color: MUTED, borderBottom: '1px solid #F1F5F9' }}>
               <span>Segment</span>
               <span className="text-right">Actual</span>
               <span className="text-right">Goal</span>
@@ -1181,7 +1181,7 @@ export default function DashboardPage(props: DashProps) {
                   })}
                 </div>
                 <div className="mt-5">
-                  <div className="grid gap-x-4 pb-2 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.6fr 1fr 100px', letterSpacing: '0.08em', color: MUTED, borderBottom: '1px solid #F1F5F9' }}>
+                  <div className="grid gap-x-4 pb-2 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.6fr 1fr 100px', letterSpacing: '0.14em', color: MUTED, borderBottom: '1px solid #F1F5F9' }}>
                     <span>Channel</span>
                     <span className="text-right">Revenue</span>
                     <span className="text-right">Share</span>

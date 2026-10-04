@@ -191,7 +191,7 @@ export default function InventoryPage() {
                       textAlign: 'left',
                       fontSize: 11,
                       fontWeight: 600,
-                      letterSpacing: '0.08em',
+                      letterSpacing: '0.14em',
                       textTransform: 'uppercase',
                       color: SLATE_500,
                       height: 44,
@@ -207,10 +207,10 @@ export default function InventoryPage() {
                     </span>
                   </th>
                   {['Item name', 'Color', 'Size', 'Location'].map((h) => (
-                    <th key={h} style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
+                    <th key={h} style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
                   ))}
                   {['On hand', 'Allocated', 'Available'].map((h) => (
-                    <th key={h} style={{ padding: '0 16px', textAlign: 'right', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
+                    <th key={h} style={{ padding: '0 16px', textAlign: 'right', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
                   ))}
                 </tr>
               </thead>

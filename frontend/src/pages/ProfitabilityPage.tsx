@@ -82,8 +82,8 @@ function InlineDelta({ v, invert = false }: { v: number; invert?: boolean }) {
   return (<span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-medium" style={{ ...TABULAR, color: positive ? GREEN : CORAL_DK, background: positive ? GREEN_BG : CORAL_BG, padding: '3px 8px' }}><Arrow size={10} strokeWidth={2.6} />{Math.abs(v).toFixed(1)} pts</span>);
 }
 
-function Eyebrow({ children }: { children: React.ReactNode }) { return <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: SLATE_500, margin: 0 }}>{children}</p>; }
-function Section({ children }: { children: React.ReactNode }) { return <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: SLATE_400, margin: 0 }}>{children}</p>; }
+function Eyebrow({ children }: { children: React.ReactNode }) { return <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500, margin: 0 }}>{children}</p>; }
+function Section({ children }: { children: React.ReactNode }) { return <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: SLATE_400, margin: 0 }}>{children}</p>; }
 
 export default function ProfitabilityPage() {
   const [seg, setSeg] = useState<string>('All');
@@ -139,7 +139,7 @@ export default function ProfitabilityPage() {
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>Margin lanes · 12 months</h2>
               <p style={{ margin: '4px 0 0', fontSize: 12, color: SLATE_500 }}>Gross, contribution, and operating margins trending in parallel</p>
             </div>
-            <div className="flex items-center gap-4 text-[11px] font-medium uppercase" style={{ letterSpacing: '0.08em', color: SLATE_500 }}>
+            <div className="flex items-center gap-4 text-[11px] font-medium uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500 }}>
               <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4" style={{ background: INK }} /> Gross</span>
               <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4" style={{ background: CORAL }} /> Contribution</span>
               <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4" style={{ background: SLATE_500, borderTop: `1px dashed ${SLATE_500}` }} /> Operating</span>
@@ -155,7 +155,7 @@ export default function ProfitabilityPage() {
                   cursor={{ stroke: SLATE_200, strokeWidth: 1 }}
                   content={({ active, payload, label }: any) => (!active || !payload?.length) ? null : (
                     <div style={{ background: '#FFFFFF', borderRadius: 12, padding: 12, boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)', minWidth: 180, ...TABULAR }}>
-                      <p style={{ color: SLATE_500, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{label}</p>
+                      <p style={{ color: SLATE_500, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', margin: 0 }}>{label}</p>
                       {payload.map((p: any) => (
                         <div key={p.dataKey} className="flex items-baseline justify-between gap-3" style={{ marginTop: 4 }}>
                           <span style={{ fontSize: 11, color: SLATE_500, textTransform: 'capitalize' }}>{p.dataKey === 'contrib' ? 'contribution' : p.dataKey}</span>
@@ -179,7 +179,7 @@ export default function ProfitabilityPage() {
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>Profitability by channel</h2>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: SLATE_500 }}>Sorted by Gross Margin %</p>
           <div className="mt-5">
-            <div className="grid gap-x-4 pb-3 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 90px 110px 100px', letterSpacing: '0.08em', color: SLATE_500, borderBottom: `1px solid ${SLATE_100}` }}>
+            <div className="grid gap-x-4 pb-3 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr 90px 110px 100px', letterSpacing: '0.14em', color: SLATE_500, borderBottom: `1px solid ${SLATE_100}` }}>
               <span>Channel</span>
               <span className="text-right">Revenue</span>
               <span className="text-right">COGS</span>
@@ -252,7 +252,7 @@ export default function ProfitabilityPage() {
             <div className="hidden lg:block" style={{ background: SLATE_100 }} aria-hidden="true" />
             {/* Right table */}
             <div data-testid="prof-line-table">
-              <div className="grid gap-x-3 pb-2 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.4fr 70px 90px', letterSpacing: '0.08em', color: SLATE_500, borderBottom: `1px solid ${SLATE_100}` }}>
+              <div className="grid gap-x-3 pb-2 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.4fr 70px 90px', letterSpacing: '0.14em', color: SLATE_500, borderBottom: `1px solid ${SLATE_100}` }}>
                 <span>Line</span>
                 <span className="text-right">GM %</span>
                 <span className="text-right">Revenue</span>

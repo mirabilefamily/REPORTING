@@ -248,7 +248,7 @@ export default function ForecastGoalsPage() {
                       verticalAlign: 'middle',
                       fontSize: 11,
                       fontWeight: 600,
-                      letterSpacing: '0.08em',
+                      letterSpacing: '0.14em',
                       textTransform: 'uppercase',
                       color: SLATE_500,
                       height: 44,
@@ -271,7 +271,7 @@ export default function ForecastGoalsPage() {
                           textAlign: 'right',
                           fontSize: 11,
                           fontWeight: 600,
-                          letterSpacing: '0.08em',
+                          letterSpacing: '0.14em',
                           textTransform: 'uppercase',
                           color: isCurrent ? CORAL_DK : SLATE_500,
                           background: isCurrent ? CORAL_BG : 'transparent',
@@ -289,7 +289,7 @@ export default function ForecastGoalsPage() {
                       textAlign: 'right',
                       fontSize: 11,
                       fontWeight: 600,
-                      letterSpacing: '0.08em',
+                      letterSpacing: '0.14em',
                       textTransform: 'uppercase',
                       color: SLATE_500,
                       height: 44,
@@ -388,7 +388,7 @@ export default function ForecastGoalsPage() {
                 {/* TOTAL row */}
                 <tr style={{ borderTop: `1px solid ${SLATE_200}`, height: 60 }} data-testid="fg-total-row">
                   <td style={{ padding: '0 20px', position: 'sticky', left: 0, background: '#FFFFFF', textAlign: 'center', verticalAlign: 'middle', height: 60 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500 }}>
                       Total
                     </div>
                   </td>

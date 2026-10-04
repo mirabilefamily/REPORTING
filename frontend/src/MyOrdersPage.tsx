@@ -352,7 +352,7 @@ export default function MyOrdersPage() {
                   <th
                     onClick={() => setSortDesc((s) => !s)}
                     className="cursor-pointer transition-colors duration-150"
-                    style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44, userSelect: 'none' }}
+                    style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500, height: 44, userSelect: 'none' }}
                     onMouseEnter={(e) => { e.currentTarget.style.color = SLATE_700; }}
                     onMouseLeave={(e) => { e.currentTarget.style.color = SLATE_500; }}
                     data-testid="orders-sort-date"
@@ -363,13 +363,13 @@ export default function MyOrdersPage() {
                     </span>
                   </th>
                   {['Customer', 'Channel', 'PO #', 'Status', 'Order date'].map((h) => (
-                    <th key={h} style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
+                    <th key={h} style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
                   ))}
                   {['Units', '$ Value'].map((h) => (
-                    <th key={h} style={{ padding: '0 16px', textAlign: 'right', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
+                    <th key={h} style={{ padding: '0 16px', textAlign: 'right', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>{h}</th>
                   ))}
-                  <th style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>Expected ship</th>
-                  <th style={{ padding: '0 16px', textAlign: 'right', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, height: 44, width: 100 }}>Actions</th>
+                  <th style={{ padding: '0 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500, height: 44 }}>Expected ship</th>
+                  <th style={{ padding: '0 16px', textAlign: 'right', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500, height: 44, width: 100 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>

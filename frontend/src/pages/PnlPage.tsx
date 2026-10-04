@@ -325,13 +325,13 @@ function ColumnsPopover({ showYtd, setShowYtd, visibleMonths, setVisibleMonths }
         <Columns3 size={14} strokeWidth={1.9} />
       </button>
       <PopoverPortal open={open} onClose={() => setOpen(false)} anchorRef={btnRef} placement="bottom-end" minWidth={220} maxHeight={420} padding={10} testId="pnl-columns-popover">
-        <p style={{ margin: '0 0 6px', fontSize: 10.5, fontWeight: 700, color: '#9A9A9E', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 4px' }}>Summary columns</p>
+        <p style={{ margin: '0 0 6px', fontSize: 10.5, fontWeight: 700, color: '#9A9A9E', letterSpacing: '0.14em', textTransform: 'uppercase', padding: '0 4px' }}>Summary columns</p>
         <label className="flex items-center justify-between" style={{ padding: '8px 4px', fontSize: 13, color: INK, cursor: 'pointer', borderRadius: 6 }}>
           YTD
           <button type="button" role="switch" aria-checked={showYtd} className="ds-switch" data-on={showYtd} onClick={() => setShowYtd(!showYtd)} data-testid="pnl-toggle-ytd" />
         </label>
         <div style={{ height: 1, background: SLATE_100, margin: '8px 0' }} />
-        <p style={{ margin: '0 0 6px', fontSize: 10.5, fontWeight: 700, color: '#9A9A9E', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 4px' }}>Months</p>
+        <p style={{ margin: '0 0 6px', fontSize: 10.5, fontWeight: 700, color: '#9A9A9E', letterSpacing: '0.14em', textTransform: 'uppercase', padding: '0 4px' }}>Months</p>
         {PERIODS.map((p) => {
           const on = visibleMonths[p] ?? true;
           return (
@@ -529,18 +529,18 @@ export default function PnlPage() {
               </colgroup>
               <thead>
                 <tr>
-                  <th style={{ width: 320, minWidth: 320, padding: '0 12px 0 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'left', verticalAlign: 'middle', position: 'sticky', left: 0, background: '#FFFFFF', zIndex: 3, borderBottom: `1px solid ${DIV_MED}`, borderRight: `1px solid ${DIV_MED}`, boxSizing: 'border-box' }}>Account</th>
+                  <th style={{ width: 320, minWidth: 320, padding: '0 12px 0 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'left', verticalAlign: 'middle', position: 'sticky', left: 0, background: '#FFFFFF', zIndex: 3, borderBottom: `1px solid ${DIV_MED}`, borderRight: `1px solid ${DIV_MED}`, boxSizing: 'border-box' }}>Account</th>
                   {view === 'Detailed' && groupBy === 'None' && (
-                    <th style={{ width: 90, minWidth: 90, padding: '0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'left', verticalAlign: 'middle', position: 'sticky', left: 320, background: '#FFFFFF', zIndex: 3, borderBottom: `1px solid ${DIV_MED}`, borderRight: `1px solid ${DIV_MED}`, boxSizing: 'border-box' }}>Code</th>
+                    <th style={{ width: 90, minWidth: 90, padding: '0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'left', verticalAlign: 'middle', position: 'sticky', left: 320, background: '#FFFFFF', zIndex: 3, borderBottom: `1px solid ${DIV_MED}`, borderRight: `1px solid ${DIV_MED}`, boxSizing: 'border-box' }}>Code</th>
                   )}
                   {periods.map((p) => (
-                    <th key={p} style={{ width: 128, minWidth: 128, padding: '0 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'right', verticalAlign: 'middle', background: '#FFFFFF', borderBottom: `1px solid ${DIV_MED}`, borderRight: `1px solid ${DIV_LITE}`, boxSizing: 'border-box' }}>{p}</th>
+                    <th key={p} style={{ width: 128, minWidth: 128, padding: '0 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'right', verticalAlign: 'middle', background: '#FFFFFF', borderBottom: `1px solid ${DIV_MED}`, borderRight: `1px solid ${DIV_LITE}`, boxSizing: 'border-box' }}>{p}</th>
                   ))}
                   {showYtd && (
-                    <th style={{ width: 140, minWidth: 140, padding: '0 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: INK, height: 44, textAlign: 'right', verticalAlign: 'middle', background: '#FAFAFA', borderBottom: `1px solid ${DIV_MED}`, borderLeft: `1px solid ${DIV_MED}`, borderRight: comparisonActive ? `1px solid ${DIV_LITE}` : 'none', position: 'sticky', right: comparisonActive ? 120 : 0, zIndex: 3, boxSizing: 'border-box' }} data-testid="pnl-th-ytd">YTD</th>
+                    <th style={{ width: 140, minWidth: 140, padding: '0 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: INK, height: 44, textAlign: 'right', verticalAlign: 'middle', background: '#FAFAFA', borderBottom: `1px solid ${DIV_MED}`, borderLeft: `1px solid ${DIV_MED}`, borderRight: comparisonActive ? `1px solid ${DIV_LITE}` : 'none', position: 'sticky', right: comparisonActive ? 120 : 0, zIndex: 3, boxSizing: 'border-box' }} data-testid="pnl-th-ytd">YTD</th>
                   )}
                   {comparisonActive && (
-                    <th style={{ width: 120, minWidth: 120, padding: '0 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: INK, height: 44, textAlign: 'right', verticalAlign: 'middle', background: '#FAFAFA', borderBottom: `1px solid ${DIV_MED}`, position: 'sticky', right: 0, zIndex: 3, boxSizing: 'border-box' }} data-testid="pnl-th-delta">Δ vs {comparison === 'Prior Year' ? 'PY' : comparison === 'Prior Period' ? 'PP' : 'Budget'}</th>
+                    <th style={{ width: 120, minWidth: 120, padding: '0 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: INK, height: 44, textAlign: 'right', verticalAlign: 'middle', background: '#FAFAFA', borderBottom: `1px solid ${DIV_MED}`, position: 'sticky', right: 0, zIndex: 3, boxSizing: 'border-box' }} data-testid="pnl-th-delta">Δ vs {comparison === 'Prior Year' ? 'PY' : comparison === 'Prior Period' ? 'PP' : 'Budget'}</th>
                   )}
                 </tr>
               </thead>

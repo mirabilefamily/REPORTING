@@ -579,7 +579,7 @@ function ProductTable({ data }: { data: typeof TOP_PRODUCTS }) {
         <thead>
           <tr style={{ background: SLATE_50, borderBottom: `1px solid ${SLATE_100}` }}>
             {['#', 'Product', 'Units', 'Revenue', 'AOV', 'CR'].map((h, i) => (
-              <th key={h} style={{ padding: '10px 14px', textAlign: i === 1 ? 'left' : 'center', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500 }}>{h}</th>
+              <th key={h} style={{ padding: '10px 14px', textAlign: i === 1 ? 'left' : 'center', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500 }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -688,7 +688,7 @@ function AccountTable({ data }: { data: typeof US_ACCOUNTS }) {
         <thead>
           <tr style={{ background: SLATE_50, borderBottom: `1px solid ${SLATE_100}` }}>
             {['#', 'Account', 'Open', 'Last order', 'YTD revenue', 'Cadence', 'Status'].map((h, i) => (
-              <th key={h} style={{ padding: '10px 14px', textAlign: i === 1 ? 'left' : 'center', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500 }}>{h}</th>
+              <th key={h} style={{ padding: '10px 14px', textAlign: i === 1 ? 'left' : 'center', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500 }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -741,7 +741,7 @@ function RetailView() {
               <thead>
                 <tr style={{ background: SLATE_50, borderBottom: `1px solid ${SLATE_100}` }}>
                   {['Store', 'Revenue', 'Orders', 'AOV', 'Trend'].map((h, i) => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: i === 0 ? 'left' : 'center', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500 }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 14px', textAlign: i === 0 ? 'left' : 'center', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -837,7 +837,7 @@ function AmazonView() {
             <thead>
               <tr style={{ background: SLATE_50, borderBottom: `1px solid ${SLATE_100}` }}>
                 {['#', 'Product · ASIN', 'Units', 'Revenue', 'Buy Box', 'Review score'].map((h, i) => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: i === 1 ? 'left' : 'center', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500 }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', textAlign: i === 1 ? 'left' : 'center', fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500 }}>{h}</th>
                 ))}
               </tr>
             </thead>

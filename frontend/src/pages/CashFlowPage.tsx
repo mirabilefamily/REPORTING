@@ -82,8 +82,8 @@ function MiniSpark({ data, color = SLATE_400 }: { data: number[]; color?: string
   return (<svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }} aria-hidden="true"><polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" vectorEffect="non-scaling-stroke" /></svg>);
 }
 
-function Eyebrow({ children }: { children: React.ReactNode }) { return <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: SLATE_500, margin: 0 }}>{children}</p>; }
-function Section({ children }: { children: React.ReactNode }) { return <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: SLATE_400, margin: 0 }}>{children}</p>; }
+function Eyebrow({ children }: { children: React.ReactNode }) { return <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500, margin: 0 }}>{children}</p>; }
+function Section({ children }: { children: React.ReactNode }) { return <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: SLATE_400, margin: 0 }}>{children}</p>; }
 
 export default function CashFlowPage() {
   const [seg, setSeg] = useState<string>('All');
@@ -139,7 +139,7 @@ export default function CashFlowPage() {
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: INK, letterSpacing: '-0.005em' }}>Monthly cash flow</h2>
               <p style={{ margin: '4px 0 0', fontSize: 12, color: SLATE_500 }}>Operating cash flow bars with cash on hand overlay</p>
             </div>
-            <div className="flex items-center gap-4 text-[11px] font-medium uppercase" style={{ letterSpacing: '0.08em', color: SLATE_500 }}>
+            <div className="flex items-center gap-4 text-[11px] font-medium uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500 }}>
               <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: GREEN }} /> Positive OCF</span>
               <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: CORAL }} /> Negative OCF</span>
               <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4" style={{ background: INK }} /> Cash on hand</span>
@@ -156,7 +156,7 @@ export default function CashFlowPage() {
                   cursor={{ fill: 'rgba(15,23,42,0.04)' }}
                   content={({ active, payload, label }: any) => (!active || !payload?.length) ? null : (
                     <div style={{ background: '#FFFFFF', borderRadius: 12, padding: 12, boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08)', minWidth: 180, ...TABULAR }}>
-                      <p style={{ color: SLATE_500, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{label}</p>
+                      <p style={{ color: SLATE_500, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', margin: 0 }}>{label}</p>
                       {payload.find((p: any) => p.dataKey === 'ocf') && (
                         <div className="flex items-baseline justify-between gap-3" style={{ marginTop: 4 }}><span style={{ fontSize: 11, color: SLATE_500 }}>OCF</span><span style={{ fontSize: 13, fontWeight: 600, color: payload.find((p: any) => p.dataKey === 'ocf').value >= 0 ? GREEN : CORAL_DK }}>{fmtM(payload.find((p: any) => p.dataKey === 'ocf').value)}</span></div>
                       )}
@@ -228,7 +228,7 @@ export default function CashFlowPage() {
               <div key={w.label} className="rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid={`cf-wc-${i}`}>
                 <Eyebrow>{w.label}</Eyebrow>
                 <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
-                  <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(18px, 1.8vw, 22px)', lineHeight: 1.15, letterSpacing: '-0.02em', color: over ? CORAL_DK : INK, margin: 0 }}>{w.value}</p>
+                  <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(22px, 2vw, 24px)', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em', color: over ? CORAL_DK : INK, margin: 0 }}>{w.value}</p>
                   <span style={{ fontSize: 13, color: SLATE_500 }}>{w.unit}</span>
                   <InlineDelta v={w.delta} invert={w.benchmark !== undefined} unit=" pts" />
                 </div>
@@ -251,7 +251,7 @@ export default function CashFlowPage() {
             <p style={{ margin: '4px 0 0', fontSize: 12, color: SLATE_500 }}>${fmtInt(agingTotal)} total outstanding · across {AGING.reduce((s, a) => s + a.accounts, 0)} accounts</p>
           </div>
           <div className="mt-5">
-            <div className="grid gap-x-4 pb-3 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.4fr 90px 120px 1.2fr 100px 90px', letterSpacing: '0.08em', color: SLATE_500, borderBottom: `1px solid ${SLATE_100}` }}>
+            <div className="grid gap-x-4 pb-3 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.4fr 90px 120px 1.2fr 100px 90px', letterSpacing: '0.14em', color: SLATE_500, borderBottom: `1px solid ${SLATE_100}` }}>
               <span>Bucket</span>
               <span className="text-right">Accounts</span>
               <span className="text-right">Total $</span>
