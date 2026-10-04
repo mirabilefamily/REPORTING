@@ -39,6 +39,8 @@ import ProfitabilityPage from './pages/ProfitabilityPage';
 import CashFlowPage from './pages/CashFlowPage';
 import ForecastGoalsPage from './pages/ForecastGoalsPage';
 import InventoryPage from './pages/InventoryPage';
+import AiAssistantPanel from './components/AiAssistantPanel';
+import CommandSearch from './components/CommandSearch';
 import { navSlug } from '@/lib/nav';
 
 type NavItem = { label: string; icon: typeof BarChart2 };
@@ -122,6 +124,11 @@ function StaffApp() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const searchWrapRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiToast, setAiToast] = useState<string | null>(null);
 
   useEffect(() => {
     document.querySelector('.page-content')?.scrollTo({ top: 0 });
@@ -248,23 +255,31 @@ function StaffApp() {
         <header className="topbar">
           <button className="mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open menu"><Menu size={19} /></button>
           <div className="breadcrumb"><ActiveIcon size={17} /><strong>{activeNav}</strong></div>
-          <div className="search-wrap" style={{ maxWidth: 480 }}>
-            <div className="search-bar">
+          <div className="search-wrap" style={{ maxWidth: 480 }} ref={searchWrapRef}>
+            <div className="search-bar" style={{ cursor: 'text', position: 'relative' }} data-testid="topbar-search-input" onClick={() => { setCmdOpen(true); searchInputRef.current?.focus(); }}>
               <Search size={14} />
               <input
-                type="search"
+                ref={searchInputRef}
+                type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); if (!cmdOpen) setCmdOpen(true); }}
+                onFocus={() => setCmdOpen(true)}
+                onKeyDown={(e) => { if (e.key === 'Escape') { setCmdOpen(false); (e.target as HTMLInputElement).blur(); } }}
                 placeholder="Search accounts, items, orders…"
                 aria-label="Search"
-                data-testid="topbar-search-input"
+                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', font: 'inherit', fontSize: 13, color: '#0F172A', minWidth: 0 }}
               />
+              {cmdOpen ? (
+                <kbd aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: 6, padding: '2px 6px', background: '#FAFAFA', color: '#64748B', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>ESC</kbd>
+              ) : (
+                <kbd aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, border: '1px solid #E2E8F0', borderRadius: 6, padding: '2px 6px', background: '#F1F5F9', color: '#64748B', fontSize: 11, fontFamily: 'inherit', fontWeight: 600 }}>⌘K</kbd>
+              )}
             </div>
           </div>
           <div className="top-actions">
             <button
               className="btn-ai"
-              onClick={() => { /* placeholder — no-op */ }}
+              onClick={() => setAiOpen(true)}
               aria-label="AI Assist"
               data-testid="ai-assist-btn"
             >
@@ -350,6 +365,33 @@ function StaffApp() {
           )}
         </div>
       </main>
+
+      <AiAssistantPanel
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        onToast={(m) => { setAiToast(m); setTimeout(() => setAiToast(null), 2200); }}
+        onNavigate={(dest) => { setActiveNav(dest); setAiOpen(false); }}
+      />
+      <CommandSearch
+        open={cmdOpen}
+        query={searchQuery}
+        anchorRef={searchWrapRef}
+        onClose={() => setCmdOpen(false)}
+        onNavigate={(dest, hash) => { setActiveNav(dest); if (hash) { window.location.hash = hash; } setCmdOpen(false); }}
+        onToast={(m) => { setAiToast(m); setTimeout(() => setAiToast(null), 2200); }}
+        onOpenAi={() => { setCmdOpen(false); setAiOpen(true); }}
+        onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
+        onClearQuery={() => setSearchQuery('')}
+      />
+      {aiToast && (
+        <div
+          role="status"
+          style={{ position: 'fixed', right: 24, bottom: 24, zIndex: 110, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#0A0A0B', color: '#FFFFFF', borderRadius: 10, boxShadow: '0 10px 24px rgba(0,0,0,0.22)', fontSize: 12.5, fontWeight: 500 }}
+          data-testid="ai-toast"
+        >
+          <CheckCircle2 size={14} strokeWidth={2.2} />{aiToast}
+        </div>
+      )}
     </div>
   );
 }

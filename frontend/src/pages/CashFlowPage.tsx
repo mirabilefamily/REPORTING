@@ -120,7 +120,7 @@ export default function CashFlowPage() {
                 <div key={k.eyebrow} className="px-6 py-6 md:px-8 md:py-7" data-testid={`cf-kpi-${i}`}>
                   <Eyebrow>{k.eyebrow}</Eyebrow>
                   <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
-                    <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(36px, 3.6vw, 48px)', lineHeight: 1, letterSpacing: '-0.02em', color: INK, margin: 0 }}>{k.value}</p>
+                    <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: INK, margin: 0 }}>{k.value}</p>
                     <InlineDelta v={k.delta} />
                   </div>
                   <p className="mt-2 text-[12px] font-medium" style={{ color: SLATE_500, margin: 0 }}>{k.caption}</p>
@@ -228,7 +228,7 @@ export default function CashFlowPage() {
               <div key={w.label} className="rounded-2xl bg-white" style={{ padding: 24, boxShadow: CARD_SHADOW }} data-testid={`cf-wc-${i}`}>
                 <Eyebrow>{w.label}</Eyebrow>
                 <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
-                  <p className="font-semibold" style={{ ...TABULAR, fontSize: 36, lineHeight: 1, letterSpacing: '-0.02em', color: over ? CORAL_DK : INK, margin: 0 }}>{w.value}</p>
+                  <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(18px, 1.8vw, 22px)', lineHeight: 1.15, letterSpacing: '-0.02em', color: over ? CORAL_DK : INK, margin: 0 }}>{w.value}</p>
                   <span style={{ fontSize: 13, color: SLATE_500 }}>{w.unit}</span>
                   <InlineDelta v={w.delta} invert={w.benchmark !== undefined} unit=" pts" />
                 </div>

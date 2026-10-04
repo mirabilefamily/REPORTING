@@ -120,7 +120,7 @@ export default function ProfitabilityPage() {
                 <div key={k.eyebrow} className="px-6 py-6 md:px-8 md:py-7" data-testid={`prof-kpi-${i}`}>
                   <Eyebrow>{k.eyebrow}</Eyebrow>
                   <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
-                    <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(36px, 3.6vw, 48px)', lineHeight: 1, letterSpacing: '-0.02em', color: INK, margin: 0 }}>{k.value}</p>
+                    <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: INK, margin: 0 }}>{k.value}</p>
                     <InlineDelta v={k.delta} />
                   </div>
                   <p className="mt-2 text-[12px] font-medium" style={{ color: SLATE_500, margin: 0 }}>{k.caption}</p>

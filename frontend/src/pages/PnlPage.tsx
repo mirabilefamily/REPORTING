@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, CheckCircle2, ChevronDown, Columns3, Download, Minus, Plus } from 'lucide-react';
 import { usePageRange } from '../lib/pageRange';
 import DateRangePicker from '../components/DateRangePicker';
 import PageHeader from '../components/PageHeader';
+import PopoverPortal from '../components/PopoverPortal';
 
 // ─── Tokens ────────────────────────────────────────────────────────────
 const CARD_SHADOW = '0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)';
@@ -102,52 +103,52 @@ function buildStatement(scale: number): Row[] {
 
   const rows: Row[] = [
     // Revenue section
-    { name: 'Revenue', code: '4000', type: 'section', level: 0, monthly: [], parent: 'Revenue' },
-    { name: 'Sales', code: '4000', type: 'subGroup', level: 1, monthly: [], parent: 'Revenue' },
+    { name: 'Revenue', code: '', type: 'section', level: 0, monthly: [], parent: 'Revenue' },
+    { name: 'Sales', code: '', type: 'subGroup', level: 1, monthly: [], parent: 'Revenue' },
     { name: 'Sales — Direct',        code: '4000', type: 'line', level: 2, monthly: salesDirect, parent: 'Sales' },
     { name: 'Sales — Wholesale',     code: '4010', type: 'line', level: 2, monthly: salesWhole,  parent: 'Sales' },
     { name: 'Income — SHI Revenue',  code: '4020', type: 'line', level: 2, monthly: salesSHI,    parent: 'Sales' },
-    { name: 'Total Sales', code: '4000', type: 'subGroupTotal', level: 1, monthly: totalSales, parent: 'Sales' },
+    { name: 'Total Sales', code: '', type: 'subGroupTotal', level: 1, monthly: totalSales, parent: 'Sales' },
     { name: 'Shipping Revenue', code: '4021', type: 'line', level: 1, monthly: shipping, parent: 'Revenue' },
-    { name: 'Total Revenue', code: '4000', type: 'keyTotal', level: 0, monthly: totalRevenue, parent: 'Revenue' },
+    { name: 'Total Revenue', code: '', type: 'keyTotal', level: 0, monthly: totalRevenue, parent: 'Revenue' },
 
     // Contra Revenue
-    { name: 'Contra Revenue', code: '4100', type: 'section', level: 0, monthly: [], parent: 'Contra Revenue' },
+    { name: 'Contra Revenue', code: '', type: 'section', level: 0, monthly: [], parent: 'Contra Revenue' },
     { name: 'Discounts',         code: '4105', type: 'line', level: 1, monthly: discounts, parent: 'Contra Revenue' },
     { name: 'Returns / Refunds', code: '4106', type: 'line', level: 1, monthly: returns,   parent: 'Contra Revenue' },
-    { name: 'Total Contra Revenue', code: '4100', type: 'subTotal', level: 0, monthly: totalContra, parent: 'Contra Revenue' },
+    { name: 'Total Contra Revenue', code: '', type: 'subTotal', level: 0, monthly: totalContra, parent: 'Contra Revenue' },
 
     // COGS
-    { name: 'Cost of Goods Sold', code: '5000', type: 'section', level: 0, monthly: [], parent: 'COGS' },
+    { name: 'Cost of Goods Sold', code: '', type: 'section', level: 0, monthly: [], parent: 'COGS' },
     { name: 'Cost of Goods Sold',       code: '5001', type: 'line', level: 1, monthly: cogsBase,    parent: 'COGS' },
     { name: 'COGS — Production',        code: '5002', type: 'line', level: 1, monthly: cogsProd,    parent: 'COGS' },
     { name: 'COGS — Freight',           code: '5003', type: 'line', level: 1, monthly: cogsFreight, parent: 'COGS' },
     { name: 'COGS — Import & Duties',   code: '5010', type: 'line', level: 1, monthly: cogsImport,  parent: 'COGS' },
     { name: 'Purchase Price Variance',  code: '5011', type: 'line', level: 1, monthly: ppv,         parent: 'COGS' },
     { name: 'Merchant Processing Fees', code: '5012', type: 'line', level: 1, monthly: mpf,         parent: 'COGS' },
-    { name: 'Total COGS', code: '5000', type: 'subTotal', level: 0, monthly: totalCogs, parent: 'COGS' },
+    { name: 'Total COGS', code: '', type: 'subTotal', level: 0, monthly: totalCogs, parent: 'COGS' },
 
-    { name: 'Gross Profit', type: 'keyTotal', level: 0, monthly: grossProfit, parent: 'Gross Profit' },
+    { name: 'Gross Profit', code: '', type: 'keyTotal', level: 0, monthly: grossProfit, parent: 'Gross Profit' },
 
     // OpEx
-    { name: 'Operating Expenses', code: '6000', type: 'section', level: 0, monthly: [], parent: 'OpEx' },
+    { name: 'Operating Expenses', code: '', type: 'section', level: 0, monthly: [], parent: 'OpEx' },
     { name: 'Marketing',           code: '6100', type: 'line', level: 1, monthly: marketing,  parent: 'OpEx' },
     { name: 'G&A',                 code: '6200', type: 'line', level: 1, monthly: ga,         parent: 'OpEx' },
     { name: 'Operations',          code: '6300', type: 'line', level: 1, monthly: operations, parent: 'OpEx' },
     { name: 'Salaries & Benefits', code: '6400', type: 'line', level: 1, monthly: salaries,   parent: 'OpEx' },
     { name: 'Other OpEx',          code: '6900', type: 'line', level: 1, monthly: otherOpex,  parent: 'OpEx' },
-    { name: 'Total OpEx', code: '6000', type: 'subTotal', level: 0, monthly: totalOpex, parent: 'OpEx' },
+    { name: 'Total OpEx', code: '', type: 'subTotal', level: 0, monthly: totalOpex, parent: 'OpEx' },
 
-    { name: 'Operating Income', type: 'keyTotal', level: 0, monthly: operatingIncome, parent: 'Operating Income' },
+    { name: 'Operating Income', code: '', type: 'keyTotal', level: 0, monthly: operatingIncome, parent: 'Operating Income' },
 
     // Non-Operating
-    { name: 'Non-Operating', code: '7000', type: 'section', level: 0, monthly: [], parent: 'Non-Op' },
+    { name: 'Non-Operating', code: '', type: 'section', level: 0, monthly: [], parent: 'Non-Op' },
     { name: 'Interest Income',  code: '7100', type: 'line', level: 1, monthly: intInc, parent: 'Non-Op' },
     { name: 'Interest Expense', code: '7200', type: 'line', level: 1, monthly: intExp, parent: 'Non-Op' },
     { name: 'Taxes',            code: '7300', type: 'line', level: 1, monthly: taxes,  parent: 'Non-Op' },
-    { name: 'Total Non-Operating', code: '7000', type: 'subTotal', level: 0, monthly: totalNonOp, parent: 'Non-Op' },
+    { name: 'Total Non-Operating', code: '', type: 'subTotal', level: 0, monthly: totalNonOp, parent: 'Non-Op' },
 
-    { name: 'Net Income', type: 'keyTotal', level: 0, monthly: netIncome, parent: 'Net Income' },
+    { name: 'Net Income', code: '', type: 'keyTotal', level: 0, monthly: netIncome, parent: 'Net Income' },
   ];
   return rows;
 }
@@ -211,15 +212,43 @@ function InlineDelta({ v }: { v: number }) {
 }
 
 function ToolbarSelect({ label, value, onChange, options, testId }: { label: string; value: string; onChange: (v: string) => void; options: readonly string[]; testId: string }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
   return (
-    <label className="pnl-export-btn inline-flex items-center" style={{ padding: '0 10px 0 12px', gap: 6, position: 'relative', cursor: 'pointer' }}>
-      <span style={{ color: '#9A9A9E', fontWeight: 500 }}>{label}:</span>
-      <span>{value}</span>
-      <ChevronDown size={12} style={{ color: '#9A9A9E' }} />
-      <select value={value} onChange={(e) => onChange(e.target.value)} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', border: 'none' }} data-testid={testId}>
-        {options.map((o) => <option key={o}>{o}</option>)}
-      </select>
-    </label>
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="pnl-export-btn inline-flex items-center"
+        style={{ padding: '0 10px 0 12px', gap: 6, flexShrink: 0 }}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        data-testid={testId}
+      >
+        <span style={{ color: '#9A9A9E', fontWeight: 500 }}>{label}:</span>
+        <span>{value}</span>
+        <ChevronDown size={12} style={{ color: '#9A9A9E' }} />
+      </button>
+      <PopoverPortal open={open} onClose={() => setOpen(false)} anchorRef={btnRef} placement="bottom-start" minWidth={180} padding={4} testId={`${testId}-menu`}>
+        {options.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => { onChange(opt); setOpen(false); }}
+            className="w-full flex items-center justify-between transition-colors duration-150"
+            style={{ height: 32, padding: '0 10px', background: 'transparent', color: opt === value ? INK : SLATE_700, fontSize: 13, fontWeight: opt === value ? 600 : 500, borderRadius: 6, textAlign: 'left', cursor: 'pointer', border: 'none' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            role="menuitem"
+            data-testid={`${testId}-option-${opt.toLowerCase().replace(/\s+/g, '-')}`}
+          >
+            {opt}
+            {opt === value && <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} />}
+          </button>
+        ))}
+      </PopoverPortal>
+    </>
   );
 }
 
@@ -230,13 +259,15 @@ function ToastAutoClose({ onDone }: { onDone: () => void }) {
 
 function GroupByPopover({ value, onChange }: { value: typeof GROUP_BY_OPTIONS[number]; onChange: (v: typeof GROUP_BY_OPTIONS[number]) => void }) {
   const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
   return (
-    <div className="relative" style={{ flexShrink: 0 }}>
+    <>
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="pnl-export-btn inline-flex items-center"
-        style={{ padding: '0 10px 0 12px', gap: 6 }}
+        style={{ padding: '0 10px 0 12px', gap: 6, flexShrink: 0 }}
         aria-haspopup="menu"
         aria-expanded={open}
         data-testid="pnl-groupby-trigger"
@@ -245,30 +276,60 @@ function GroupByPopover({ value, onChange }: { value: typeof GROUP_BY_OPTIONS[nu
         <span>{value}</span>
         <ChevronDown size={12} style={{ color: '#9A9A9E' }} />
       </button>
-      {open && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
-          <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50, minWidth: 180, background: '#fff', borderRadius: 10, boxShadow: '0 10px 30px rgba(15,23,42,0.14), 0 0 0 1px rgba(15,23,42,0.06)', padding: 4 }} role="menu" data-testid="pnl-groupby-menu">
-            {GROUP_BY_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => { onChange(opt); setOpen(false); }}
-                className="w-full flex items-center justify-between transition-colors duration-150"
-                style={{ height: 32, padding: '0 10px', background: 'transparent', color: opt === value ? INK : SLATE_700, fontSize: 13, fontWeight: opt === value ? 600 : 500, borderRadius: 6, textAlign: 'left', cursor: 'pointer', border: 'none' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                role="menuitem"
-                data-testid={`pnl-groupby-option-${opt.toLowerCase()}`}
-              >
-                {opt}
-                {opt === value && <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} />}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+      <PopoverPortal open={open} onClose={() => setOpen(false)} anchorRef={btnRef} placement="bottom-start" minWidth={180} padding={4} testId="pnl-groupby-menu">
+        {GROUP_BY_OPTIONS.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => { onChange(opt); setOpen(false); }}
+            className="w-full flex items-center justify-between transition-colors duration-150"
+            style={{ height: 32, padding: '0 10px', background: 'transparent', color: opt === value ? INK : SLATE_700, fontSize: 13, fontWeight: opt === value ? 600 : 500, borderRadius: 6, textAlign: 'left', cursor: 'pointer', border: 'none' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            role="menuitem"
+            data-testid={`pnl-groupby-option-${opt.toLowerCase()}`}
+          >
+            {opt}
+            {opt === value && <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} />}
+          </button>
+        ))}
+      </PopoverPortal>
+    </>
+  );
+}
+
+function ColumnsPopover({ showYtd, setShowYtd, visibleMonths, setVisibleMonths }: { showYtd: boolean; setShowYtd: (v: boolean) => void; visibleMonths: Record<string, boolean>; setVisibleMonths: (v: Record<string, boolean>) => void }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const monthLabel = (p: string) => {
+    const [, m] = p.split('-');
+    const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return names[Math.max(0, Math.min(11, Number(m) - 1))];
+  };
+  return (
+    <>
+      <button ref={btnRef} type="button" onClick={() => setOpen((o) => !o)} className="pnl-icon-btn" aria-label="Toggle columns" title="Toggle columns" aria-haspopup="menu" aria-expanded={open} data-testid="pnl-columns-btn">
+        <Columns3 size={14} strokeWidth={1.9} />
+      </button>
+      <PopoverPortal open={open} onClose={() => setOpen(false)} anchorRef={btnRef} placement="bottom-end" minWidth={220} maxHeight={420} padding={10} testId="pnl-columns-popover">
+        <p style={{ margin: '0 0 6px', fontSize: 10.5, fontWeight: 700, color: '#9A9A9E', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 4px' }}>Summary columns</p>
+        <label className="flex items-center justify-between" style={{ padding: '8px 4px', fontSize: 13, color: INK, cursor: 'pointer', borderRadius: 6 }}>
+          YTD
+          <button type="button" role="switch" aria-checked={showYtd} className="ds-switch" data-on={showYtd} onClick={() => setShowYtd(!showYtd)} data-testid="pnl-toggle-ytd" />
+        </label>
+        <div style={{ height: 1, background: SLATE_100, margin: '8px 0' }} />
+        <p style={{ margin: '0 0 6px', fontSize: 10.5, fontWeight: 700, color: '#9A9A9E', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 4px' }}>Months</p>
+        {PERIODS.map((p) => {
+          const on = visibleMonths[p] ?? true;
+          return (
+            <label key={p} className="flex items-center justify-between" style={{ padding: '8px 4px', fontSize: 13, color: INK, cursor: 'pointer', borderRadius: 6 }}>
+              {monthLabel(p)}
+              <button type="button" role="switch" aria-checked={on} className="ds-switch" data-on={on} onClick={() => setVisibleMonths({ ...visibleMonths, [p]: !on })} data-testid={`pnl-toggle-${p}`} />
+            </label>
+          );
+        })}
+      </PopoverPortal>
+    </>
   );
 }
 
@@ -405,7 +466,7 @@ export default function PnlPage() {
                 <div key={k.eyebrow} className="px-6 py-6 md:px-8 md:py-7" data-testid={`pnl-kpi-${i}`}>
                   <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: SLATE_500 }}>{k.eyebrow}</span>
                   <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
-                    <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(36px, 3.6vw, 48px)', lineHeight: 1, letterSpacing: '-0.02em', color: INK, margin: 0 }}>{k.value}</p>
+                    <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: INK, margin: 0 }}>{k.value}</p>
                     <InlineDelta v={k.delta} />
                   </div>
                   <p className="mt-2 text-[12px] font-medium" style={{ color: SLATE_500, margin: 0 }}>{k.caption}</p>
@@ -430,29 +491,12 @@ export default function PnlPage() {
             <GroupByPopover value={groupBy} onChange={setGroupBy} />
             <div style={{ flex: 1, minWidth: 12 }} />
             <div className="hidden md:flex items-center pnl-icon-row" style={{ gap: 2, flexShrink: 0 }}>
-              <div className="relative">
-                <button type="button" onClick={() => setColumnsOpen((o) => !o)} className="pnl-icon-btn" aria-label="Toggle columns" title="Toggle columns" data-testid="pnl-columns-btn"><Columns3 size={14} strokeWidth={1.9} /></button>
-                {columnsOpen && (
-                  <>
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setColumnsOpen(false)} />
-                    <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, minWidth: 220, background: '#fff', borderRadius: 10, boxShadow: '0 10px 30px rgba(15,23,42,0.14), 0 0 0 1px rgba(15,23,42,0.06)', padding: 10, maxHeight: 420, overflowY: 'auto' }} data-testid="pnl-columns-popover">
-                      <p style={{ margin: '0 0 6px', fontSize: 10.5, fontWeight: 700, color: '#9A9A9E', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 4px' }}>Summary columns</p>
-                      <label className="flex items-center gap-2" style={{ padding: '6px 4px', fontSize: 13, color: INK, cursor: 'pointer', borderRadius: 6 }}>
-                        <input type="checkbox" checked={showYtd} onChange={(e) => setShowYtd(e.target.checked)} style={{ accentColor: CORAL }} data-testid="pnl-toggle-ytd" />
-                        YTD
-                      </label>
-                      <div style={{ height: 1, background: SLATE_100, margin: '8px 0' }} />
-                      <p style={{ margin: '0 0 6px', fontSize: 10.5, fontWeight: 700, color: '#9A9A9E', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 4px' }}>Months</p>
-                      {PERIODS.map((p) => (
-                        <label key={p} className="flex items-center gap-2" style={{ padding: '6px 4px', fontSize: 13, color: INK, cursor: 'pointer', borderRadius: 6 }}>
-                          <input type="checkbox" checked={visibleMonths[p] ?? true} onChange={(e) => setVisibleMonths({ ...visibleMonths, [p]: e.target.checked })} style={{ accentColor: CORAL }} data-testid={`pnl-toggle-${p}`} />
-                          {p}
-                        </label>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+              <ColumnsPopover
+                showYtd={showYtd}
+                setShowYtd={setShowYtd}
+                visibleMonths={visibleMonths}
+                setVisibleMonths={setVisibleMonths}
+              />
             </div>
             <span className="ph-vdivider hidden md:inline-block" aria-hidden="true" />
             <button type="button" onClick={() => setToast('CSV export queued')} className="pnl-export-btn inline-flex items-center gap-1.5" data-testid="pnl-export"><Download size={13} strokeWidth={1.9} />Export</button>
@@ -496,7 +540,8 @@ export default function PnlPage() {
                     <ChevronDown size={13} strokeWidth={2} style={{ color: '#94A3B8', transition: 'transform 120ms ease', transform: collapsed[r.name] ? 'rotate(-90deg)' : 'rotate(0deg)' }} />
                   ) : null;
 
-                  const codeText = r.code || '';
+                  // Only line items carry codes; sections, sub-groups, totals stay blank
+                  const codeText = r.type === 'line' ? (r.code || '') : '';
                   const stickyBg = s.bg;
                   const stickyYtdBg = '#FFFFFF';
 
