@@ -14,6 +14,7 @@ const SLATE_800 = '#1E293B';
 const SLATE_700 = '#334155';
 const SLATE_500 = '#64748B';
 const SLATE_400 = '#94A3B8';
+const SLATE_300 = '#CBD5E1';
 const SLATE_200 = '#E2E8F0';
 const SLATE_100 = '#F1F5F9';
 const SLATE_50  = '#F8FAFC';
@@ -101,50 +102,50 @@ function buildStatement(scale: number): Row[] {
 
   const rows: Row[] = [
     // Revenue section
-    { name: 'Revenue', type: 'section', level: 0, monthly: [], parent: 'Revenue' },
-    { name: 'Sales', type: 'subGroup', level: 1, monthly: [], parent: 'Revenue' },
+    { name: 'Revenue', code: '4000', type: 'section', level: 0, monthly: [], parent: 'Revenue' },
+    { name: 'Sales', code: '4000', type: 'subGroup', level: 1, monthly: [], parent: 'Revenue' },
     { name: 'Sales — Direct',        code: '4000', type: 'line', level: 2, monthly: salesDirect, parent: 'Sales' },
     { name: 'Sales — Wholesale',     code: '4010', type: 'line', level: 2, monthly: salesWhole,  parent: 'Sales' },
     { name: 'Income — SHI Revenue',  code: '4020', type: 'line', level: 2, monthly: salesSHI,    parent: 'Sales' },
-    { name: 'Total Sales', type: 'subGroupTotal', level: 1, monthly: totalSales, parent: 'Sales' },
+    { name: 'Total Sales', code: '4000', type: 'subGroupTotal', level: 1, monthly: totalSales, parent: 'Sales' },
     { name: 'Shipping Revenue', code: '4021', type: 'line', level: 1, monthly: shipping, parent: 'Revenue' },
-    { name: 'Total Revenue', type: 'keyTotal', level: 0, monthly: totalRevenue, parent: 'Revenue' },
+    { name: 'Total Revenue', code: '4000', type: 'keyTotal', level: 0, monthly: totalRevenue, parent: 'Revenue' },
 
     // Contra Revenue
-    { name: 'Contra Revenue', type: 'section', level: 0, monthly: [], parent: 'Contra Revenue' },
+    { name: 'Contra Revenue', code: '4100', type: 'section', level: 0, monthly: [], parent: 'Contra Revenue' },
     { name: 'Discounts',         code: '4105', type: 'line', level: 1, monthly: discounts, parent: 'Contra Revenue' },
     { name: 'Returns / Refunds', code: '4106', type: 'line', level: 1, monthly: returns,   parent: 'Contra Revenue' },
-    { name: 'Total Contra Revenue', type: 'subTotal', level: 0, monthly: totalContra, parent: 'Contra Revenue' },
+    { name: 'Total Contra Revenue', code: '4100', type: 'subTotal', level: 0, monthly: totalContra, parent: 'Contra Revenue' },
 
     // COGS
-    { name: 'Cost of Goods Sold', type: 'section', level: 0, monthly: [], parent: 'COGS' },
+    { name: 'Cost of Goods Sold', code: '5000', type: 'section', level: 0, monthly: [], parent: 'COGS' },
     { name: 'Cost of Goods Sold',       code: '5001', type: 'line', level: 1, monthly: cogsBase,    parent: 'COGS' },
     { name: 'COGS — Production',        code: '5002', type: 'line', level: 1, monthly: cogsProd,    parent: 'COGS' },
     { name: 'COGS — Freight',           code: '5003', type: 'line', level: 1, monthly: cogsFreight, parent: 'COGS' },
     { name: 'COGS — Import & Duties',   code: '5010', type: 'line', level: 1, monthly: cogsImport,  parent: 'COGS' },
     { name: 'Purchase Price Variance',  code: '5011', type: 'line', level: 1, monthly: ppv,         parent: 'COGS' },
     { name: 'Merchant Processing Fees', code: '5012', type: 'line', level: 1, monthly: mpf,         parent: 'COGS' },
-    { name: 'Total COGS', type: 'subTotal', level: 0, monthly: totalCogs, parent: 'COGS' },
+    { name: 'Total COGS', code: '5000', type: 'subTotal', level: 0, monthly: totalCogs, parent: 'COGS' },
 
     { name: 'Gross Profit', type: 'keyTotal', level: 0, monthly: grossProfit, parent: 'Gross Profit' },
 
     // OpEx
-    { name: 'Operating Expenses', type: 'section', level: 0, monthly: [], parent: 'OpEx' },
+    { name: 'Operating Expenses', code: '6000', type: 'section', level: 0, monthly: [], parent: 'OpEx' },
     { name: 'Marketing',           code: '6100', type: 'line', level: 1, monthly: marketing,  parent: 'OpEx' },
     { name: 'G&A',                 code: '6200', type: 'line', level: 1, monthly: ga,         parent: 'OpEx' },
     { name: 'Operations',          code: '6300', type: 'line', level: 1, monthly: operations, parent: 'OpEx' },
     { name: 'Salaries & Benefits', code: '6400', type: 'line', level: 1, monthly: salaries,   parent: 'OpEx' },
     { name: 'Other OpEx',          code: '6900', type: 'line', level: 1, monthly: otherOpex,  parent: 'OpEx' },
-    { name: 'Total OpEx', type: 'subTotal', level: 0, monthly: totalOpex, parent: 'OpEx' },
+    { name: 'Total OpEx', code: '6000', type: 'subTotal', level: 0, monthly: totalOpex, parent: 'OpEx' },
 
     { name: 'Operating Income', type: 'keyTotal', level: 0, monthly: operatingIncome, parent: 'Operating Income' },
 
     // Non-Operating
-    { name: 'Non-Operating', type: 'section', level: 0, monthly: [], parent: 'Non-Op' },
+    { name: 'Non-Operating', code: '7000', type: 'section', level: 0, monthly: [], parent: 'Non-Op' },
     { name: 'Interest Income',  code: '7100', type: 'line', level: 1, monthly: intInc, parent: 'Non-Op' },
     { name: 'Interest Expense', code: '7200', type: 'line', level: 1, monthly: intExp, parent: 'Non-Op' },
     { name: 'Taxes',            code: '7300', type: 'line', level: 1, monthly: taxes,  parent: 'Non-Op' },
-    { name: 'Total Non-Operating', type: 'subTotal', level: 0, monthly: totalNonOp, parent: 'Non-Op' },
+    { name: 'Total Non-Operating', code: '7000', type: 'subTotal', level: 0, monthly: totalNonOp, parent: 'Non-Op' },
 
     { name: 'Net Income', type: 'keyTotal', level: 0, monthly: netIncome, parent: 'Net Income' },
   ];
@@ -211,7 +212,7 @@ function InlineDelta({ v }: { v: number }) {
 
 function ToolbarSelect({ label, value, onChange, options, testId }: { label: string; value: string; onChange: (v: string) => void; options: readonly string[]; testId: string }) {
   return (
-    <label className="pnl-toolbar-select inline-flex items-center" style={{ height: 34, padding: '0 10px 0 12px', background: '#FFFFFF', border: '1px solid #E5E5E7', borderRadius: 10, color: '#0A0A0B', fontSize: 13, fontWeight: 500, cursor: 'pointer', gap: 6, position: 'relative', flexShrink: 0 }}>
+    <label className="pnl-export-btn inline-flex items-center" style={{ padding: '0 10px 0 12px', gap: 6, position: 'relative', cursor: 'pointer' }}>
       <span style={{ color: '#9A9A9E', fontWeight: 500 }}>{label}:</span>
       <span>{value}</span>
       <ChevronDown size={12} style={{ color: '#9A9A9E' }} />
@@ -234,8 +235,8 @@ function GroupByPopover({ value, onChange }: { value: typeof GROUP_BY_OPTIONS[nu
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center"
-        style={{ height: 34, padding: '0 10px 0 12px', background: '#FFFFFF', border: '1px solid #E5E5E7', borderRadius: 10, color: '#0A0A0B', fontSize: 13, fontWeight: 500, cursor: 'pointer', gap: 6 }}
+        className="pnl-export-btn inline-flex items-center"
+        style={{ padding: '0 10px 0 12px', gap: 6 }}
         aria-haspopup="menu"
         aria-expanded={open}
         data-testid="pnl-groupby-trigger"
@@ -462,8 +463,8 @@ export default function PnlPage() {
 
         {/* Statement card */}
         <div className="mt-4 overflow-hidden rounded-2xl bg-white" style={{ paddingTop: 24, boxShadow: CARD_SHADOW }} data-testid="pnl-statement-card">
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ ...TABULAR, borderCollapse: 'collapse', width: '100%' }} data-testid="pnl-statement-table">
+          <div style={{ overflowX: 'auto', overflowY: 'hidden', position: 'relative' }}>
+            <table style={{ ...TABULAR, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', width: 'max-content', minWidth: '100%' }} data-testid="pnl-statement-table">
               <colgroup>
                 <col style={{ width: 320 }} />
                 {view === 'Detailed' && groupBy === 'None' && <col style={{ width: 90 }} />}
@@ -472,19 +473,19 @@ export default function PnlPage() {
                 {comparisonActive && <col style={{ width: 120 }} />}
               </colgroup>
               <thead>
-                <tr style={{ boxShadow: `inset 0 -1px 0 ${DIV_MED}` }}>
-                  <th style={{ padding: '0 12px 0 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'left', position: 'sticky', left: 0, background: '#FFFFFF', zIndex: 3, borderRight: `1px solid ${DIV_MED}` }}>Account</th>
+                <tr>
+                  <th style={{ width: 320, minWidth: 320, padding: '0 12px 0 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'left', verticalAlign: 'middle', position: 'sticky', left: 0, background: '#FFFFFF', zIndex: 3, borderBottom: `1px solid ${DIV_MED}`, borderRight: `1px solid ${DIV_MED}`, boxSizing: 'border-box' }}>Account</th>
                   {view === 'Detailed' && groupBy === 'None' && (
-                    <th style={{ padding: '0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'left', position: 'sticky', left: 320, background: '#FFFFFF', zIndex: 3, borderRight: `1px solid ${DIV_LITE}` }}>Code</th>
+                    <th style={{ width: 90, minWidth: 90, padding: '0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'left', verticalAlign: 'middle', position: 'sticky', left: 320, background: '#FFFFFF', zIndex: 3, borderBottom: `1px solid ${DIV_MED}`, borderRight: `1px solid ${DIV_MED}`, boxSizing: 'border-box' }}>Code</th>
                   )}
                   {periods.map((p) => (
-                    <th key={p} style={{ padding: '0 20px 0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'right', borderRight: `1px solid ${DIV_LITE}` }}>{p}</th>
+                    <th key={p} style={{ width: 128, minWidth: 128, padding: '0 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E73', height: 44, textAlign: 'right', verticalAlign: 'middle', background: '#FFFFFF', borderBottom: `1px solid ${DIV_MED}`, borderRight: `1px solid ${DIV_LITE}`, boxSizing: 'border-box' }}>{p}</th>
                   ))}
                   {showYtd && (
-                    <th style={{ padding: '0 20px 0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: INK, height: 44, textAlign: 'right', background: '#FAFAFA', borderTop: `2px solid ${CORAL_50}`, borderRight: comparisonActive ? `1px solid ${DIV_LITE}` : 'none', position: 'sticky', right: comparisonActive ? 120 : 0, zIndex: 2 }} data-testid="pnl-th-ytd">YTD</th>
+                    <th style={{ width: 140, minWidth: 140, padding: '0 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: INK, height: 44, textAlign: 'right', verticalAlign: 'middle', background: '#FAFAFA', borderBottom: `1px solid ${DIV_MED}`, borderLeft: `1px solid ${DIV_MED}`, borderRight: comparisonActive ? `1px solid ${DIV_LITE}` : 'none', position: 'sticky', right: comparisonActive ? 120 : 0, zIndex: 3, boxSizing: 'border-box' }} data-testid="pnl-th-ytd">YTD</th>
                   )}
                   {comparisonActive && (
-                    <th style={{ padding: '0 20px 0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: INK, height: 44, textAlign: 'right', background: '#FAFAFA', position: 'sticky', right: 0, zIndex: 2 }} data-testid="pnl-th-delta">Δ vs {comparison === 'Prior Year' ? 'PY' : comparison === 'Prior Period' ? 'PP' : 'Budget'}</th>
+                    <th style={{ width: 120, minWidth: 120, padding: '0 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: INK, height: 44, textAlign: 'right', verticalAlign: 'middle', background: '#FAFAFA', borderBottom: `1px solid ${DIV_MED}`, position: 'sticky', right: 0, zIndex: 3, boxSizing: 'border-box' }} data-testid="pnl-th-delta">Δ vs {comparison === 'Prior Year' ? 'PY' : comparison === 'Prior Period' ? 'PP' : 'Budget'}</th>
                   )}
                 </tr>
               </thead>
@@ -497,26 +498,24 @@ export default function PnlPage() {
                     <ChevronDown size={13} strokeWidth={2} style={{ color: '#94A3B8', transition: 'transform 120ms ease', transform: collapsed[r.name] ? 'rotate(-90deg)' : 'rotate(0deg)' }} />
                   ) : null;
 
-                  const showAccountCode = r.type === 'line' || r.type === 'subGroupTotal' || r.type === 'subTotal' || r.type === 'subGroup';
-                  const codeText = (r.type === 'subGroupTotal' || r.type === 'subTotal' || r.type === 'subGroup') ? '' : (r.code || '');
+                  const codeText = r.code || '';
+                  const stickyBg = s.bg;
+                  const stickyYtdBg = isSection ? s.bg : '#FAFAFA';
 
                   return (
                     <tr key={`${r.name}-${ri}`}
-                      style={{ height: s.height, borderTop: s.borderTop, borderBottom: s.borderBottom, background: s.bg }}
-                      className="transition-colors duration-150"
-                      onMouseEnter={(e) => { if (r.type === 'line' || r.type === 'subGroup') e.currentTarget.style.background = '#FAFAFA'; }}
-                      onMouseLeave={(e) => { if (r.type === 'line' || r.type === 'subGroup') e.currentTarget.style.background = s.bg; }}
+                      style={{ height: s.height }}
                       data-testid={`pnl-row-${r.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
-                      <td style={{ padding: `0 12px 0 ${indentFor(r)}px`, fontSize: s.fontSize, fontWeight: s.weight, color: s.color, textAlign: 'left', position: 'sticky', left: 0, background: s.bg, zIndex: 1, whiteSpace: 'nowrap', cursor: isCollapsible ? 'pointer' : 'default', borderRight: `1px solid ${DIV_MED}` }}
+                      <td style={{ width: 320, minWidth: 320, height: s.height, padding: `0 12px 0 ${indentFor(r)}px`, fontSize: s.fontSize, fontWeight: s.weight, color: s.color, textAlign: 'left', verticalAlign: 'middle', position: 'sticky', left: 0, background: stickyBg, zIndex: 2, whiteSpace: 'nowrap', cursor: isCollapsible ? 'pointer' : 'default', borderTop: s.borderTop, borderBottom: s.borderBottom, borderRight: `1px solid ${DIV_MED}`, boxSizing: 'border-box' }}
                           onClick={() => { if (isCollapsible) setCollapsed((c) => ({ ...c, [r.name]: !c[r.name] })); }}>
-                        <span className="inline-flex items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1.5" style={{ verticalAlign: 'middle' }}>
                           {chevron}
                           <span>{r.name}</span>
                         </span>
                       </td>
                       {view === 'Detailed' && groupBy === 'None' && (
-                        <td style={{ padding: '0 12px', fontSize: 12, color: SLATE_500, textAlign: 'left', position: 'sticky', left: 320, background: s.bg, zIndex: 1, borderRight: `1px solid ${DIV_LITE}` }}>
-                          {showAccountCode ? codeText : ''}
+                        <td style={{ width: 90, minWidth: 90, height: s.height, padding: '0 12px', fontSize: 12, color: SLATE_500, textAlign: 'left', verticalAlign: 'middle', position: 'sticky', left: 320, background: stickyBg, zIndex: 2, borderTop: s.borderTop, borderBottom: s.borderBottom, borderRight: `1px solid ${DIV_MED}`, boxSizing: 'border-box' }}>
+                          {codeText}
                         </td>
                       )}
                       {periods.map((p) => {
@@ -525,33 +524,33 @@ export default function PnlPage() {
                         const hasValue = typeof v === 'number' && !isSection;
                         const isZero = hasValue && v === 0;
                         const isNeg = hasValue && v < 0;
-                        const cellColor = !hasValue ? 'transparent' : isZero ? SLATE_400 : isNeg ? CORAL_DK : s.color;
+                        const cellColor = !hasValue ? 'transparent' : isZero ? SLATE_300 : isNeg ? CORAL_DK : s.color;
                         return (
-                          <td key={p} style={{ padding: '0 20px 0 12px', fontSize: s.fontSize, fontWeight: s.weight, color: cellColor, textAlign: 'right', borderRight: `1px solid ${DIV_LITE}` }}>
+                          <td key={p} style={{ width: 128, minWidth: 128, height: s.height, padding: '0 14px', fontSize: s.fontSize, fontWeight: s.weight, color: cellColor, textAlign: 'right', verticalAlign: 'middle', borderTop: s.borderTop, borderBottom: s.borderBottom, borderRight: `1px solid ${DIV_LITE}`, boxSizing: 'border-box' }}>
                             {hasValue ? fmtDollar(v) : ''}
                           </td>
                         );
                       })}
                       {showYtd && (() => {
-                        if (isSection) return <td style={{ padding: '0 20px 0 12px', background: '#FAFAFA', position: 'sticky', right: comparisonActive ? 120 : 0, zIndex: 1, borderRight: comparisonActive ? `1px solid ${DIV_LITE}` : 'none' }} />;
+                        if (isSection) return <td style={{ width: 140, minWidth: 140, height: s.height, padding: '0 14px', background: stickyYtdBg, position: 'sticky', right: comparisonActive ? 120 : 0, zIndex: 2, borderTop: s.borderTop, borderBottom: s.borderBottom, borderLeft: `1px solid ${DIV_MED}`, borderRight: comparisonActive ? `1px solid ${DIV_LITE}` : 'none', boxSizing: 'border-box' }} />;
                         const y = ytdValue(r);
                         const isZero = y === 0;
                         const isNeg = y < 0;
-                        const cellColor = isZero ? SLATE_400 : isNeg ? CORAL_DK : s.color;
+                        const cellColor = isZero ? SLATE_300 : isNeg ? CORAL_DK : s.color;
                         return (
-                          <td style={{ padding: '0 20px 0 12px', fontSize: s.fontSize, fontWeight: r.type === 'keyTotal' ? 700 : 600, color: cellColor, textAlign: 'right', background: '#FAFAFA', position: 'sticky', right: comparisonActive ? 120 : 0, zIndex: 1, borderRight: comparisonActive ? `1px solid ${DIV_LITE}` : 'none' }} data-testid={`pnl-ytd-${r.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
+                          <td style={{ width: 140, minWidth: 140, height: s.height, padding: '0 14px', fontSize: s.fontSize, fontWeight: r.type === 'keyTotal' ? 700 : 600, color: cellColor, textAlign: 'right', verticalAlign: 'middle', background: stickyYtdBg, position: 'sticky', right: comparisonActive ? 120 : 0, zIndex: 2, borderTop: s.borderTop, borderBottom: s.borderBottom, borderLeft: `1px solid ${DIV_MED}`, borderRight: comparisonActive ? `1px solid ${DIV_LITE}` : 'none', boxSizing: 'border-box' }} data-testid={`pnl-ytd-${r.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
                             {fmtDollar(y)}
                           </td>
                         );
                       })()}
                       {comparisonActive && (() => {
-                        if (isSection) return <td style={{ padding: '0 20px 0 12px', background: '#FAFAFA', position: 'sticky', right: 0, zIndex: 1 }} />;
+                        if (isSection) return <td style={{ width: 120, minWidth: 120, height: s.height, padding: '0 14px', background: stickyYtdBg, position: 'sticky', right: 0, zIndex: 2, borderTop: s.borderTop, borderBottom: s.borderBottom, boxSizing: 'border-box' }} />;
                         const cur = ytdValue(r);
                         const prev = cur * PY_FACTOR;
                         const positive = cur >= prev;
                         return (
-                          <td style={{ padding: '0 20px 0 12px', fontSize: 12, fontWeight: 600, color: positive ? GREEN : CORAL_DK, textAlign: 'right', background: '#FAFAFA', position: 'sticky', right: 0, zIndex: 1 }}>
-                            <span className="inline-flex items-center gap-0.5">
+                          <td style={{ width: 120, minWidth: 120, height: s.height, padding: '0 14px', fontSize: 12, fontWeight: 600, color: positive ? GREEN : CORAL_DK, textAlign: 'right', verticalAlign: 'middle', background: stickyYtdBg, position: 'sticky', right: 0, zIndex: 2, borderTop: s.borderTop, borderBottom: s.borderBottom, boxSizing: 'border-box' }}>
+                            <span className="inline-flex items-center gap-0.5" style={{ verticalAlign: 'middle' }}>
                               {positive ? <ArrowUp size={10} strokeWidth={2.6} /> : <ArrowDown size={10} strokeWidth={2.6} />}
                               {fmtDeltaPct(cur, prev)}
                             </span>
