@@ -231,7 +231,7 @@ export default function MyOrdersPage() {
           <OrdersFilterSelect
             value={statusFilter}
             options={STATUSES}
-            onChange={setStatusFilter}
+            onChange={(v) => setStatusFilter(v)}
             testId="orders-status-dropdown"
           />
 
@@ -241,7 +241,7 @@ export default function MyOrdersPage() {
           <OrdersFilterSelect
             value={channelFilter}
             options={CHANNELS}
-            onChange={setChannelFilter}
+            onChange={(v) => setChannelFilter(v)}
             testId="orders-channel-dropdown"
             renderOption={(c) => (
               <span className="inline-flex items-center gap-2">

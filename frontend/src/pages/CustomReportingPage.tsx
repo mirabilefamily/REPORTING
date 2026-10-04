@@ -48,6 +48,7 @@ const SLATE_50 = '#F8FAFC';
 const CORAL = '#FF6F61';
 const CORAL_DK = '#C9422E';
 const CORAL_50 = '#FFF1EF';
+const CORAL_200 = '#FFD0CB';
 const CORAL_600 = '#DB4D3F';
 const EMERALD = '#047857';
 
