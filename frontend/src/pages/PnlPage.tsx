@@ -416,9 +416,10 @@ export default function PnlPage() {
           </div>
         </section>
 
-        {/* Toolbar */}
-        <div className="pnl-toolbar" data-testid="pnl-toolbar">
-          <div className="pnl-toolbar-inner">
+        {/* Unified statement card — toolbar band + table + footer */}
+        <div className="mt-6 overflow-hidden rounded-2xl bg-white" style={{ boxShadow: CARD_SHADOW }} data-testid="pnl-statement-card">
+          {/* Toolbar band */}
+          <div className="pnl-toolbar-band" data-testid="pnl-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', minHeight: 60, boxSizing: 'border-box', overflowX: 'auto', scrollbarWidth: 'none' }}>
             <div className="flex items-center" style={{ gap: 4, flexShrink: 0 }} role="tablist" aria-label="View mode">
               {VIEWS.map((v) => (
                 <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)} className="ph-tab" data-active={view === v} data-testid={`pnl-view-${v.toLowerCase()}`}>{v}</button>
@@ -426,7 +427,6 @@ export default function PnlPage() {
             </div>
             <span className="ph-vdivider" aria-hidden="true" />
             <ToolbarSelect label="Compare" value={comparison} onChange={(v) => setComparison(v as any)} options={COMPARISONS as unknown as readonly string[]} testId="pnl-compare" />
-            <span className="ph-vdivider" aria-hidden="true" />
             <GroupByPopover value={groupBy} onChange={setGroupBy} />
             <div style={{ flex: 1, minWidth: 12 }} />
             <div className="hidden md:flex items-center pnl-icon-row" style={{ gap: 2, flexShrink: 0 }}>
@@ -459,10 +459,10 @@ export default function PnlPage() {
             <span className="ph-vdivider hidden md:inline-block" aria-hidden="true" />
             <button type="button" onClick={() => setToast('CSV export queued')} className="pnl-export-btn inline-flex items-center gap-1.5" data-testid="pnl-export"><Download size={13} strokeWidth={1.9} />Export</button>
           </div>
-        </div>
 
-        {/* Statement card */}
-        <div className="mt-4 overflow-hidden rounded-2xl bg-white" style={{ paddingTop: 24, boxShadow: CARD_SHADOW }} data-testid="pnl-statement-card">
+          {/* Hairline divider between toolbar band and table */}
+          <div style={{ height: 1, background: DIV_MED }} aria-hidden="true" />
+
           <div style={{ overflowX: 'auto', overflowY: 'hidden', position: 'relative' }}>
             <table style={{ ...TABULAR, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', width: 'max-content', minWidth: '100%' }} data-testid="pnl-statement-table">
               <colgroup>
@@ -563,7 +563,7 @@ export default function PnlPage() {
               </tbody>
             </table>
           </div>
-          <div className="flex flex-wrap items-center justify-between" style={{ padding: '10px 20px', background: SLATE_50, borderTop: `1px solid ${DIV_MED}`, gap: 8 }} data-testid="pnl-statement-footer">
+          <div className="flex flex-wrap items-center justify-between" style={{ padding: '12px 20px', background: '#FAFAFA', borderTop: `1px solid ${DIV_MED}`, gap: 8 }} data-testid="pnl-statement-footer">
             <span style={{ fontSize: 12, color: '#6E6E73' }}>Last updated · {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
             <span style={{ fontSize: 12, color: '#6E6E73' }} data-testid="pnl-footer-count">Includes {lineItemCount} line items</span>
           </div>
