@@ -87,14 +87,27 @@ const TEAM_SEED = [
   { name: 'Devon Rhodes',    initials: 'DR', email: 'devon@goorin.co',     role: 'Viewer'  as Role, lastActive: '1 w ago'   },
 ];
 
-type Integration = { id: string; name: string; mono: string; blurb: string; connected: boolean };
+type IntegrationStatus = 'connected' | 'available' | 'needs-attention';
+type Integration = { id: string; name: string; category: string; desc: string; status: IntegrationStatus; color: string; lastSync?: string };
 const INTEGRATIONS: Integration[] = [
-  { id: 'shopify',  name: 'Shopify',               mono: 'SH', blurb: 'Sync product catalog and orders',   connected: true  },
-  { id: 'amazon',   name: 'Amazon Seller Central', mono: 'AM', blurb: 'Pull marketplace sales data',       connected: true  },
-  { id: 'netsuite', name: 'NetSuite',              mono: 'NS', blurb: 'ERP financial sync',                connected: false },
-  { id: 'quickbooks', name: 'QuickBooks',          mono: 'QB', blurb: 'Accounting + invoices',             connected: false },
-  { id: 'ga',       name: 'Google Analytics',      mono: 'GA', blurb: 'Session + conversion data',         connected: true  },
-  { id: 'slack',    name: 'Slack',                 mono: 'SL', blurb: 'Report delivery + alerts',          connected: false },
+  { id: 'shopify',     name: 'Shopify',               category: 'Commerce',      desc: 'Sync orders, inventory, and customers from your Shopify store.',   status: 'connected',       color: '#95BF47', lastSync: '3 min ago' },
+  { id: 'amazon',      name: 'Amazon Seller Central', category: 'Commerce',      desc: 'Pull FBA + MFN orders, settlement reports, and ad spend.',          status: 'connected',       color: '#FF9900', lastSync: '12 min ago' },
+  { id: 'woo',         name: 'WooCommerce',           category: 'Commerce',      desc: 'Import orders and SKUs from WooCommerce storefronts.',             status: 'available',       color: '#7F54B3' },
+  { id: 'bigcommerce', name: 'BigCommerce',           category: 'Commerce',      desc: 'Multi-storefront catalog, orders, and customer sync.',             status: 'available',       color: '#121118' },
+  { id: 'netsuite',    name: 'NetSuite',              category: 'Accounting',    desc: 'Push journal entries and reconcile revenue with your GL.',         status: 'connected',       color: '#1A6DB2', lastSync: '1 hour ago' },
+  { id: 'quickbooks',  name: 'QuickBooks',            category: 'Accounting',    desc: 'Sync invoices, payments, and chart of accounts.',                  status: 'needs-attention', color: '#2CA01C', lastSync: '2 days ago' },
+  { id: 'xero',        name: 'Xero',                  category: 'Accounting',    desc: 'Automate bookkeeping and tax categorization.',                     status: 'available',       color: '#13B5EA' },
+  { id: 'ga4',         name: 'Google Analytics',      category: 'Analytics',     desc: 'Enrich reports with GA4 traffic, conversion, and attribution.',    status: 'connected',       color: '#F9AB00', lastSync: '27 min ago' },
+  { id: 'mixpanel',    name: 'Mixpanel',              category: 'Analytics',     desc: 'Attach product event streams to customer records.',                status: 'available',       color: '#7856FF' },
+  { id: 'segment',     name: 'Segment',               category: 'Analytics',     desc: 'Route customer events to downstream destinations.',                status: 'available',       color: '#4FB07E' },
+  { id: 'slack',       name: 'Slack',                 category: 'Communication', desc: 'Alerts for low stock, overdue orders, and SLA breaches.',          status: 'connected',       color: '#4A154B', lastSync: 'Realtime' },
+  { id: 'teams',       name: 'Microsoft Teams',       category: 'Communication', desc: 'Push report digests and alerts into Teams channels.',              status: 'available',       color: '#5059C9' },
+  { id: 'email',       name: 'Email digests',         category: 'Communication', desc: 'Scheduled report deliveries to any mailbox.',                      status: 'connected',       color: '#64748B', lastSync: 'Daily 7:00 AM' },
+  { id: 'klaviyo',     name: 'Klaviyo',               category: 'Marketing',     desc: 'Sync customer segments to drive lifecycle campaigns.',             status: 'available',       color: '#000000' },
+  { id: 'meta',        name: 'Meta Ads',              category: 'Marketing',     desc: 'Attribute revenue to Facebook + Instagram campaigns.',             status: 'available',       color: '#1877F2' },
+  { id: 'googleads',   name: 'Google Ads',            category: 'Marketing',     desc: 'Pull spend, clicks, and conversions by campaign.',                 status: 'available',       color: '#4285F4' },
+  { id: 'shipstation', name: 'ShipStation',           category: 'Fulfillment',   desc: 'Create labels and track shipments across carriers.',               status: 'needs-attention', color: '#1C5091', lastSync: 'Error 14h ago' },
+  { id: 'shipbob',     name: 'ShipBob',               category: 'Fulfillment',   desc: '3PL inventory sync, order routing, returns.',                      status: 'available',       color: '#F56C13' },
 ];
 
 type ApiKey = { id: string; name: string; prefix: string; created: string; lastUsed: string };
@@ -227,7 +240,14 @@ export default function SettingsPage() {
     setInviteEmail(''); setInviteOpen(false); show('Invitation sent');
   };
 
-  const toggleIntegration = (id: string) => { setIntegrations(integrations.map((i) => i.id === id ? { ...i, connected: !i.connected } : i)); show('Updated'); };
+  const toggleIntegration = (id: string, next?: IntegrationStatus) => {
+    setIntegrations(integrations.map((i: Integration) => {
+      if (i.id !== id) return i;
+      const resolved: IntegrationStatus = next ?? (i.status === 'connected' ? 'available' : 'connected');
+      return { ...i, status: resolved, lastSync: resolved === 'connected' ? 'Just now' : i.lastSync };
+    }));
+    show('Integration updated');
+  };
 
   const createKey = () => {
     const name = window.prompt('Key name');
@@ -445,19 +465,29 @@ export default function SettingsPage() {
             {active === 'integrations' && (
             <SectionCard id="integrations" title="Integrations" help="Connect data sources and delivery channels.">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="settings-integrations-grid">
-                {integrations.map((it: Integration) => (
-                  <div key={it.id} className="flex items-start gap-3" style={{ padding: 14, border: `1px solid ${SLATE_200}`, borderRadius: 12 }} data-testid={`settings-integration-${it.id}`}>
-                    <div style={{ display: 'grid', placeItems: 'center', width: 36, height: 36, background: SLATE_50, color: INK, borderRadius: 8, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em' }}>{it.mono}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: INK }}>{it.name}</p>
-                        <span style={{ padding: '2px 8px', background: it.connected ? EMERALD_50 : SLATE_50, color: it.connected ? EMERALD : SLATE_700, borderRadius: 6, fontSize: 10.5, fontWeight: 500, whiteSpace: 'nowrap' }}>{it.connected ? 'Connected' : 'Not connected'}</span>
+                {(integrations as Integration[]).map((it) => {
+                  const connected = it.status === 'connected';
+                  const needsAttn = it.status === 'needs-attention';
+                  const chipCls = connected ? 'chip-emerald' : needsAttn ? 'chip-coral' : 'chip-neutral';
+                  const chipLbl = connected ? 'Connected' : needsAttn ? 'Needs attention' : 'Available';
+                  const actionLbl = connected ? 'Manage' : needsAttn ? 'Fix' : 'Connect';
+                  const actionCls = connected ? 'btn-secondary btn-sm' : needsAttn ? 'btn-coral btn-sm' : 'btn-primary btn-sm';
+                  return (
+                    <div key={it.id} className="flex flex-col" style={{ padding: 16, border: `1px solid ${needsAttn ? '#FDD7D2' : SLATE_200}`, borderRadius: 12, background: '#fff', minHeight: 170 }} data-testid={`settings-integration-${it.id}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div style={{ display: 'grid', placeItems: 'center', width: 40, height: 40, background: `${it.color}1A`, color: it.color, borderRadius: 10, fontSize: 15, fontWeight: 700 }}>{it.name.charAt(0)}</div>
+                        <span className={chipCls} style={{ whiteSpace: 'nowrap' }}>{chipLbl}</span>
                       </div>
-                      <p style={{ margin: '2px 0 10px', fontSize: 12, color: SLATE_500 }}>{it.blurb}</p>
-                      <button type="button" onClick={() => toggleIntegration(it.id)} className="btn-ghost btn-sm" style={{ height: 28, padding: '0 10px' }} data-testid={`settings-integration-action-${it.id}`}>{it.connected ? 'Manage' : 'Connect'}</button>
+                      <p style={{ margin: '14px 0 2px', fontSize: 15, fontWeight: 600, color: INK, lineHeight: 1.2 }}>{it.name}</p>
+                      <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{it.category}</p>
+                      <p style={{ margin: '8px 0 14px', fontSize: 12.5, color: SLATE_500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{it.desc}</p>
+                      <div className="flex items-center justify-between" style={{ borderTop: `1px solid ${SLATE_100}`, paddingTop: 12, marginTop: 'auto' }}>
+                        <span style={{ fontSize: 11.5, color: SLATE_500 }}>{connected && it.lastSync ? `Synced ${it.lastSync}` : needsAttn ? it.lastSync || 'Needs attention' : 'Not connected'}</span>
+                        <button type="button" onClick={() => toggleIntegration(it.id)} className={actionCls} data-testid={`settings-integration-action-${it.id}`}>{actionLbl}</button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </SectionCard>
             )}

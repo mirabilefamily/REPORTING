@@ -430,10 +430,8 @@ export default function PnlPage() {
             <GroupByPopover value={groupBy} onChange={setGroupBy} />
             <div style={{ flex: 1, minWidth: 12 }} />
             <div className="hidden md:flex items-center pnl-icon-row" style={{ gap: 2, flexShrink: 0 }}>
-              <button type="button" onClick={() => setCollapsed({})} className="pnl-icon-btn" aria-label="Expand all" data-testid="pnl-expand-all"><Plus size={14} strokeWidth={2} /></button>
-              <button type="button" onClick={() => { const next: Record<string, boolean> = {}; activeRows.filter((r) => r.type === 'section').forEach((r) => { next[r.name] = true; }); setCollapsed(next); }} className="pnl-icon-btn" aria-label="Collapse all" data-testid="pnl-collapse-all"><Minus size={14} strokeWidth={2} /></button>
               <div className="relative">
-                <button type="button" onClick={() => setColumnsOpen((o) => !o)} className="pnl-icon-btn" aria-label="Columns" data-testid="pnl-columns-btn"><Columns3 size={14} strokeWidth={1.9} /></button>
+                <button type="button" onClick={() => setColumnsOpen((o) => !o)} className="pnl-icon-btn" aria-label="Toggle columns" title="Toggle columns" data-testid="pnl-columns-btn"><Columns3 size={14} strokeWidth={1.9} /></button>
                 {columnsOpen && (
                   <>
                     <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setColumnsOpen(false)} />
