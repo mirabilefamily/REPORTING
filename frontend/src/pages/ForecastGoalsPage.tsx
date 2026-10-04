@@ -320,8 +320,8 @@ export default function ForecastGoalsPage() {
                       style={{ borderTop: `1px solid ${SLATE_100}`, height: 72 }}
                       data-testid={`fg-row-${c.name.toLowerCase().replace(/\s+/g, '-')}`}
                     >
-                      <td style={{ padding: '0 20px', position: 'sticky', left: 0, background: '#FFFFFF', textAlign: 'center', verticalAlign: 'middle' }}>
-                        <div className="inline-flex items-center justify-center" style={{ gap: 8 }}>
+                      <td style={{ padding: '0 20px', position: 'sticky', left: 0, background: '#FFFFFF', textAlign: 'center', verticalAlign: 'middle', height: 72 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: '100%', minHeight: 44 }}>
                           <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: SEG_COLORS[c.name] || SLATE_500 }} />
                           <span style={{ fontSize: 14, fontWeight: 500, color: INK }}>{c.name}</span>
                           {c.sync && (
