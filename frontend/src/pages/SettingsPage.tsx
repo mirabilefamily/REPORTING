@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AlertTriangle,
+  Bell,
   Boxes,
+  Building2,
+  Calendar,
   CheckCircle2,
   ChevronRight,
   Copy,
@@ -12,7 +16,9 @@ import {
   Mail,
   MessageSquare,
   Plus,
+  Puzzle,
   RefreshCw,
+  Share2,
   Trash2,
   Upload,
   User,
@@ -44,15 +50,15 @@ const EMERALD_50 = '#ECFDF5';
 
 // ─── Section definitions ───────────────────────────────────────────────
 const SECTIONS = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'workspace', label: 'Workspace' },
-  { id: 'channels', label: 'Channels' },
-  { id: 'fiscal', label: 'Fiscal & Formatting' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'team', label: 'Team' },
-  { id: 'integrations', label: 'Integrations' },
-  { id: 'api', label: 'API Keys' },
-  { id: 'danger', label: 'Danger Zone' },
+  { id: 'profile',       label: 'Profile',               icon: User },
+  { id: 'workspace',     label: 'Workspace',             icon: Building2 },
+  { id: 'channels',      label: 'Channels',              icon: Share2 },
+  { id: 'fiscal',        label: 'Fiscal & Formatting',   icon: Calendar },
+  { id: 'notifications', label: 'Notifications',         icon: Bell },
+  { id: 'team',          label: 'Team',                  icon: Users },
+  { id: 'integrations',  label: 'Integrations',          icon: Puzzle },
+  { id: 'api',           label: 'API Keys',              icon: Key },
+  { id: 'danger',        label: 'Danger Zone',           icon: AlertTriangle },
 ] as const;
 
 const TIMEZONES = ['America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York', 'Europe/London', 'Europe/Paris', 'Asia/Tokyo'];
@@ -145,20 +151,26 @@ function Field({ label, children, help }: { label: string; children: React.React
 export default function SettingsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const show = (m: string) => setToast(m);
-  const [active, setActive] = useState<string>('profile');
 
-  // Scroll-spy for left nav
-  const observers = useRef<IntersectionObserver | null>(null);
+  // Hash-based sub-routing: #settings/profile, #settings/workspace, etc.
+  const parseSubRoute = (): string => {
+    const h = window.location.hash || '';
+    const m = h.match(/#settings\/([a-z0-9-]+)/i);
+    return m ? m[1] : 'profile';
+  };
+  const [active, setActive] = useState<string>(() => parseSubRoute());
   useEffect(() => {
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.id); });
-    }, { rootMargin: '-30% 0px -60% 0px' });
-    SECTIONS.forEach((s) => { const el = document.getElementById(s.id); if (el) io.observe(el); });
-    observers.current = io;
-    return () => io.disconnect();
+    const onHash = () => setActive(parseSubRoute());
+    window.addEventListener('hashchange', onHash);
+    // Default redirect: #settings → #settings/profile
+    if (window.location.hash === '#settings' || !/#settings\/[a-z0-9-]+/i.test(window.location.hash)) {
+      if (window.location.hash.startsWith('#settings')) {
+        window.location.hash = '#settings/profile';
+      }
+    }
+    return () => window.removeEventListener('hashchange', onHash);
   }, []);
-
-  const goto = (id: string) => { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const goto = (id: string) => { window.location.hash = `#settings/${id}`; setActive(id); };
 
   // Section state (loaded from localStorage)
   const [name, setName] = useState<string>(() => read('profile.name', 'Ryan Mirabile'));
@@ -240,25 +252,39 @@ export default function SettingsPage() {
 
         {/* Mobile chip row */}
         <nav className="lg:hidden flex" style={{ gap: 6, overflowX: 'auto', marginBottom: 20, paddingBottom: 4, scrollbarWidth: 'none' }} aria-label="Settings sections" data-testid="settings-mobile-nav">
-          {SECTIONS.map((s) => (
-            <button key={s.id} type="button" onClick={() => goto(s.id)} style={{ flexShrink: 0, height: 32, padding: '0 12px', background: active === s.id ? INK : '#fff', color: active === s.id ? '#fff' : SLATE_700, border: `1px solid ${active === s.id ? INK : SLATE_200}`, borderRadius: 999, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }} data-testid={`settings-chip-${s.id}`}>{s.label}</button>
-          ))}
+          {SECTIONS.map((s) => {
+            const Icon = s.icon;
+            const isActive = active === s.id;
+            return (
+              <button key={s.id} type="button" onClick={() => goto(s.id)} style={{ flexShrink: 0, height: 36, padding: '0 12px', background: isActive ? INK : '#fff', color: isActive ? '#fff' : SLATE_700, border: `1px solid ${isActive ? INK : SLATE_200}`, borderRadius: 999, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 6 }} data-testid={`settings-chip-${s.id}`}>
+                <Icon size={13} strokeWidth={1.9} />{s.label}
+              </button>
+            );
+          })}
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
           {/* Left nav (sticky desktop) */}
           <aside className="hidden lg:block" style={{ position: 'sticky', top: 24, alignSelf: 'start' }} data-testid="settings-left-nav">
             <nav className="flex flex-col" style={{ gap: 2 }}>
-              {SECTIONS.map((s) => {
+              {SECTIONS.map((s, i) => {
+                const Icon = s.icon;
                 const isActive = active === s.id;
+                const isDanger = s.id === 'danger';
                 return (
-                  <button key={s.id} type="button" onClick={() => goto(s.id)}
-                    style={{ textAlign: 'left', background: isActive ? '#F5F5F7' : 'transparent', color: isActive ? INK : SLATE_500, border: 'none', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontWeight: isActive ? 600 : 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 120ms ease' }}
-                    data-testid={`settings-nav-${s.id}`}
-                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = SLATE_50; }}
-                    onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
-                    {s.label}
-                  </button>
+                  <div key={s.id}>
+                    {isDanger && <div aria-hidden="true" style={{ height: 1, background: '#EDEDEF', margin: '12px 12px' }} />}
+                    <button
+                      type="button"
+                      onClick={() => goto(s.id)}
+                      className={`settings-nav-item ${isActive ? 'active' : ''}`}
+                      data-danger={isDanger ? 'true' : undefined}
+                      data-testid={`settings-nav-${s.id}`}
+                    >
+                      <Icon size={16} strokeWidth={1.75} />
+                      <span>{s.label}</span>
+                    </button>
+                  </div>
                 );
               })}
             </nav>
@@ -267,6 +293,7 @@ export default function SettingsPage() {
           {/* Main content */}
           <main className="min-w-0 flex-1 flex flex-col" style={{ gap: 24 }}>
             {/* Profile */}
+            {active === 'profile' && (
             <SectionCard id="profile" title="Profile" help="Your personal account details and preferences.">
               <div className="flex items-center gap-4" style={{ marginBottom: 20 }}>
                 <div style={{ display: 'grid', placeItems: 'center', width: 56, height: 56, borderRadius: 999, background: CORAL_50, color: CORAL_DK, fontSize: 20, fontWeight: 600 }}>RM</div>
@@ -285,8 +312,10 @@ export default function SettingsPage() {
                 </Field>
               </div>
             </SectionCard>
+            )}
 
             {/* Workspace */}
+            {active === 'workspace' && (
             <SectionCard id="workspace" title="Workspace" help="Company-wide defaults applied across reports.">
               <div className="flex items-center gap-4" style={{ marginBottom: 20 }}>
                 <div style={{ width: 56, height: 56, borderRadius: 10, background: INK, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 700 }}>G</div>
@@ -298,8 +327,10 @@ export default function SettingsPage() {
                 <Field label="Default date range"><select value={defaultRange} onChange={(e) => { setDefaultRange(e.target.value); show('Saved'); }} style={inputStyle} data-testid="settings-range">{DATE_RANGES.map((r) => <option key={r}>{r}</option>)}</select></Field>
               </div>
             </SectionCard>
+            )}
 
             {/* Channels */}
+            {active === 'channels' && (
             <SectionCard id="channels" title="Channels" help="Reorder and toggle visibility of channels across every page.">
               <div className="flex flex-col" style={{ gap: 4 }}>
                 {channels.map((c) => (
@@ -316,8 +347,10 @@ export default function SettingsPage() {
               </div>
               <button type="button" onClick={addChannel} className="btn-ghost btn-sm" style={{ marginTop: 12 }} data-testid="settings-add-channel"><Plus size={13} />Add channel</button>
             </SectionCard>
+            )}
 
             {/* Fiscal & Formatting */}
+            {active === 'fiscal' && (
             <SectionCard id="fiscal" title="Fiscal & Formatting" help="Fiscal year, week start, and number formatting conventions.">
               <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
                 <Field label="Fiscal year starts"><select value={fiscalMonth} onChange={(e) => { setFiscalMonth(e.target.value); show('Saved'); }} style={inputStyle} data-testid="settings-fy-month">{FISCAL_MONTHS.map((m) => <option key={m}>{m}</option>)}</select></Field>
@@ -338,8 +371,10 @@ export default function SettingsPage() {
                 </Field>
               </div>
             </SectionCard>
+            )}
 
             {/* Notifications */}
+            {active === 'notifications' && (
             <SectionCard id="notifications" title="Notifications" help="Email delivery for digests and alerts.">
               <div className="flex flex-col">
                 {[
@@ -359,8 +394,10 @@ export default function SettingsPage() {
                 ))}
               </div>
             </SectionCard>
+            )}
 
             {/* Team */}
+            {active === 'team' && (
             <SectionCard id="team" title="Team" help="Members with access to this workspace.">
               <div className="flex items-center justify-end" style={{ marginBottom: 12 }}>
                 <button type="button" onClick={() => setInviteOpen((v) => !v)} className="btn-coral btn-sm" data-testid="settings-invite-btn"><Plus size={13} />Invite member</button>
@@ -402,8 +439,10 @@ export default function SettingsPage() {
                 </table>
               </div>
             </SectionCard>
+            )}
 
             {/* Integrations */}
+            {active === 'integrations' && (
             <SectionCard id="integrations" title="Integrations" help="Connect data sources and delivery channels.">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="settings-integrations-grid">
                 {integrations.map((it: Integration) => (
@@ -421,8 +460,10 @@ export default function SettingsPage() {
                 ))}
               </div>
             </SectionCard>
+            )}
 
             {/* API Keys */}
+            {active === 'api' && (
             <SectionCard id="api" title="API Keys" help="Programmatic access to your workspace data.">
               <div className="flex items-center justify-end" style={{ marginBottom: 12 }}>
                 <button type="button" onClick={createKey} className="btn-primary btn-sm" data-testid="settings-create-key"><Plus size={13} />Create key</button>
@@ -454,8 +495,10 @@ export default function SettingsPage() {
                 </table>
               </div>
             </SectionCard>
+            )}
 
             {/* Danger Zone */}
+            {active === 'danger' && (
             <SectionCard id="danger" title="Danger Zone" help="These actions are irreversible — proceed carefully." danger>
               <div className="flex flex-col" style={{ gap: 12 }}>
                 <div className="flex flex-wrap items-center justify-between gap-3" style={{ padding: '14px 16px', background: '#fff', borderRadius: 10, border: `1px solid ${CORAL_200}` }}>
@@ -468,6 +511,7 @@ export default function SettingsPage() {
                 </div>
               </div>
             </SectionCard>
+            )}
           </main>
         </div>
       </div>
