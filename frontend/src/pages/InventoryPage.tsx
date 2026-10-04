@@ -131,12 +131,13 @@ export default function InventoryPage() {
           ))}
         </section>
 
-        {/* ── Filter toolbar ─────────────────────────────────────── */}
+        {/* ── Unified inventory card: toolbar band + table + footer ─────── */}
         <section
-          className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-white"
-          style={{ padding: 20, boxShadow: CARD_SHADOW }}
-          data-testid="inventory-toolbar"
+          className="mt-4 overflow-hidden rounded-2xl bg-white"
+          style={{ boxShadow: CARD_SHADOW }}
+          data-testid="inventory-table-card"
         >
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-3" style={{ padding: '14px 20px', minHeight: 60 }} data-testid="inventory-toolbar">
           {/* Search */}
           <div className="relative" style={{ width: 320 }}>
             <Search size={14} strokeWidth={1.9} style={{ position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', color: SLATE_400, pointerEvents: 'none' }} />
@@ -173,14 +174,10 @@ export default function InventoryPage() {
             <LayoutGrid size={14} strokeWidth={1.9} style={{ color: SLATE_500 }} />
             By location
           </button>
-        </section>
+          </div>
 
-        {/* ── 3. Inventory table ──────────────────────────────────── */}
-        <section
-          className="mt-4 overflow-hidden rounded-2xl bg-white"
-          style={{ boxShadow: CARD_SHADOW }}
-          data-testid="inventory-table-card"
-        >
+        {/* ── 3. Inventory table (continuation of unified card) ────────────── */}
+          <div style={{ height: 1, background: '#EDEDEF' }} aria-hidden="true" />
           <div style={{ maxHeight: 640, overflowY: 'auto', overflowX: 'auto' }}>
             <table className="data-numeric-center w-full" style={{ ...TABULAR, borderCollapse: 'collapse', minWidth: 1080 }} data-testid="inventory-table">
               <thead>

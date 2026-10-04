@@ -222,12 +222,13 @@ export default function MyOrdersPage() {
           ))}
         </section>
 
-        {/* ── Filter toolbar ───────────────────────────────────── */}
+        {/* ── Unified table card: toolbar band + table + footer ───── */}
         <section
-          className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl bg-white"
-          style={{ padding: 20, boxShadow: CARD_SHADOW }}
-          data-testid="orders-toolbar"
+          className="mt-4 overflow-hidden rounded-2xl bg-white"
+          style={{ boxShadow: CARD_SHADOW }}
+          data-testid="orders-table-card"
         >
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-3" style={{ padding: '14px 20px', minHeight: 60 }} data-testid="orders-toolbar">
           <div className="relative" style={{ width: 320 }}>
             <Search size={14} strokeWidth={1.9} style={{ position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', color: SLATE_400, pointerEvents: 'none' }} />
             <input
@@ -353,14 +354,10 @@ export default function MyOrdersPage() {
             <span aria-hidden="true" style={{ width: 1, height: 16, background: SLATE_200 }} />
             <CountStat label="Behind SLA" value={fmtInt(totals.behindSLA)} warn={totals.behindSLA > 0} />
           </div>
-        </section>
+          </div>
 
-        {/* ── Orders table ─────────────────────────────────────── */}
-        <section
-          className="mt-4 overflow-hidden rounded-2xl bg-white"
-          style={{ boxShadow: CARD_SHADOW }}
-          data-testid="orders-table-card"
-        >
+        {/* ── Orders table (continuation of unified card) ───────────────── */}
+          <div style={{ height: 1, background: '#EDEDEF' }} aria-hidden="true" />
           <div style={{ maxHeight: 680, overflowY: 'auto', overflowX: 'auto' }}>
             <table className="data-numeric-center" style={{ ...TABULAR, borderCollapse: 'collapse', width: '100%', minWidth: 1280 }} data-testid="orders-table">
               <thead>
