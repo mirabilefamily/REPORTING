@@ -185,7 +185,7 @@ function StaffApp() {
           data-testid="brand-lockup"
         >
           <img className="brand-logo expanded-brand-logo brand-logo-image" src="/goorin_reporting_logo.png?v=8" alt="Goorin REPORTING" />
-          <img className="brand-logo collapsed-brand-logo" src="/favicon.png?v=10" alt="Goorin" />
+          <img className="brand-logo collapsed-brand-logo" src="/favicon.png?v=12" alt="Goorin" />
         </div>
 
         <div className="sidebar-scroll">
