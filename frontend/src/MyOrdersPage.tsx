@@ -140,7 +140,7 @@ function StatusBadge({ s }: { s: Status }) {
         border: `1px solid ${t.border}`,
         height: 24,
         padding: '0 10px',
-        borderRadius: 999,
+        borderRadius: 6,
         fontSize: 12,
         fontWeight: 500,
         whiteSpace: 'nowrap',

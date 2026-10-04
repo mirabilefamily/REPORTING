@@ -203,7 +203,7 @@ function Chip({ label, active, onToggle, variant = 'default', trailing }: { labe
   const fg = active ? (variant === 'coral' ? CORAL_DK : '#FFFFFF') : SLATE_700;
   const border = active ? (variant === 'coral' ? '#FDD7D2' : INK) : SLATE_200;
   return (
-    <button type="button" onClick={onToggle} className="inline-flex items-center gap-1.5 transition-colors duration-150" style={{ height: 28, padding: '0 10px', background: bg, color: fg, border: `1px solid ${border}`, borderRadius: 999, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+    <button type="button" onClick={onToggle} className="inline-flex items-center gap-1.5 transition-colors duration-150" style={{ height: 28, padding: '0 10px', background: bg, color: fg, border: `1px solid ${border}`, borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
       {label}{trailing}
     </button>
   );
@@ -722,7 +722,7 @@ function BuilderView(props: {
       </div>
 
       {/* Mobile Configure FAB + bottom sheet */}
-      <button type="button" onClick={() => setMobileConfigOpen(true)} className="lg:hidden inline-flex items-center gap-1.5" style={{ position: 'fixed', right: 20, bottom: 20, zIndex: 60, height: 48, padding: '0 18px', background: CORAL, color: '#fff', borderRadius: 999, fontSize: 14, fontWeight: 600, boxShadow: '0 8px 24px rgba(255,111,97,0.4)', cursor: 'pointer' }} data-testid="cr-mobile-configure"><Edit3 size={16} />Configure</button>
+      <button type="button" onClick={() => setMobileConfigOpen(true)} className="lg:hidden inline-flex items-center gap-1.5" style={{ position: 'fixed', right: 20, bottom: 20, zIndex: 60, height: 48, padding: '0 18px', background: CORAL, color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 600, boxShadow: '0 8px 24px rgba(255,111,97,0.4)', cursor: 'pointer' }} data-testid="cr-mobile-configure"><Edit3 size={16} />Configure</button>
       {mobileConfigOpen && (
         <div className="lg:hidden" style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(15,23,42,0.5)' }} onClick={() => setMobileConfigOpen(false)} data-testid="cr-mobile-sheet">
           <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '85vh', background: '#fff', borderRadius: '20px 20px 0 0', padding: 16, overflowY: 'auto', animation: 'cr-sheet-in 220ms ease-out both' }}>

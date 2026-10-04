@@ -446,7 +446,7 @@ export default function AnalyticsPage() {
             <Chip key={c} label={c} onRemove={() => setChips((s) => s.filter((x) => x !== c))} />
           ))}
           <button type="button" className="inline-flex items-center gap-1 transition-colors duration-150"
-            style={{ height: 26, padding: '0 10px', borderRadius: 999, background: 'transparent', border: `1px dashed ${SLATE_300}`, color: SLATE_500, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
+            style={{ height: 26, padding: '0 10px', borderRadius: 8, background: 'transparent', border: `1px dashed ${SLATE_300}`, color: SLATE_500, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
             onMouseEnter={(e) => { e.currentTarget.style.color = INK; e.currentTarget.style.borderColor = SLATE_500; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = SLATE_500; e.currentTarget.style.borderColor = SLATE_300; }}>
             <Plus size={11} strokeWidth={2.4} />Add filter
