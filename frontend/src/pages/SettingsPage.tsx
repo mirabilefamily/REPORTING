@@ -26,6 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
+import IntegrationsPanel from './settings/IntegrationsPanel';
 
 // ─── Tokens ────────────────────────────────────────────────────────────
 const INTER = { fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", WebkitFontSmoothing: 'antialiased' } as const;
@@ -137,7 +138,9 @@ function Toggle({ on, onChange, testId }: { on: boolean; onChange: (v: boolean) 
   );
 }
 
-const inputStyle: React.CSSProperties = { width: '100%', maxWidth: 420, height: 36, padding: '0 10px', background: '#fff', border: `1px solid ${SLATE_200}`, borderRadius: 10, fontSize: 13, color: INK, outline: 'none', fontFamily: 'inherit' };
+const inputStyle: React.CSSProperties = { maxWidth: 420 };
+const inputCls = 'ds-input';
+const selectCls = 'ds-select';
 
 function SectionCard({ id, title, help, children, danger }: { id: string; title: string; help?: string; children: React.ReactNode; danger?: boolean }) {
   return (
@@ -240,15 +243,6 @@ export default function SettingsPage() {
     setInviteEmail(''); setInviteOpen(false); show('Invitation sent');
   };
 
-  const toggleIntegration = (id: string, next?: IntegrationStatus) => {
-    setIntegrations(integrations.map((i: Integration) => {
-      if (i.id !== id) return i;
-      const resolved: IntegrationStatus = next ?? (i.status === 'connected' ? 'available' : 'connected');
-      return { ...i, status: resolved, lastSync: resolved === 'connected' ? 'Just now' : i.lastSync };
-    }));
-    show('Integration updated');
-  };
-
   const createKey = () => {
     const name = window.prompt('Key name');
     if (!name) return;
@@ -320,13 +314,13 @@ export default function SettingsPage() {
                 <button type="button" onClick={() => show('Avatar picker (demo)')} className="btn-ghost btn-sm" data-testid="settings-avatar-change">Change avatar</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
-                <Field label="Full name"><input value={name} onChange={(e) => { setName(e.target.value); }} onBlur={() => show('Saved')} style={inputStyle} data-testid="settings-name" /></Field>
-                <Field label="Email"><input value="ryan@mirabile.com" disabled style={{ ...inputStyle, background: SLATE_50, color: SLATE_500 }} /></Field>
+                <Field label="Full name"><input value={name} onChange={(e) => { setName(e.target.value); }} onBlur={() => show('Saved')} className={inputCls} style={inputStyle} data-testid="settings-name" /></Field>
+                <Field label="Email"><input value="ryan@mirabile.com" disabled className={inputCls} style={{ ...inputStyle, background: SLATE_50, color: SLATE_500 }} /></Field>
                 <Field label="Role">
                   <span style={{ display: 'inline-flex', alignItems: 'center', height: 36, padding: '0 12px', background: SLATE_50, color: SLATE_700, borderRadius: 10, fontSize: 13, fontWeight: 500, border: `1px solid ${SLATE_200}` }}>Owner</span>
                 </Field>
                 <Field label="Timezone">
-                  <select value={timezone} onChange={(e) => { setTimezone(e.target.value); show('Saved'); }} style={inputStyle} data-testid="settings-tz">
+                  <select value={timezone} onChange={(e) => { setTimezone(e.target.value); show('Saved'); }} className={selectCls} style={inputStyle} data-testid="settings-tz">
                     {TIMEZONES.map((t) => <option key={t}>{t}</option>)}
                   </select>
                 </Field>
@@ -342,9 +336,9 @@ export default function SettingsPage() {
                 <button type="button" onClick={() => show('Upload (demo)')} className="btn-ghost btn-sm"><Upload size={13} />Upload logo</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
-                <Field label="Company name"><input value={company} onChange={(e) => setCompany(e.target.value)} onBlur={() => show('Saved')} style={inputStyle} data-testid="settings-company" /></Field>
-                <Field label="Default currency"><select value={currency} onChange={(e) => { setCurrency(e.target.value); show('Saved'); }} style={inputStyle} data-testid="settings-currency">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
-                <Field label="Default date range"><select value={defaultRange} onChange={(e) => { setDefaultRange(e.target.value); show('Saved'); }} style={inputStyle} data-testid="settings-range">{DATE_RANGES.map((r) => <option key={r}>{r}</option>)}</select></Field>
+                <Field label="Company name"><input value={company} onChange={(e) => setCompany(e.target.value)} onBlur={() => show('Saved')} className={inputCls} style={inputStyle} data-testid="settings-company" /></Field>
+                <Field label="Default currency"><select value={currency} onChange={(e) => { setCurrency(e.target.value); show('Saved'); }} className={selectCls} style={inputStyle} data-testid="settings-currency">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
+                <Field label="Default date range"><select value={defaultRange} onChange={(e) => { setDefaultRange(e.target.value); show('Saved'); }} className={selectCls} style={inputStyle} data-testid="settings-range">{DATE_RANGES.map((r) => <option key={r}>{r}</option>)}</select></Field>
               </div>
             </SectionCard>
             )}
@@ -373,19 +367,25 @@ export default function SettingsPage() {
             {active === 'fiscal' && (
             <SectionCard id="fiscal" title="Fiscal & Formatting" help="Fiscal year, week start, and number formatting conventions.">
               <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
-                <Field label="Fiscal year starts"><select value={fiscalMonth} onChange={(e) => { setFiscalMonth(e.target.value); show('Saved'); }} style={inputStyle} data-testid="settings-fy-month">{FISCAL_MONTHS.map((m) => <option key={m}>{m}</option>)}</select></Field>
+                <Field label="Fiscal year starts"><select value={fiscalMonth} onChange={(e) => { setFiscalMonth(e.target.value); show('Saved'); }} className={selectCls} style={inputStyle} data-testid="settings-fy-month">{FISCAL_MONTHS.map((m) => <option key={m}>{m}</option>)}</select></Field>
                 <Field label="Week starts on">
-                  <div className="flex" style={{ gap: 6 }}>
+                  <div role="radiogroup" aria-label="Week starts on" className="flex items-center" style={{ gap: 14, height: 36, maxWidth: 420 }}>
                     {(['Sun', 'Mon'] as const).map((d) => (
-                      <button key={d} type="button" onClick={() => { setWeekStart(d); show('Saved'); }} style={{ flex: 1, height: 36, background: weekStart === d ? INK : '#fff', color: weekStart === d ? '#fff' : SLATE_700, border: `1px solid ${weekStart === d ? INK : SLATE_200}`, borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} data-testid={`settings-week-${d.toLowerCase()}`}>{d}</button>
+                      <label key={d} className="flex items-center" style={{ gap: 8, cursor: 'pointer' }} data-testid={`settings-week-${d.toLowerCase()}`}>
+                        <input type="radio" name="week-start" className="ds-radio" checked={weekStart === d} onChange={() => { setWeekStart(d); show('Saved'); }} />
+                        <span style={{ fontSize: 13, color: INK, fontWeight: 500 }}>{d === 'Sun' ? 'Sunday' : 'Monday'}</span>
+                      </label>
                     ))}
                   </div>
                 </Field>
-                <Field label="Number format"><select value={numFormat} onChange={(e) => { setNumFormat(e.target.value); show('Saved'); }} style={inputStyle} data-testid="settings-num-format">{NUM_FORMATS.map((n) => <option key={n}>{n}</option>)}</select></Field>
+                <Field label="Number format"><select value={numFormat} onChange={(e) => { setNumFormat(e.target.value); show('Saved'); }} className={selectCls} style={inputStyle} data-testid="settings-num-format">{NUM_FORMATS.map((n) => <option key={n}>{n}</option>)}</select></Field>
                 <Field label="Negative numbers">
-                  <div className="flex" style={{ gap: 6 }}>
+                  <div role="radiogroup" aria-label="Negative numbers" className="flex items-center" style={{ gap: 14, height: 36, maxWidth: 420 }}>
                     {NEG_FORMATS.map((n) => (
-                      <button key={n} type="button" onClick={() => { setNegFormat(n); show('Saved'); }} style={{ flex: 1, height: 36, background: negFormat === n ? INK : '#fff', color: negFormat === n ? '#fff' : SLATE_700, border: `1px solid ${negFormat === n ? INK : SLATE_200}`, borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }} data-testid={`settings-neg-${n}`}>{n === 'parentheses' ? '(1,234)' : '-1,234'}</button>
+                      <label key={n} className="flex items-center" style={{ gap: 8, cursor: 'pointer' }} data-testid={`settings-neg-${n}`}>
+                        <input type="radio" name="neg-format" className="ds-radio" checked={negFormat === n} onChange={() => { setNegFormat(n); show('Saved'); }} />
+                        <span style={{ fontSize: 13, color: INK, fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>{n === 'parentheses' ? '(1,234)' : '-1,234'}</span>
+                      </label>
                     ))}
                   </div>
                 </Field>
@@ -424,8 +424,8 @@ export default function SettingsPage() {
               </div>
               {inviteOpen && (
                 <div className="flex flex-wrap gap-2" style={{ padding: 14, background: SLATE_50, border: `1px solid ${SLATE_200}`, borderRadius: 10, marginBottom: 16 }} data-testid="settings-invite-form">
-                  <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="name@company.com" style={{ ...inputStyle, flex: 1, minWidth: 200, background: '#fff' }} />
-                  <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as Role)} style={{ ...inputStyle, flex: '0 0 120px' }}>{(['Admin','Analyst','Viewer'] as Role[]).map((r) => <option key={r}>{r}</option>)}</select>
+                  <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="name@company.com" className={inputCls} style={{ flex: 1, minWidth: 200 }} />
+                  <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as Role)} className={selectCls} style={{ flex: '0 0 140px', width: 140 }}>{(['Admin','Analyst','Viewer'] as Role[]).map((r) => <option key={r}>{r}</option>)}</select>
                   <button type="button" onClick={addTeamMember} className="btn-primary btn-sm" data-testid="settings-invite-send">Send invite</button>
                 </div>
               )}
@@ -463,32 +463,8 @@ export default function SettingsPage() {
 
             {/* Integrations */}
             {active === 'integrations' && (
-            <SectionCard id="integrations" title="Integrations" help="Connect data sources and delivery channels.">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="settings-integrations-grid">
-                {(integrations as Integration[]).map((it) => {
-                  const connected = it.status === 'connected';
-                  const needsAttn = it.status === 'needs-attention';
-                  const chipCls = connected ? 'chip-emerald' : needsAttn ? 'chip-coral' : 'chip-neutral';
-                  const chipLbl = connected ? 'Connected' : needsAttn ? 'Needs attention' : 'Available';
-                  const actionLbl = connected ? 'Manage' : needsAttn ? 'Fix' : 'Connect';
-                  const actionCls = connected ? 'btn-secondary btn-sm' : needsAttn ? 'btn-coral btn-sm' : 'btn-primary btn-sm';
-                  return (
-                    <div key={it.id} className="flex flex-col" style={{ padding: 16, border: `1px solid ${needsAttn ? '#FDD7D2' : SLATE_200}`, borderRadius: 12, background: '#fff', minHeight: 170 }} data-testid={`settings-integration-${it.id}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div style={{ display: 'grid', placeItems: 'center', width: 40, height: 40, background: `${it.color}1A`, color: it.color, borderRadius: 10, fontSize: 15, fontWeight: 700 }}>{it.name.charAt(0)}</div>
-                        <span className={chipCls} style={{ whiteSpace: 'nowrap' }}>{chipLbl}</span>
-                      </div>
-                      <p style={{ margin: '14px 0 2px', fontSize: 15, fontWeight: 600, color: INK, lineHeight: 1.2 }}>{it.name}</p>
-                      <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: SLATE_500, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{it.category}</p>
-                      <p style={{ margin: '8px 0 14px', fontSize: 12.5, color: SLATE_500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{it.desc}</p>
-                      <div className="flex items-center justify-between" style={{ borderTop: `1px solid ${SLATE_100}`, paddingTop: 12, marginTop: 'auto' }}>
-                        <span style={{ fontSize: 11.5, color: SLATE_500 }}>{connected && it.lastSync ? `Synced ${it.lastSync}` : needsAttn ? it.lastSync || 'Needs attention' : 'Not connected'}</span>
-                        <button type="button" onClick={() => toggleIntegration(it.id)} className={actionCls} data-testid={`settings-integration-action-${it.id}`}>{actionLbl}</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+            <SectionCard id="integrations" title="Integrations" help="Connect data sources and delivery channels. Each integration walks you through a short setup; your progress is auto-saved.">
+              <IntegrationsPanel integrations={integrations as Integration[]} setIntegrations={setIntegrations} show={show} />
             </SectionCard>
             )}
 
@@ -552,7 +528,7 @@ export default function SettingsPage() {
         <ModalOverlay onClose={() => setNewKeyModal(null)} title={`API key "${newKeyModal.name}"`}>
           <p style={{ margin: '0 0 12px', fontSize: 13, color: SLATE_500 }}>Copy this key now — it will only be shown once.</p>
           <div className="flex gap-2">
-            <input readOnly value={newKeyModal.value} style={{ ...inputStyle, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', background: SLATE_50 }} data-testid="settings-newkey-value" />
+            <input readOnly value={newKeyModal.value} className={inputCls} style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', background: SLATE_50 }} data-testid="settings-newkey-value" />
             <button type="button" onClick={() => { navigator.clipboard?.writeText(newKeyModal.value); show('Key copied'); setNewKeyModal(null); }} className="btn-primary btn-sm"><Copy size={13} />Copy</button>
           </div>
         </ModalOverlay>

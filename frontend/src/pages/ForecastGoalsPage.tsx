@@ -255,7 +255,8 @@ export default function ForecastGoalsPage() {
                   <th
                     style={{
                       padding: '0 20px',
-                      textAlign: 'left',
+                      textAlign: 'center',
+                      verticalAlign: 'middle',
                       fontSize: 11,
                       fontWeight: 600,
                       letterSpacing: '0.08em',
@@ -319,31 +320,29 @@ export default function ForecastGoalsPage() {
                       style={{ borderTop: `1px solid ${SLATE_100}`, height: 72 }}
                       data-testid={`fg-row-${c.name.toLowerCase().replace(/\s+/g, '-')}`}
                     >
-                      <td style={{ padding: '0 20px', position: 'sticky', left: 0, background: '#FFFFFF' }}>
-                        <div className="flex items-center gap-2">
+                      <td style={{ padding: '0 20px', position: 'sticky', left: 0, background: '#FFFFFF', textAlign: 'center', verticalAlign: 'middle' }}>
+                        <div className="inline-flex items-center justify-center" style={{ gap: 8 }}>
                           <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: SEG_COLORS[c.name] || SLATE_500 }} />
                           <span style={{ fontSize: 14, fontWeight: 500, color: INK }}>{c.name}</span>
+                          {c.sync && (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                fontSize: 10,
+                                fontWeight: 600,
+                                letterSpacing: '0.06em',
+                                textTransform: 'uppercase',
+                                color: SLATE_500,
+                                background: SLATE_100,
+                                border: `1px solid ${SLATE_200}`,
+                                borderRadius: 4,
+                                padding: '2px 6px',
+                              }}
+                            >
+                              B2B SYNC
+                            </span>
+                          )}
                         </div>
-                        {c.sync && (
-                          <span
-                            style={{
-                              marginTop: 6,
-                              marginLeft: 14,
-                              display: 'inline-block',
-                              fontSize: 10,
-                              fontWeight: 600,
-                              letterSpacing: '0.06em',
-                              textTransform: 'uppercase',
-                              color: SLATE_500,
-                              background: SLATE_100,
-                              border: `1px solid ${SLATE_200}`,
-                              borderRadius: 4,
-                              padding: '2px 6px',
-                            }}
-                          >
-                            B2B SYNC
-                          </span>
-                        )}
                       </td>
                       {c.months.map((v, mi) => {
                         const isCurrent = mi === CURRENT_MONTH_IDX && year === 2026;

@@ -67,6 +67,7 @@ export const SEG_COLORS: Record<string, string> = {
   'Ecommerce':    C_ECOM,
   'Amazon':       C_AMZN,
   'Retail':       C_RETAIL,
+  'B2B':          C_USW,
 };
 const C_OPEN = '#D4D4D4';
 
@@ -872,6 +873,7 @@ export default function DashboardPage(props: DashProps) {
   const [range, setRange] = usePageRange('dashboard');
   const [drilldownIdx, setDrilldownIdx] = useState<number | null>(null);
   const [hoveredMix, setHoveredMix] = useState<string | null>(null);
+  const [mixView, setMixView] = useState<'All channels' | 'B2B combined'>('All channels');
 
   const scale = SEG_SCALE[seg] ?? 1;
   const rScale = RANGE_SCALE[range] ?? 1;
@@ -1124,17 +1126,34 @@ export default function DashboardPage(props: DashProps) {
 
         {/* ── 5. Channel Mix (full width) ─────────────────────── */}
         <section className="mt-4" style={cardStyle} data-testid="dashboard-channel-mix">
-          <div>
-            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0F172A', letterSpacing: '-0.005em' }}>Channel mix</h2>
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED }}>Revenue share across all channels</p>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0F172A', letterSpacing: '-0.005em' }}>Channel mix</h2>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED }}>Revenue share across all channels</p>
+            </div>
+            <SegTabs
+              tabs={['All channels', 'B2B combined'] as unknown as readonly string[]}
+              value={mixView}
+              onChange={(v: any) => setMixView(v)}
+              testId="dashboard-mix-view"
+              slugPrefix="mix"
+            />
           </div>
           {(() => {
             const totalMix = segRows.reduce((s, r) => s + r.actual, 0);
-            const mixOrder = ['US Wholesale','Distributors','Ecommerce','Amazon','Retail'];
-            const rows = mixOrder.map((name) => {
+            const allOrder = ['US Wholesale','Distributors','Ecommerce','Amazon','Retail'];
+            const allRows = allOrder.map((name) => {
               const r = segRows.find((x) => x.name === name)!;
               return { name, actual: r.actual, share: totalMix > 0 ? (r.actual / totalMix) * 100 : 0 };
             });
+            const b2bActual = (segRows.find((x) => x.name === 'US Wholesale')?.actual || 0) + (segRows.find((x) => x.name === 'Distributors')?.actual || 0);
+            const b2bRows = [
+              { name: 'B2B',      actual: b2bActual, share: totalMix > 0 ? (b2bActual / totalMix) * 100 : 0 },
+              { name: 'Ecommerce', actual: segRows.find((x) => x.name === 'Ecommerce')!.actual, share: totalMix > 0 ? (segRows.find((x) => x.name === 'Ecommerce')!.actual / totalMix) * 100 : 0 },
+              { name: 'Amazon',    actual: segRows.find((x) => x.name === 'Amazon')!.actual,    share: totalMix > 0 ? (segRows.find((x) => x.name === 'Amazon')!.actual / totalMix) * 100 : 0 },
+              { name: 'Retail',    actual: segRows.find((x) => x.name === 'Retail')!.actual,    share: totalMix > 0 ? (segRows.find((x) => x.name === 'Retail')!.actual / totalMix) * 100 : 0 },
+            ];
+            const rows = mixView === 'All channels' ? allRows : b2bRows;
             return (
               <>
                 <div className="mt-4 flex overflow-hidden" style={{ height: 32, borderRadius: 999, gap: 2 }} data-testid="channel-mix-bar">
