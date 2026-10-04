@@ -246,6 +246,40 @@ const TOP_ITEMS = [
   { name: 'The Alpha Dog',          variant: 'Void · One Size',                     sku: '101-1666-VOI01-O/S',       rev:  77_000, units:  4_826 },
 ];
 
+// ─── Sales vs Goal (new card) ─────────────────────────────────────────
+const SVG_SEG_COLOR: Record<string, string> = {
+  'US Wholesale': C_USW,
+  'Distributors': C_DIST,
+  'Retail':       C_RETAIL,
+  'Ecommerce':    C_ECOM,
+  'Amazon':       C_AMZN,
+};
+const SVG_CLASS_YTD: ReadonlyArray<{ name: string; net: number; goal: number; annual: number }> = [
+  { name: 'US Wholesale', net: 6_900_000, goal: 8_080_000, annual: 8_900_000 },
+  { name: 'Distributors', net: 5_320_000, goal: 5_750_000, annual: 8_410_000 },
+  { name: 'Retail',       net:   463_000, goal:   536_000, annual:   640_000 },
+  { name: 'Ecommerce',    net: 4_640_000, goal: 5_470_000, annual: 6_730_000 },
+  { name: 'Amazon',       net:   815_000, goal:   897_000, annual: 1_020_000 },
+];
+const SVG_MONTHLY_ALL: ReadonlyArray<{ m: string; net: number; goal: number }> = [
+  { m: 'January',   net: 1_480_000, goal: 1_480_000 },
+  { m: 'February',  net: 2_400_000, goal: 2_400_000 },
+  { m: 'March',     net: 1_530_000, goal: 1_530_000 },
+  { m: 'April',     net: 1_724_000, goal: 1_730_000 },
+  { m: 'May',       net: 1_885_000, goal: 1_900_000 },
+  { m: 'June',      net: 1_882_000, goal: 1_920_000 },
+  { m: 'July',      net: 2_460_000, goal: 3_830_000 },
+  { m: 'August',    net: 2_874_000, goal: 3_110_000 },
+  { m: 'September', net: 1_893_000, goal: 1_510_000 },
+  { m: 'October',   net:    12_000, goal: 1_330_000 },
+  { m: 'November',  net:         0, goal: 1_740_000 },
+  { m: 'December',  net:         0, goal: 3_220_000 },
+];
+const SVG_YTD_TOTAL_NET  = 18_140_000;
+const SVG_YTD_TOTAL_GOAL = 20_740_000;
+const SVG_ANNUAL_TOTAL   = 25_700_000;
+
+
 // ─── Hooks ────────────────────────────────────────────────────────────
 function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(() => {
@@ -842,6 +876,249 @@ function HeroAreaTooltip({ active, payload, label }: any) {
   );
 }
 
+// ─── Sales vs Goal Card ───────────────────────────────────────────────
+function SalesVsGoalCard({ cardStyle }: { cardStyle: React.CSSProperties }) {
+  type SVGView = 'By Class' | 'By Month';
+  const CLASS_FILTERS = ['All classes', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'] as const;
+  type ClassFilter = typeof CLASS_FILTERS[number];
+  const [view, setView] = useState<SVGView>('By Class');
+  const [classFilter, setClassFilter] = useState<ClassFilter>('All classes');
+
+  const now = new Date();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const currentMonthIdx = now.getMonth();
+  const currentMonthLabel = monthNames[currentMonthIdx];
+
+  const fmtVariance = (n: number) => {
+    if (n === 0) return '$0';
+    const a = Math.abs(n);
+    const sign = n < 0 ? '-' : '+';
+    if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(2)}M`;
+    if (a >= 1e3) return `${sign}$${Math.round(a / 1e3)}K`;
+    return `${sign}$${Math.round(a)}`;
+  };
+  const varianceColor = (n: number) => (n < 0 ? '#C9422E' : n > 0 ? '#047857' : '#334155');
+
+  const classRows = SVG_CLASS_YTD.map((r) => ({
+    ...r,
+    variance: r.net - r.goal,
+    pct: Math.round((r.net / r.goal) * 100),
+  }));
+
+  const classActualShare: Record<string, number> = {};
+  const classGoalShare: Record<string, number> = {};
+  const classAnnualShare: Record<string, number> = {};
+  SVG_CLASS_YTD.forEach((r) => {
+    classActualShare[r.name] = r.net / SVG_YTD_TOTAL_NET;
+    classGoalShare[r.name]   = r.goal / SVG_YTD_TOTAL_GOAL;
+    classAnnualShare[r.name] = r.annual / SVG_ANNUAL_TOTAL;
+  });
+
+  const monthlyRows = SVG_MONTHLY_ALL.map((row, idx) => {
+    const future = idx > currentMonthIdx;
+    let net = row.net;
+    let goal = row.goal;
+    if (classFilter !== 'All classes') {
+      net  = Math.round(row.net  * classActualShare[classFilter]);
+      goal = Math.round(row.goal * classGoalShare[classFilter]);
+    }
+    const monthlyGoal = goal;
+    const variance = future ? 0 : net - goal;
+    const pct = goal === 0 ? 0 : Math.round((net / goal) * 100);
+    return { m: row.m, net, goal, monthlyGoal, variance, pct, future };
+  });
+
+  let ytdNet = 0, ytdGoal = 0, ytdAnnual = 0;
+  if (classFilter === 'All classes') {
+    ytdNet = SVG_YTD_TOTAL_NET;
+    ytdGoal = SVG_YTD_TOTAL_GOAL;
+    ytdAnnual = SVG_ANNUAL_TOTAL;
+  } else {
+    const cls = SVG_CLASS_YTD.find((r) => r.name === classFilter)!;
+    ytdNet = cls.net; ytdGoal = cls.goal; ytdAnnual = cls.annual;
+  }
+  const ytdVariance = ytdNet - ytdGoal;
+  const ytdPct = Math.round((ytdNet / ytdGoal) * 100);
+
+  const byClassTotal = {
+    net: SVG_YTD_TOTAL_NET,
+    goal: SVG_YTD_TOTAL_GOAL,
+    variance: SVG_YTD_TOTAL_NET - SVG_YTD_TOTAL_GOAL,
+    pct: Math.round((SVG_YTD_TOTAL_NET / SVG_YTD_TOTAL_GOAL) * 100),
+    annual: SVG_ANNUAL_TOTAL,
+  };
+
+  const COLS = '1.5fr 1fr 1fr 1fr 220px 1fr';
+  const headerCellCls = 'text-[11px] font-semibold uppercase';
+  const headerStyle = { color: MUTED, letterSpacing: '0.08em' } as const;
+  const divider = '1px solid #F3F3F5';
+
+  const Bar = ({ pct, muted }: { pct: number; muted?: boolean }) => {
+    if (muted) {
+      return (
+        <div className="flex items-center gap-3" style={{ width: '100%' }}>
+          <div style={{ flex: 1, maxWidth: 160, height: 4, background: '#EEF0F2', borderRadius: 999 }} />
+          <span style={{ fontSize: 13, color: '#94A3B8', minWidth: 36, textAlign: 'right' }}>—</span>
+        </div>
+      );
+    }
+    const clamped = Math.max(0, Math.min(pct, 125));
+    const fillPct = Math.min(100, clamped);
+    const fillColor = pct < 70 ? '#C9422E' : '#1D1D20';
+    return (
+      <div className="flex items-center gap-3" style={{ width: '100%' }}>
+        <div style={{ flex: 1, maxWidth: 160, height: 4, background: '#EEF0F2', borderRadius: 999, overflow: 'hidden' }}>
+          <div style={{ width: `${fillPct}%`, height: '100%', background: fillColor, borderRadius: 999, transition: 'width 400ms cubic-bezier(0.22, 1, 0.36, 1)' }} />
+        </div>
+        <span style={{ ...TABULAR, fontSize: 13, fontWeight: 500, color: '#0F172A', minWidth: 36, textAlign: 'right' }}>{pct}%</span>
+      </div>
+    );
+  };
+
+  const exportMock = (fmt: 'excel' | 'pdf') => {
+    // eslint-disable-next-line no-console
+    console.log('[sales-vs-goal] export', fmt, { view, classFilter });
+  };
+
+  return (
+    <div style={cardStyle} data-testid="sales-vs-goal-card">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 style={{ margin: 0, fontSize: 19, fontWeight: 600, color: '#0F172A', letterSpacing: '-0.01em' }}>Sales vs goal</h2>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748B' }}>2026 goal pacing through {currentMonthLabel}</p>
+        </div>
+        <div className="flex items-center gap-4 flex-wrap">
+          <SegTabs
+            tabs={['By Class', 'By Month']}
+            value={view}
+            onChange={(v: any) => setView(v)}
+            testId="svg-view-toggle"
+            slugPrefix="svg-view"
+          />
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => exportMock('excel')} className="inline-flex items-center gap-1 transition-colors duration-150" style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 500, color: '#475569', fontFamily: 'inherit' }} onMouseEnter={(e) => { e.currentTarget.style.color = '#0F172A'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }} data-testid="svg-export-excel">
+              Excel <ArrowUpRight size={12} strokeWidth={2.2} />
+            </button>
+            <button type="button" onClick={() => exportMock('pdf')} className="inline-flex items-center gap-1 transition-colors duration-150" style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 500, color: '#475569', fontFamily: 'inherit' }} onMouseEnter={(e) => { e.currentTarget.style.color = '#0F172A'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; }} data-testid="svg-export-pdf">
+              PDF <ArrowUpRight size={12} strokeWidth={2.2} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* By Class */}
+      {view === 'By Class' && (
+        <div className="mt-5" data-testid="svg-by-class">
+          <div className="grid gap-x-4 pb-3" style={{ gridTemplateColumns: COLS, borderBottom: divider }}>
+            <span className={headerCellCls} style={headerStyle}>Class</span>
+            <span className={`${headerCellCls} text-right`} style={headerStyle}>Net Sales YTD</span>
+            <span className={`${headerCellCls} text-right`} style={headerStyle}>Goal YTD</span>
+            <span className={`${headerCellCls} text-right`} style={headerStyle}>Variance</span>
+            <span className={headerCellCls} style={headerStyle}>% to Goal</span>
+            <span className={`${headerCellCls} text-right`} style={headerStyle}>Annual Goal</span>
+          </div>
+          {classRows.map((r, i) => (
+            <div
+              key={r.name}
+              className="grid items-center gap-x-4 transition-colors duration-150"
+              style={{ gridTemplateColumns: COLS, minHeight: 48, padding: '10px 0', borderTop: i === 0 ? 'none' : divider }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#FAFAFA'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              data-testid={`svg-class-row-${r.name.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className="rounded-full shrink-0" style={{ width: 6, height: 6, background: SVG_SEG_COLOR[r.name] }} />
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#0F172A' }}>{r.name}</span>
+              </span>
+              <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 500, color: '#0F172A' }}>{fmtM(r.net)}</span>
+              <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 500, color: '#0F172A' }}>{fmtM(r.goal)}</span>
+              <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 500, color: varianceColor(r.variance) }}>{fmtVariance(r.variance)}</span>
+              <Bar pct={r.pct} />
+              <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 500, color: '#0F172A' }}>{fmtM(r.annual)}</span>
+            </div>
+          ))}
+          <div
+            className="grid items-center gap-x-4"
+            style={{ gridTemplateColumns: COLS, minHeight: 48, padding: '10px 0', borderTop: '1px solid #E2E8F0' }}
+            data-testid="svg-class-total"
+          >
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>Total</span>
+            <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{fmtM(byClassTotal.net)}</span>
+            <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{fmtM(byClassTotal.goal)}</span>
+            <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 600, color: varianceColor(byClassTotal.variance) }}>{fmtVariance(byClassTotal.variance)}</span>
+            <Bar pct={byClassTotal.pct} />
+            <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{fmtM(byClassTotal.annual)}</span>
+          </div>
+        </div>
+      )}
+
+      {/* By Month */}
+      {view === 'By Month' && (
+        <div className="mt-5" data-testid="svg-by-month">
+          <div className="inline-flex items-center flex-wrap mb-4" role="tablist" style={{ gap: 2 }} data-testid="svg-class-chips">
+            {CLASS_FILTERS.map((c) => {
+              const active = classFilter === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setClassFilter(c)}
+                  className="ph-tab"
+                  data-active={active}
+                  data-testid={`svg-chip-${c.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid gap-x-4 pb-3" style={{ gridTemplateColumns: COLS, borderBottom: divider }}>
+            <span className={headerCellCls} style={headerStyle}>Month</span>
+            <span className={`${headerCellCls} text-right`} style={headerStyle}>Net Sales</span>
+            <span className={`${headerCellCls} text-right`} style={headerStyle}>Goal</span>
+            <span className={`${headerCellCls} text-right`} style={headerStyle}>Variance</span>
+            <span className={headerCellCls} style={headerStyle}>% to Goal</span>
+            <span className={`${headerCellCls} text-right`} style={headerStyle}>Monthly Goal</span>
+          </div>
+          {monthlyRows.map((r, i) => (
+            <div
+              key={r.m}
+              className="grid items-center gap-x-4 transition-colors duration-150"
+              style={{ gridTemplateColumns: COLS, minHeight: 44, padding: '10px 0', borderTop: i === 0 ? 'none' : divider }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#FAFAFA'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              data-testid={`svg-month-row-${r.m.toLowerCase()}`}
+            >
+              <span style={{ fontSize: 14, fontWeight: 500, color: r.future ? '#94A3B8' : '#0F172A' }}>{r.m}</span>
+              <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 500, color: r.future ? '#94A3B8' : '#0F172A' }}>{r.future ? '—' : fmtM(r.net)}</span>
+              <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 500, color: '#94A3B8' }}>{fmtM(r.goal)}</span>
+              <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 500, color: r.future ? '#94A3B8' : varianceColor(r.variance) }}>{r.future ? '—' : fmtVariance(r.variance)}</span>
+              <Bar pct={r.pct} muted={r.future} />
+              <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 500, color: '#94A3B8' }}>{fmtM(r.monthlyGoal)}</span>
+            </div>
+          ))}
+          <div
+            className="grid items-center gap-x-4"
+            style={{ gridTemplateColumns: COLS, minHeight: 48, padding: '10px 0', borderTop: '1px solid #E2E8F0' }}
+            data-testid="svg-month-ytd-total"
+          >
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>YTD Total</span>
+            <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{fmtM(ytdNet)}</span>
+            <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{fmtM(ytdGoal)}</span>
+            <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 600, color: varianceColor(ytdVariance) }}>{fmtVariance(ytdVariance)}</span>
+            <Bar pct={ytdPct} />
+            <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{fmtM(ytdAnnual)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RevByMonthTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   const rows = payload.filter((p: any) => ['usw','dist','retail','ecom','amzn','open'].includes(p.dataKey));
@@ -943,7 +1220,7 @@ export default function DashboardPage(props: DashProps) {
               <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: MUTED }}>Net Sales · YTD</span>
             </div>
             <div className="mt-3 flex flex-wrap items-end gap-x-4 gap-y-2">
-              <p style={{ ...TABULAR, margin: 0, fontSize: 'clamp(32px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }} data-testid="hero-netsales-value">{fmtM(netSales)}</p>
+              <p style={{ ...TABULAR, margin: 0, fontSize: 'clamp(26px, 2.4vw, 32px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }} data-testid="hero-netsales-value">{fmtM(netSales)}</p>
               <span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-medium" style={{ ...TABULAR, color: '#047857', background: '#ECFDF5', padding: '3px 8px' }}>
                 <ArrowUp size={10} strokeWidth={2.6} />26.3% YoY
               </span>
@@ -976,8 +1253,11 @@ export default function DashboardPage(props: DashProps) {
               </div>
               <span className="inline-flex items-center rounded-full text-[12px] font-semibold" style={{ ...TABULAR, color: '#C9422E', background: '#FFF1EF', padding: '3px 10px' }}>{Math.round(goalPct)}%</span>
             </div>
-            <p style={{ ...TABULAR, margin: '10px 0 0', fontSize: 36, fontWeight: 600, lineHeight: 1, letterSpacing: '-0.02em', color: '#0F172A' }} data-testid="hero-goal-value">{fmtM(netSales)}</p>
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED }}>of {fmtM(annualGoal)} · {fmtM(annualGoal - netSales)} to go</p>
+            <p style={{ ...TABULAR, margin: '10px 0 0', fontSize: 'clamp(34px, 2.8vw, 44px)', fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: '#0F172A' }} data-testid="hero-goal-value">{fmtM(netSales)}</p>
+            <p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.4, whiteSpace: 'nowrap' }}>
+              <span style={{ color: '#64748B', fontWeight: 500 }}>of {fmtM(annualGoal)} · </span>
+              <span style={{ color: '#0F172A', fontWeight: 600, fontSize: 15 }}>{fmtM(annualGoal - netSales)} to go</span>
+            </p>
 
             <div className="mt-5 flex items-center justify-between">
               <span style={{ fontSize: 11, fontWeight: 500, color: MUTED, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Pace</span>
@@ -998,13 +1278,13 @@ export default function DashboardPage(props: DashProps) {
               { label: 'US Wholesale', dot: SEG_COLORS['US Wholesale'], value: uswBreakdown,  pct: uswPct },
               { label: 'Distributors', dot: SEG_COLORS['Distributors'], value: distBreakdown, pct: distPct },
             ].map((r, i) => (
-              <div key={r.label} className="grid items-center" style={{ gridTemplateColumns: '1.3fr 1fr 1fr', minHeight: 32, borderTop: i === 0 ? 'none' : '1px solid #F1F5F9' }} data-testid={`goal-break-${r.label.toLowerCase().replace(/\s+/g,'-')}`}>
-                <span className="inline-flex items-center gap-2">
+              <div key={r.label} className="flex items-center gap-3" style={{ minHeight: 32, borderTop: i === 0 ? 'none' : '1px solid #F1F5F9' }} data-testid={`goal-break-${r.label.toLowerCase().replace(/\s+/g,'-')}`}>
+                <span className="inline-flex items-center gap-2 flex-1 min-w-0" style={{ whiteSpace: 'nowrap' }}>
                   <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: r.dot }} />
-                  <span style={{ fontSize: 13, color: '#1E293B' }}>{r.label}</span>
+                  <span className="truncate" style={{ fontSize: 13, color: '#1E293B' }}>{r.label}</span>
                 </span>
-                <span style={{ ...TABULAR, fontSize: 13, color: '#334155', textAlign: 'center' }}>{fmtM(r.value)}</span>
-                <span style={{ fontSize: 11, color: MUTED, textAlign: 'right' }}>{r.pct}% of goal</span>
+                <span style={{ ...TABULAR, fontSize: 13, color: '#334155', whiteSpace: 'nowrap' }}>{fmtM(r.value)}</span>
+                <span style={{ fontSize: 11, color: MUTED, whiteSpace: 'nowrap', width: 90, textAlign: 'right' }}>{r.pct}% of goal</span>
               </div>
             ))}
           </div>
@@ -1041,8 +1321,13 @@ export default function DashboardPage(props: DashProps) {
           </div>
         </section>
 
-        {/* ── 4. Revenue + Segments row 65/35 ─────────────────── */}
-        <section className="mt-4 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[65fr_35fr]" data-testid="dashboard-rev-seg-row">
+        {/* ── Sales vs goal (full width) ──────────────────────── */}
+        <section className="mt-4" data-testid="dashboard-sales-vs-goal">
+          <SalesVsGoalCard cardStyle={cardStyle} />
+        </section>
+
+        {/* ── Revenue by month (full width) ───────────────────── */}
+        <section className="mt-4" data-testid="dashboard-rev-seg-row">
           <div style={cardStyle} data-testid="revenue-by-month">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1091,37 +1376,6 @@ export default function DashboardPage(props: DashProps) {
             </div>
           </div>
 
-          <div style={cardStyle} data-testid="segments-card">
-            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0F172A', letterSpacing: '-0.005em' }}>Segments</h2>
-            <p style={{ margin: '4px 0 16px', fontSize: 12, color: MUTED }}>Attainment vs annual goal</p>
-            <div className="grid gap-x-3 pb-3 text-[11px] font-semibold uppercase" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 72px', letterSpacing: '0.14em', color: MUTED, borderBottom: '1px solid #F1F5F9' }}>
-              <span>Segment</span>
-              <span className="text-right">Actual</span>
-              <span className="text-right">Goal</span>
-              <span className="text-right">Attain</span>
-            </div>
-            {segRows.map((r, i) => {
-              const low = r.attainment < 70;
-              return (
-                <div
-                  key={r.name}
-                  className="grid items-center gap-x-3 transition-colors duration-150"
-                  style={{ gridTemplateColumns: '1.3fr 1fr 1fr 72px', minHeight: 56, borderTop: i === 0 ? 'none' : '1px solid #F1F5F9' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                  data-testid={`segrow-${r.name.toLowerCase().replace(/\s+/g,'-')}`}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: SEG_COLORS[r.name] }} />
-                    <span style={{ fontSize: 14, fontWeight: 500, color: '#0F172A' }}>{r.name}</span>
-                  </span>
-                  <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, color: '#0F172A' }}>{fmtM(r.actual)}</span>
-                  <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, color: '#0F172A' }}>{fmtM(r.target)}</span>
-                  <span style={{ ...TABULAR, textAlign: 'right', fontSize: 14, fontWeight: 600, color: low ? '#C9422E' : '#0F172A' }}>{r.attainment}%</span>
-                </div>
-              );
-            })}
-          </div>
         </section>
 
         {/* ── 5. Channel Mix (full width) ─────────────────────── */}
