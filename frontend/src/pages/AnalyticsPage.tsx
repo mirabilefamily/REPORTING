@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, Box, CheckCircle2, Package, Store } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
+import DateRangePicker from '../components/DateRangePicker';
+import { usePageRange } from '../lib/pageRange';
 
 // ─── Tokens ────────────────────────────────────────────────────────────
 const INK = '#0A0A0B';
@@ -185,10 +187,10 @@ function Delta({ value, suffix = '%', positive }: { value: number; suffix?: stri
 
 function KpiCard({ label, value, delta, suffix, positive }: { label: string; value: string; delta?: number; suffix?: string; positive?: boolean }) {
   return (
-    <div className="card card-compact" style={{ padding: 20, borderRadius: 14, background: '#FFFFFF' }} data-testid={`kpi-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
-      <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: SLATE_500 }}>{label}</p>
-      <div className="flex items-end" style={{ gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
-        <p style={{ margin: 0, fontSize: 'clamp(18px, 1.8vw, 22px)', fontWeight: 600, lineHeight: 1.15, color: INK, letterSpacing: '-0.02em', ...TNUM }}>{value}</p>
+    <div className="card card-compact" style={{ padding: 24, borderRadius: 16, background: '#FFFFFF' }} data-testid={`kpi-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
+      <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6E6E73' }}>{label}</p>
+      <div className="flex items-end" style={{ gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+        <p style={{ margin: 0, fontSize: 'clamp(22px, 2vw, 24px)', fontWeight: 600, lineHeight: 1.1, color: INK, letterSpacing: '-0.02em', ...TNUM }}>{value}</p>
         {delta !== undefined && <Delta value={delta} suffix={suffix} positive={positive} />}
       </div>
     </div>
@@ -375,6 +377,7 @@ function CardHeader({ title, help }: { title: string; help?: string }) {
 // ─── Page ──────────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
   const [channel, setChannel] = useState<Channel>('All');
+  const [range, setRange] = usePageRange('analytics');
 
   return (
     <div className="min-h-full" data-testid="analytics-page" style={{ background: '#FAFAFA', fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" }}>
@@ -384,15 +387,16 @@ export default function AnalyticsPage() {
           channels={CHANNELS}
           activeChannel={channel}
           onChannelChange={(c) => setChannel(c as Channel)}
+          dateControl={<DateRangePicker value={range} onChange={setRange} testId="analytics-range" />}
           testIdPrefix="analytics"
         />
 
         <p style={{ margin: 0, fontSize: 12.5, color: SLATE_500 }} data-testid="analytics-crumb">
-          Showing <strong style={{ color: INK, fontWeight: 600 }}>{channel}</strong> metrics · {DATE_LABEL}
+          Showing <strong style={{ color: INK, fontWeight: 600 }}>{channel}</strong> metrics · {range}
         </p>
 
         <div key={channel} style={{ animation: 'ai-msg-in 180ms ease-out', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {channel === 'All' && <AllView />}
+          {channel === 'All' && <AllView onPickChannel={(c) => setChannel(c)} />}
           {channel === 'Ecommerce' && <EcommerceView />}
           {channel === 'Amazon' && <AmazonView />}
           {channel === 'Retail' && <RetailView />}
@@ -405,7 +409,7 @@ export default function AnalyticsPage() {
 }
 
 // ─── All view ──────────────────────────────────────────────────────────
-function AllView() {
+function AllView({ onPickChannel }: { onPickChannel: (c: Channel) => void }) {
   const totalRev = CHANNEL_MIX.reduce((s, c) => s + c.revenue, 0);
   const totalOrd = CHANNEL_MIX.reduce((s, c) => s + c.orders, 0);
   return (
@@ -426,12 +430,19 @@ function AllView() {
           { title: 'Ecommerce (DTC)', revenue: '$4.64M', metricA: ['Orders', '42,180'], metricB: ['AOV', '$110'], metricC: ['Conversion', '2.84%'], delta: 12.4, dest: 'Ecommerce' as Channel },
           { title: 'Wholesale (B2B)', revenue: '$12.23M', metricA: ['Accounts', '284'],   metricB: ['AOV', '$8,420'], metricC: ['Reorder rate', '68%'], delta: 18.6, dest: 'US Wholesale' as Channel },
         ].map((b) => (
-          <div key={b.title} className="card" style={{ padding: 24, borderRadius: 16, background: '#FFFFFF' }}>
+          <button
+            key={b.title}
+            type="button"
+            onClick={() => onPickChannel(b.dest)}
+            className="card card-hover text-left"
+            style={{ padding: 24, borderRadius: 16, background: '#FFFFFF', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}
+            data-testid={`biz-line-${b.title.toLowerCase().includes('ecom') ? 'dtc' : 'b2b'}`}
+          >
             <div className="flex items-start justify-between" style={{ gap: 12 }}>
               <div>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: SLATE_500, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{b.title}</p>
-                <div className="flex items-end" style={{ gap: 10, marginTop: 8 }}>
-                  <p style={{ margin: 0, fontSize: 'clamp(20px, 2vw, 26px)', fontWeight: 600, color: INK, letterSpacing: '-0.02em', ...TNUM }}>{b.revenue}</p>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.14em' }}>{b.title}</p>
+                <div className="flex items-end" style={{ gap: 10, marginTop: 10 }}>
+                  <p style={{ margin: 0, fontSize: 'clamp(22px, 2vw, 24px)', fontWeight: 600, color: INK, letterSpacing: '-0.02em', ...TNUM }}>{b.revenue}</p>
                   <Delta value={b.delta} positive />
                 </div>
               </div>
@@ -440,12 +451,12 @@ function AllView() {
             <div className="grid grid-cols-3" style={{ gap: 12, marginTop: 20, paddingTop: 20, borderTop: `1px solid ${SLATE_100}` }}>
               {[b.metricA, b.metricB, b.metricC].map(([lab, val]) => (
                 <div key={lab}>
-                  <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: SLATE_500 }}>{lab}</p>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6E6E73' }}>{lab}</p>
                   <p style={{ margin: '4px 0 0', fontSize: 15, fontWeight: 600, color: INK, ...TNUM }}>{val}</p>
                 </div>
               ))}
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

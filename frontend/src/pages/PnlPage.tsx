@@ -65,36 +65,45 @@ function buildStatement(scale: number): Row[] {
   const gO = (b: number[]) => ext12(b.map((v) => Math.round(v * scale * 1.5)));
   const gT = (b: number[]) => ext12(b.map((v) => Math.round(v * scale * 3)));
 
+  // Revenue — flat
   const salesDirect   = gR([0, 0, 0, 68_000, 0, 0, 0, 0, 0, 0]);
   const salesWhole    = gR([786_000, 257_000, 272_000, 395_000, 465_000, 582_000, 940_000, 1_120_000, 980_000, 820_000]);
   const salesSHI      = gR([18_000, 22_000, 28_000, 26_000, 32_000, 38_000, 44_000, 48_000, 52_000, 44_000]);
-  const totalSales = salesDirect.map((_, i) => salesDirect[i] + salesWhole[i] + salesSHI[i]);
+  const shipping      = gR([8_000, 10_000, 12_000, 11_000, 14_000, 16_000, 18_000, 20_000, 22_000, 20_000]);
+  const otherRevenue  = gR([2_000, 2_500, 3_000, 2_800, 3_500, 4_000, 4_500, 5_000, 4_800, 4_200]);
+  const totalRevenue  = salesDirect.map((_, i) => salesDirect[i] + salesWhole[i] + salesSHI[i] + shipping[i] + otherRevenue[i]);
 
-  const shipping = gR([8_000, 10_000, 12_000, 11_000, 14_000, 16_000, 18_000, 20_000, 22_000, 20_000]);
-  const totalRevenue = totalSales.map((v, i) => v + shipping[i]);
-
+  // Contra Revenue
   const discounts = gR([-42_000, -38_000, -48_000, -46_000, -52_000, -58_000, -72_000, -82_000, -78_000, -62_000]);
   const returns   = gR([-28_000, -24_000, -32_000, -30_000, -36_000, -42_000, -54_000, -62_000, -58_000, -46_000]);
   const totalContra = discounts.map((v, i) => v + returns[i]);
 
-  const cogsBase    = gC([-32_000, -36_000, -42_000, -40_000, -48_000, -58_000, -72_000, -82_000, -78_000, -64_000]);
-  const cogsProd    = gC([-120_000, -140_000, -180_000, -170_000, -210_000, -240_000, -290_000, -320_000, -310_000, -260_000]);
-  const cogsFreight = gC([-18_000, -20_000, -26_000, -24_000, -30_000, -34_000, -42_000, -48_000, -44_000, -38_000]);
-  const cogsImport  = gC([-12_000, -14_000, -18_000, -16_000, -22_000, -24_000, -30_000, -34_000, -32_000, -26_000]);
-  const ppv         = gC([-4_000, -4_000, -6_000, -5_000, -7_000, -8_000, -10_000, -12_000, -11_000, -8_000]);
-  const mpf         = gC([-8_000, -9_000, -11_000, -10_000, -13_000, -15_000, -18_000, -21_000, -20_000, -16_000]);
-  const totalCogs = cogsBase.map((_, i) => cogsBase[i] + cogsProd[i] + cogsFreight[i] + cogsImport[i] + ppv[i] + mpf[i]);
+  // COGS — flat
+  const materialCost = gC([-120_000, -140_000, -180_000, -170_000, -210_000, -240_000, -290_000, -320_000, -310_000, -260_000]);
+  const freightIn    = gC([-30_000, -34_000, -44_000, -40_000, -52_000, -58_000, -72_000, -82_000, -76_000, -64_000]);
+  const directLabor  = gC([-32_000, -36_000, -42_000, -40_000, -48_000, -58_000, -72_000, -82_000, -78_000, -64_000]);
+  const mfgOverhead  = gC([-12_000, -13_000, -17_000, -15_000, -20_000, -23_000, -28_000, -33_000, -31_000, -24_000]);
+  const totalCogs = materialCost.map((_, i) => materialCost[i] + freightIn[i] + directLabor[i] + mfgOverhead[i]);
 
   const grossProfit = totalRevenue.map((v, i) => v + totalContra[i] + totalCogs[i]);
 
-  const marketing  = gO([-120_000, -130_000, -150_000, -140_000, -170_000, -190_000, -230_000, -260_000, -250_000, -200_000]);
-  const ga         = gO([-80_000, -82_000, -88_000, -86_000, -92_000, -98_000, -108_000, -120_000, -116_000, -98_000]);
-  const operations = gO([-60_000, -62_000, -68_000, -66_000, -72_000, -76_000, -88_000, -96_000, -94_000, -78_000]);
-  const salaries   = gO([-180_000, -182_000, -188_000, -186_000, -192_000, -198_000, -210_000, -222_000, -218_000, -200_000]);
-  const otherOpex  = gO([-22_000, -24_000, -28_000, -26_000, -32_000, -36_000, -42_000, -48_000, -44_000, -36_000]);
-  const totalOpex = marketing.map((_, i) => marketing[i] + ga[i] + operations[i] + salaries[i] + otherOpex[i]);
+  // OpEx — grouped
+  const advertising       = gO([-72_000, -78_000, -90_000, -84_000, -102_000, -114_000, -138_000, -156_000, -150_000, -120_000]);
+  const marketingSalaries = gO([-48_000, -52_000, -60_000, -56_000, -68_000, -76_000, -92_000, -104_000, -100_000, -80_000]);
+  const totalSM = advertising.map((v, i) => v + marketingSalaries[i]);
+
+  const officeSupplies   = gO([-6_000, -7_000, -8_000, -7_500, -9_000, -10_000, -12_000, -14_000, -13_000, -10_000]);
+  const professionalFees = gO([-32_000, -33_000, -36_000, -35_000, -38_000, -40_000, -44_000, -48_000, -46_000, -40_000]);
+  const rent             = gO([-48_000, -49_000, -52_000, -51_000, -54_000, -58_000, -64_000, -72_000, -70_000, -58_000]);
+  const totalGA = officeSupplies.map((v, i) => v + professionalFees[i] + rent[i]);
+
+  const depreciation = gO([-28_000, -28_000, -30_000, -30_000, -32_000, -32_000, -34_000, -36_000, -36_000, -32_000]);
+  const totalDepr = depreciation.slice();
+
+  const totalOpex = totalSM.map((v, i) => v + totalGA[i] + totalDepr[i]);
   const operatingIncome = grossProfit.map((v, i) => v + totalOpex[i]);
 
+  // Non-Operating — flat
   const intInc = g([8_000, 10_000, 12_000, 11_000, 14_000, 15_000, 16_000, 18_000, 18_000, 15_000]);
   const intExp = g([-12_000, -14_000, -18_000, -16_000, -22_000, -24_000, -28_000, -32_000, -30_000, -26_000]);
   const taxes  = gT([-62_000, -68_000, -80_000, -72_000, -98_000, -112_000, -140_000, -158_000, -152_000, -124_000]);
@@ -102,14 +111,13 @@ function buildStatement(scale: number): Row[] {
   const netIncome = operatingIncome.map((v, i) => v + totalNonOp[i]);
 
   const rows: Row[] = [
-    // Revenue section
+    // Revenue — flat
     { name: 'Revenue', code: '', type: 'section', level: 0, monthly: [], parent: 'Revenue' },
-    { name: 'Sales', code: '', type: 'subGroup', level: 1, monthly: [], parent: 'Revenue' },
-    { name: 'Sales — Direct',        code: '4000', type: 'line', level: 2, monthly: salesDirect, parent: 'Sales' },
-    { name: 'Sales — Wholesale',     code: '4010', type: 'line', level: 2, monthly: salesWhole,  parent: 'Sales' },
-    { name: 'Income — SHI Revenue',  code: '4020', type: 'line', level: 2, monthly: salesSHI,    parent: 'Sales' },
-    { name: 'Total Sales', code: '', type: 'subGroupTotal', level: 1, monthly: totalSales, parent: 'Sales' },
-    { name: 'Shipping Revenue', code: '4021', type: 'line', level: 1, monthly: shipping, parent: 'Revenue' },
+    { name: 'Sales — Direct',       code: '4000', type: 'line', level: 1, monthly: salesDirect,  parent: 'Revenue' },
+    { name: 'Sales — Wholesale',    code: '4010', type: 'line', level: 1, monthly: salesWhole,   parent: 'Revenue' },
+    { name: 'Income — SHI Revenue', code: '4020', type: 'line', level: 1, monthly: salesSHI,     parent: 'Revenue' },
+    { name: 'Shipping Revenue',     code: '4021', type: 'line', level: 1, monthly: shipping,     parent: 'Revenue' },
+    { name: 'Other Revenue',        code: '4050', type: 'line', level: 1, monthly: otherRevenue, parent: 'Revenue' },
     { name: 'Total Revenue', code: '', type: 'keyTotal', level: 0, monthly: totalRevenue, parent: 'Revenue' },
 
     // Contra Revenue
@@ -118,30 +126,35 @@ function buildStatement(scale: number): Row[] {
     { name: 'Returns / Refunds', code: '4106', type: 'line', level: 1, monthly: returns,   parent: 'Contra Revenue' },
     { name: 'Total Contra Revenue', code: '', type: 'subTotal', level: 0, monthly: totalContra, parent: 'Contra Revenue' },
 
-    // COGS
+    // COGS — flat
     { name: 'Cost of Goods Sold', code: '', type: 'section', level: 0, monthly: [], parent: 'COGS' },
-    { name: 'Cost of Goods Sold',       code: '5001', type: 'line', level: 1, monthly: cogsBase,    parent: 'COGS' },
-    { name: 'COGS — Production',        code: '5002', type: 'line', level: 1, monthly: cogsProd,    parent: 'COGS' },
-    { name: 'COGS — Freight',           code: '5003', type: 'line', level: 1, monthly: cogsFreight, parent: 'COGS' },
-    { name: 'COGS — Import & Duties',   code: '5010', type: 'line', level: 1, monthly: cogsImport,  parent: 'COGS' },
-    { name: 'Purchase Price Variance',  code: '5011', type: 'line', level: 1, monthly: ppv,         parent: 'COGS' },
-    { name: 'Merchant Processing Fees', code: '5012', type: 'line', level: 1, monthly: mpf,         parent: 'COGS' },
+    { name: 'Material Cost',          code: '5001', type: 'line', level: 1, monthly: materialCost, parent: 'COGS' },
+    { name: 'Freight In',             code: '5002', type: 'line', level: 1, monthly: freightIn,    parent: 'COGS' },
+    { name: 'Direct Labor',           code: '5003', type: 'line', level: 1, monthly: directLabor,  parent: 'COGS' },
+    { name: 'Manufacturing Overhead', code: '5010', type: 'line', level: 1, monthly: mfgOverhead,  parent: 'COGS' },
     { name: 'Total COGS', code: '', type: 'subTotal', level: 0, monthly: totalCogs, parent: 'COGS' },
 
     { name: 'Gross Profit', code: '', type: 'keyTotal', level: 0, monthly: grossProfit, parent: 'Gross Profit' },
 
-    // OpEx
+    // OpEx — grouped
     { name: 'Operating Expenses', code: '', type: 'section', level: 0, monthly: [], parent: 'OpEx' },
-    { name: 'Marketing',           code: '6100', type: 'line', level: 1, monthly: marketing,  parent: 'OpEx' },
-    { name: 'G&A',                 code: '6200', type: 'line', level: 1, monthly: ga,         parent: 'OpEx' },
-    { name: 'Operations',          code: '6300', type: 'line', level: 1, monthly: operations, parent: 'OpEx' },
-    { name: 'Salaries & Benefits', code: '6400', type: 'line', level: 1, monthly: salaries,   parent: 'OpEx' },
-    { name: 'Other OpEx',          code: '6900', type: 'line', level: 1, monthly: otherOpex,  parent: 'OpEx' },
-    { name: 'Total OpEx', code: '', type: 'subTotal', level: 0, monthly: totalOpex, parent: 'OpEx' },
+    { name: 'Sales & Marketing', code: '', type: 'subGroup', level: 1, monthly: [], parent: 'OpEx' },
+    { name: 'Advertising',        code: '6010', type: 'line', level: 2, monthly: advertising,       parent: 'Sales & Marketing' },
+    { name: 'Marketing Salaries', code: '6020', type: 'line', level: 2, monthly: marketingSalaries, parent: 'Sales & Marketing' },
+    { name: 'Total Sales & Marketing', code: '', type: 'subGroupTotal', level: 1, monthly: totalSM, parent: 'Sales & Marketing' },
+    { name: 'General & Admin', code: '', type: 'subGroup', level: 1, monthly: [], parent: 'OpEx' },
+    { name: 'Office Supplies',   code: '6310', type: 'line', level: 2, monthly: officeSupplies,   parent: 'General & Admin' },
+    { name: 'Professional Fees', code: '6400', type: 'line', level: 2, monthly: professionalFees, parent: 'General & Admin' },
+    { name: 'Rent',              code: '6100', type: 'line', level: 2, monthly: rent,             parent: 'General & Admin' },
+    { name: 'Total G&A', code: '', type: 'subGroupTotal', level: 1, monthly: totalGA, parent: 'General & Admin' },
+    { name: 'Depreciation', code: '', type: 'subGroup', level: 1, monthly: [], parent: 'OpEx' },
+    { name: 'Depreciation Expense', code: '6500', type: 'line', level: 2, monthly: depreciation, parent: 'Depreciation' },
+    { name: 'Total Depreciation', code: '', type: 'subGroupTotal', level: 1, monthly: totalDepr, parent: 'Depreciation' },
+    { name: 'Total Operating Expenses', code: '', type: 'subTotal', level: 0, monthly: totalOpex, parent: 'OpEx' },
 
     { name: 'Operating Income', code: '', type: 'keyTotal', level: 0, monthly: operatingIncome, parent: 'Operating Income' },
 
-    // Non-Operating
+    // Non-Operating — flat
     { name: 'Non-Operating', code: '', type: 'section', level: 0, monthly: [], parent: 'Non-Op' },
     { name: 'Interest Income',  code: '7100', type: 'line', level: 1, monthly: intInc, parent: 'Non-Op' },
     { name: 'Interest Expense', code: '7200', type: 'line', level: 1, monthly: intExp, parent: 'Non-Op' },
@@ -418,9 +431,9 @@ export default function PnlPage() {
   const rowStyleFor = (r: Row) => {
     switch (r.type) {
       case 'section':
-        return { height: 44, color: SLATE_900, weight: 500, fontSize: 14, borderTop: `1px solid ${DIV_STRONG}`, borderBottom: `1px solid ${DIV_STRONG}`, bg: '#FFFFFF' };
+        return { height: 44, color: SLATE_900, weight: 500, fontSize: 14, borderTop: `1px solid ${DIV_STRONG}`, borderBottom: `1px solid ${DIV_STRONG}`, bg: '#FAFAFA' };
       case 'subGroup':
-        return { height: 40, color: SLATE_800, weight: 500, fontSize: 14, borderTop: 'none', borderBottom: `1px solid ${DIV_LITE}`, bg: '#FFFFFF' };
+        return { height: 40, color: SLATE_800, weight: 500, fontSize: 14, borderTop: 'none', borderBottom: `1px solid ${DIV_LITE}`, bg: '#FDFDFD' };
       case 'subGroupTotal':
         return { height: 40, color: SLATE_900, weight: 600, fontSize: 14, borderTop: `1px solid ${DIV_STRONG}`, borderBottom: 'none', bg: '#FFFFFF' };
       case 'subTotal':
@@ -463,13 +476,13 @@ export default function PnlPage() {
               { eyebrow: 'Net Income · YTD',        value: fmtDollarShort(netInc),     delta: 5.3, caption: `${netMarginPct.toFixed(1)}% net margin` },
             ].map((k, i, arr) => (
               <>
-                <div key={k.eyebrow} className="px-6 py-6 md:px-8 md:py-7" data-testid={`pnl-kpi-${i}`}>
-                  <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: SLATE_500 }}>{k.eyebrow}</span>
-                  <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
+                <div key={k.eyebrow} style={{ padding: 24 }} data-testid={`pnl-kpi-${i}`}>
+                  <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: '#6E6E73' }}>{k.eyebrow}</span>
+                  <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-2">
                     <p className="font-semibold" style={{ ...TABULAR, fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: INK, margin: 0 }}>{k.value}</p>
                     <InlineDelta v={k.delta} />
                   </div>
-                  <p className="mt-2 text-[12px] font-medium" style={{ color: SLATE_500, margin: 0 }}>{k.caption}</p>
+                  <p className="mt-2" style={{ fontSize: 12.5, color: '#6E6E73', margin: 0 }}>{k.caption}</p>
                 </div>
                 {i < arr.length - 1 && <div key={`d-${i}`} className="hidden md:block" style={{ background: SLATE_100 }} aria-hidden="true" />}
               </>
@@ -535,19 +548,20 @@ export default function PnlPage() {
                 {visibleRows.map((r, ri) => {
                   const s = rowStyleFor(r);
                   const isSection = r.type === 'section';
+                  const isSectionLike = r.type === 'section' || r.type === 'subGroup';
                   const isCollapsible = isSection;
                   const chevron = isCollapsible ? (
-                    <ChevronDown size={13} strokeWidth={2} style={{ color: '#94A3B8', transition: 'transform 120ms ease', transform: collapsed[r.name] ? 'rotate(-90deg)' : 'rotate(0deg)' }} />
+                    <ChevronDown size={14} strokeWidth={2} style={{ color: SLATE_500, transition: 'transform 120ms ease', transform: collapsed[r.name] ? 'rotate(-90deg)' : 'rotate(0deg)', flexShrink: 0 }} />
                   ) : null;
 
                   // Only line items carry codes; sections, sub-groups, totals stay blank
                   const codeText = r.type === 'line' ? (r.code || '') : '';
                   const stickyBg = s.bg;
-                  const stickyYtdBg = '#FFFFFF';
+                  const stickyYtdBg = s.bg;
 
                   return (
                     <tr key={`${r.name}-${ri}`}
-                      style={{ height: s.height }}
+                      style={{ height: s.height, backgroundColor: s.bg }}
                       data-testid={`pnl-row-${r.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
                       <td style={{ width: 320, minWidth: 320, height: s.height, padding: `0 12px 0 ${indentFor(r)}px`, fontSize: s.fontSize, fontWeight: s.weight, color: s.color, textAlign: 'left', verticalAlign: 'middle', position: 'sticky', left: 0, background: stickyBg, zIndex: 2, whiteSpace: 'nowrap', cursor: isCollapsible ? 'pointer' : 'default', borderTop: s.borderTop, borderBottom: s.borderBottom, borderRight: `1px solid ${DIV_MED}`, boxSizing: 'border-box' }}
                           onClick={() => { if (isCollapsible) setCollapsed((c) => ({ ...c, [r.name]: !c[r.name] })); }}>
@@ -564,7 +578,7 @@ export default function PnlPage() {
                       {periods.map((p) => {
                         const idx = PERIODS.indexOf(p);
                         const v = r.monthly[idx];
-                        const hasValue = typeof v === 'number' && !isSection;
+                        const hasValue = typeof v === 'number' && !isSectionLike;
                         const isZero = hasValue && v === 0;
                         const isNeg = hasValue && v < 0;
                         const cellColor = !hasValue ? 'transparent' : isZero ? SLATE_300 : isNeg ? CORAL_DK : s.color;
@@ -575,7 +589,7 @@ export default function PnlPage() {
                         );
                       })}
                       {showYtd && (() => {
-                        if (isSection) return <td style={{ width: 140, minWidth: 140, height: s.height, padding: '0 14px', background: stickyYtdBg, position: 'sticky', right: comparisonActive ? 120 : 0, zIndex: 2, borderTop: s.borderTop, borderBottom: s.borderBottom, borderLeft: `1px solid ${DIV_MED}`, borderRight: comparisonActive ? `1px solid ${DIV_LITE}` : 'none', boxSizing: 'border-box' }} />;
+                        if (isSectionLike) return <td style={{ width: 140, minWidth: 140, height: s.height, padding: '0 14px', background: stickyYtdBg, position: 'sticky', right: comparisonActive ? 120 : 0, zIndex: 2, borderTop: s.borderTop, borderBottom: s.borderBottom, borderLeft: `1px solid ${DIV_MED}`, borderRight: comparisonActive ? `1px solid ${DIV_LITE}` : 'none', boxSizing: 'border-box' }} />;
                         const y = ytdValue(r);
                         const isZero = y === 0;
                         const isNeg = y < 0;
@@ -587,7 +601,7 @@ export default function PnlPage() {
                         );
                       })()}
                       {comparisonActive && (() => {
-                        if (isSection) return <td style={{ width: 120, minWidth: 120, height: s.height, padding: '0 14px', background: stickyYtdBg, position: 'sticky', right: 0, zIndex: 2, borderTop: s.borderTop, borderBottom: s.borderBottom, boxSizing: 'border-box' }} />;
+                        if (isSectionLike) return <td style={{ width: 120, minWidth: 120, height: s.height, padding: '0 14px', background: stickyYtdBg, position: 'sticky', right: 0, zIndex: 2, borderTop: s.borderTop, borderBottom: s.borderBottom, boxSizing: 'border-box' }} />;
                         const cur = ytdValue(r);
                         const prev = cur * PY_FACTOR;
                         const positive = cur >= prev;

@@ -25,6 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
+import PopoverPortal from '../components/PopoverPortal';
 import { SegTabs } from '../DashboardPage';
 import DateRangePicker from '../components/DateRangePicker';
 
@@ -56,11 +57,25 @@ const DATA_SOURCES = ['Sales', 'Orders', 'Inventory', 'Customers', 'Financials',
 const DIMENSIONS = ['Channel', 'Customer', 'SKU', 'Category', 'Region', 'Rep', 'Date · Day', 'Date · Week', 'Date · Month', 'Date · Quarter', 'Order Status'] as const;
 const METRICS = ['Revenue', 'Gross Profit', 'Margin %', 'Units', 'AOV', 'Orders', 'Returns', 'Fill Rate', 'Days of Supply', 'Forecast Attainment'] as const;
 const VIZ_TYPES = ['Table', 'Bar', 'Line', 'Area', 'Pie', 'KPI', 'Pivot'] as const;
-const OPERATORS = ['equals', 'not equals', 'greater than', 'less than', 'contains'] as const;
+const OPERATORS = ['equals', 'not equals', 'contains', 'starts with', 'ends with', 'greater than', 'less than', 'between', 'is empty', 'is not empty'] as const;
+type Operator = typeof OPERATORS[number];
+type FieldKind = 'string' | 'number' | 'date';
+
+const NUMERIC_FIELDS = new Set<string>(['Revenue', 'Gross Profit', 'Margin %', 'Units', 'AOV', 'Orders', 'Returns', 'Fill Rate', 'Days of Supply', 'Forecast Attainment']);
+function fieldKind(field: string): FieldKind {
+  if (field.startsWith('Date')) return 'date';
+  if (NUMERIC_FIELDS.has(field)) return 'number';
+  return 'string';
+}
+function operatorsFor(kind: FieldKind): readonly Operator[] {
+  if (kind === 'number') return ['equals', 'not equals', 'greater than', 'less than', 'between', 'is empty', 'is not empty'];
+  if (kind === 'date')   return ['equals', 'greater than', 'less than', 'between'];
+  return ['equals', 'not equals', 'contains', 'starts with', 'ends with', 'is empty', 'is not empty'];
+}
 const AGG = ['sum', 'avg', 'min', 'max'] as const;
 
 type Visibility = 'Private' | 'Shared';
-type FilterRule = { field: string; op: string; value: string };
+type FilterRule = { field: string; op: string; value: string; value2?: string; conj?: 'AND' | 'OR' };
 type Report = {
   id: string;
   name: string;
@@ -662,14 +677,17 @@ function BuilderView(props: {
 
       <PanelSection title="Filters">
         {filters.map((f, i) => (
-          <div key={i} className="flex items-center gap-1.5" style={{ marginBottom: 6 }}>
-            <select value={f.field} onChange={(e) => setFilters(filters.map((x, j) => j === i ? { ...x, field: e.target.value } : x))} style={fieldStyle}>{[...DIMENSIONS, ...METRICS].map((o) => <option key={o}>{o}</option>)}</select>
-            <select value={f.op} onChange={(e) => setFilters(filters.map((x, j) => j === i ? { ...x, op: e.target.value } : x))} style={fieldStyle}>{OPERATORS.map((o) => <option key={o}>{o}</option>)}</select>
-            <input value={f.value} onChange={(e) => setFilters(filters.map((x, j) => j === i ? { ...x, value: e.target.value } : x))} placeholder="value" style={{ ...fieldStyle, flex: 1 }} />
-            <button type="button" onClick={() => setFilters(filters.filter((_, j) => j !== i))} style={{ display: 'grid', placeItems: 'center', width: 28, height: 28, color: SLATE_500, borderRadius: 6, cursor: 'pointer', background: 'transparent' }}><X size={13} /></button>
-          </div>
+          <FilterRow
+            key={i}
+            index={i}
+            rule={f}
+            fieldOptions={[...DIMENSIONS, ...METRICS]}
+            onChange={(next) => setFilters(filters.map((x, j) => j === i ? next : x))}
+            onRemove={() => setFilters(filters.filter((_, j) => j !== i))}
+            onConjChange={(c) => setFilters(filters.map((x, j) => j === i ? { ...x, conj: c } : x))}
+          />
         ))}
-        <button type="button" onClick={() => setFilters([...filters, { field: DIMENSIONS[0], op: OPERATORS[0], value: '' }])} className="inline-flex items-center gap-1" style={{ fontSize: 12, color: CORAL_DK, fontWeight: 600, background: 'transparent', cursor: 'pointer' }} data-testid="cr-add-filter"><Plus size={12} strokeWidth={2.4} />Add filter</button>
+        <button type="button" onClick={() => setFilters([...filters, { field: DIMENSIONS[0], op: 'equals', value: '', conj: filters.length > 0 ? 'AND' : undefined }])} className="btn-ghost btn-sm inline-flex items-center" style={{ gap: 6, color: CORAL_DK, marginTop: filters.length > 0 ? 4 : 0 }} data-testid="cr-add-filter"><Plus size={13} strokeWidth={2.2} />Add filter</button>
       </PanelSection>
 
       <PanelSection title="Visualization">
@@ -741,6 +759,150 @@ const fieldStyle: React.CSSProperties = { height: 30, padding: '0 8px', backgrou
 const ghostBtn: React.CSSProperties = { height: 34, padding: '0 12px', background: '#fff', color: SLATE_700, border: `1px solid ${SLATE_200}`, borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 const primaryBtn: React.CSSProperties = { height: 34, padding: '0 14px', background: INK, color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 const coralBtn: React.CSSProperties = { height: 34, padding: '0 14px', background: CORAL, color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+
+function FilterSelect({ label, value, options, onChange, minWidth = 110, testId }: { label?: string; value: string; options: readonly string[]; onChange: (v: string) => void; minWidth?: number; testId?: string }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center justify-between"
+        style={{ minWidth, height: 32, padding: '0 10px', gap: 8, background: '#FFFFFF', border: `1px solid ${open ? CORAL : SLATE_200}`, borderRadius: 10, fontSize: 13, fontWeight: 500, color: INK, cursor: 'pointer', outline: 'none', boxShadow: open ? '0 0 0 2px rgba(255,111,97,0.25)' : 'none', transition: 'border-color 120ms ease, box-shadow 120ms ease' }}
+        onMouseEnter={(e) => { if (!open) { e.currentTarget.style.background = '#FAFAFA'; e.currentTarget.style.borderColor = '#D4D4D8'; } }}
+        onMouseLeave={(e) => { if (!open) { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = SLATE_200; } }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        data-testid={testId}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || label}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ color: SLATE_400, flexShrink: 0 }}><polyline points="6 9 12 15 18 9" /></svg>
+      </button>
+      <PopoverPortal open={open} onClose={() => setOpen(false)} anchorRef={btnRef} placement="bottom-start" minWidth={Math.max(minWidth, 180)} padding={6} testId={testId ? `${testId}-menu` : undefined}>
+        {options.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => { onChange(opt); setOpen(false); }}
+            className="w-full flex items-center justify-between"
+            style={{ height: 32, padding: '0 10px', background: 'transparent', color: opt === value ? INK : SLATE_700, fontSize: 13, fontWeight: opt === value ? 600 : 500, borderRadius: 6, textAlign: 'left', cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#FAFAFA'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            role="option"
+            aria-selected={opt === value}
+            data-testid={testId ? `${testId}-option-${opt.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : undefined}
+          >
+            {opt}
+            {opt === value && <span className="h-1.5 w-1.5 rounded-full" style={{ background: CORAL }} />}
+          </button>
+        ))}
+      </PopoverPortal>
+    </>
+  );
+}
+
+function FilterRow({ index, rule, fieldOptions, onChange, onRemove, onConjChange }: {
+  index: number;
+  rule: FilterRule;
+  fieldOptions: readonly string[];
+  onChange: (next: FilterRule) => void;
+  onRemove: () => void;
+  onConjChange: (c: 'AND' | 'OR') => void;
+}) {
+  const kind = fieldKind(rule.field);
+  const availOps = operatorsFor(kind);
+  const needsNoValue = rule.op === 'is empty' || rule.op === 'is not empty';
+  const needsRange   = rule.op === 'between';
+  const isDate       = kind === 'date';
+  const placeholder  = isDate ? 'YYYY-MM-DD' : kind === 'number' ? '0' : 'value';
+
+  const handleFieldChange = (next: string) => {
+    const nextKind = fieldKind(next);
+    const nextOps  = operatorsFor(nextKind);
+    const op = (nextOps as readonly string[]).includes(rule.op) ? rule.op : nextOps[0];
+    onChange({ ...rule, field: next, op });
+  };
+  const handleOpChange = (next: string) => {
+    const stripValue = next === 'is empty' || next === 'is not empty';
+    onChange({ ...rule, op: next, value: stripValue ? '' : rule.value, value2: next === 'between' ? (rule.value2 ?? '') : undefined });
+  };
+
+  return (
+    <div style={{ marginBottom: 8 }}>
+      {index > 0 && (
+        <div className="flex items-center" style={{ gap: 4, margin: '0 0 6px 0' }} role="tablist" aria-label="Conjunction">
+          {(['AND', 'OR'] as const).map((c) => {
+            const active = (rule.conj ?? 'AND') === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => onConjChange(c)}
+                className="ph-tab"
+                data-active={active}
+                style={{ height: 24, padding: '0 10px', fontSize: 11, letterSpacing: '0.08em' }}
+                data-testid={`cr-filter-${index}-conj-${c.toLowerCase()}`}
+              >{c}</button>
+            );
+          })}
+        </div>
+      )}
+      <div className="flex items-center" style={{ gap: 8 }} data-testid={`cr-filter-row-${index}`}>
+        <FilterSelect value={rule.field} options={fieldOptions} onChange={handleFieldChange} minWidth={160} testId={`cr-filter-${index}-field`} />
+        <FilterSelect value={rule.op} options={availOps} onChange={handleOpChange} minWidth={110} testId={`cr-filter-${index}-op`} />
+        {!needsNoValue && !needsRange && (
+          <input
+            value={rule.value}
+            onChange={(e) => onChange({ ...rule, value: e.target.value })}
+            placeholder={placeholder}
+            className="ds-input"
+            style={{ flex: 1, minWidth: 0, height: 32, padding: '0 10px', fontSize: 13 }}
+            data-testid={`cr-filter-${index}-value`}
+          />
+        )}
+        {needsRange && (
+          <div className="flex items-center" style={{ gap: 6, flex: 1, minWidth: 0 }}>
+            <input
+              value={rule.value}
+              onChange={(e) => onChange({ ...rule, value: e.target.value })}
+              placeholder={isDate ? 'From' : 'Min'}
+              className="ds-input"
+              style={{ flex: 1, minWidth: 0, height: 32, padding: '0 10px', fontSize: 13 }}
+              data-testid={`cr-filter-${index}-value`}
+            />
+            <span style={{ fontSize: 12, color: SLATE_500, fontWeight: 500 }}>and</span>
+            <input
+              value={rule.value2 ?? ''}
+              onChange={(e) => onChange({ ...rule, value2: e.target.value })}
+              placeholder={isDate ? 'To' : 'Max'}
+              className="ds-input"
+              style={{ flex: 1, minWidth: 0, height: 32, padding: '0 10px', fontSize: 13 }}
+              data-testid={`cr-filter-${index}-value2`}
+            />
+          </div>
+        )}
+        {needsNoValue && <div style={{ flex: 1 }} aria-hidden="true" />}
+        <button
+          type="button"
+          onClick={onRemove}
+          className="btn-ghost"
+          style={{ width: 28, height: 28, padding: 0, display: 'grid', placeItems: 'center', borderRadius: 10, color: SLATE_400, flexShrink: 0 }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#F4F4F6'; e.currentTarget.style.color = '#B04435'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SLATE_400; }}
+          aria-label="Remove filter"
+          data-testid={`cr-filter-${index}-remove`}
+        >
+          <X size={14} strokeWidth={2} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 
 function PanelSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (

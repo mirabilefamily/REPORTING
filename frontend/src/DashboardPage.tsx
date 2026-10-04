@@ -943,7 +943,7 @@ export default function DashboardPage(props: DashProps) {
               <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: MUTED }}>Net Sales · YTD</span>
             </div>
             <div className="mt-3 flex flex-wrap items-end gap-x-4 gap-y-2">
-              <p style={{ ...TABULAR, margin: 0, fontSize: 'clamp(36px, 3vw, 48px)', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }} data-testid="hero-netsales-value">{fmtM(netSales)}</p>
+              <p style={{ ...TABULAR, margin: 0, fontSize: 'clamp(32px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }} data-testid="hero-netsales-value">{fmtM(netSales)}</p>
               <span className="inline-flex items-center gap-0.5 rounded-full text-[12px] font-medium" style={{ ...TABULAR, color: '#047857', background: '#ECFDF5', padding: '3px 8px' }}>
                 <ArrowUp size={10} strokeWidth={2.6} />26.3% YoY
               </span>
@@ -1016,14 +1016,14 @@ export default function DashboardPage(props: DashProps) {
             {/* Open Orders */}
             <div style={{ padding: '20px 24px' }} data-testid="kpi-open-orders">
               <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: MUTED }}>Open Orders</span>
-              <p style={{ ...TABULAR, margin: '6px 0 4px', fontSize: 'clamp(24px, 2vw, 32px)', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }}>{fmtM(openOrders)}</p>
+              <p style={{ ...TABULAR, margin: '6px 0 4px', fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }}>{fmtM(openOrders)}</p>
               <p style={{ margin: 0, fontSize: 12.5, color: MUTED }}>Booked, not yet invoiced</p>
             </div>
             <div className="hidden md:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
             {/* Total */}
             <div style={{ padding: '20px 24px' }} data-testid="kpi-total">
               <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.08em', color: MUTED }}>Total</span>
-              <p style={{ ...TABULAR, margin: '6px 0 4px', fontSize: 'clamp(24px, 2vw, 32px)', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }}>{fmtM(total)}</p>
+              <p style={{ ...TABULAR, margin: '6px 0 4px', fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }}>{fmtM(total)}</p>
               <p style={{ margin: 0, fontSize: 12.5, color: MUTED }}>Net Sales + Open Orders</p>
             </div>
             <div className="hidden md:block" style={{ background: '#F1F5F9' }} aria-hidden="true" />
@@ -1035,7 +1035,7 @@ export default function DashboardPage(props: DashProps) {
                   <ArrowDown size={10} strokeWidth={2.6} />Trailing
                 </span>
               </div>
-              <p style={{ ...TABULAR, margin: '6px 0 4px', fontSize: 'clamp(24px, 2vw, 32px)', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }}>{fmtM(forecast)}</p>
+              <p style={{ ...TABULAR, margin: '6px 0 4px', fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#0A0A0B' }}>{fmtM(forecast)}</p>
               <p style={{ margin: 0, fontSize: 12.5, color: MUTED }}>attainment vs plan</p>
             </div>
           </div>
