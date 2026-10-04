@@ -225,10 +225,8 @@ export default function InventoryPage() {
                         <button
                           type="button"
                           onClick={() => setQuery('')}
-                          className="transition-colors duration-150"
-                          style={{ marginTop: 4, padding: '4px 8px', background: 'transparent', color: CORAL_DK, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.color = '#A33725'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.color = CORAL_DK; }}
+                          className="btn-ghost btn-sm"
+                          style={{ marginTop: 4, color: CORAL_DK }}
                           data-testid="inventory-empty-clear"
                         >
                           Clear search
@@ -258,9 +256,8 @@ export default function InventoryPage() {
                             <button
                               type="button"
                               onClick={() => setExpanded((s) => ({ ...s, [r.itemNo]: !s[r.itemNo] }))}
-                              style={{ display: 'inline-grid', placeItems: 'center', width: 24, height: 24, borderRadius: 6, background: 'transparent', color: SLATE_500, cursor: 'pointer', transition: 'background .13s ease' }}
-                              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_100; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                              className="btn-ghost"
+                              style={{ width: 32, height: 32, padding: 0, display: 'inline-grid', placeItems: 'center' }}
                               aria-label={isOpen ? 'Collapse locations' : 'Expand locations'}
                               aria-expanded={isOpen}
                               data-testid={`inv-expand-${r.itemNo}`}

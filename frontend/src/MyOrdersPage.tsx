@@ -122,31 +122,17 @@ function CountStat({ label, value, warn = false }: { label: string; value: strin
 }
 
 function StatusBadge({ s }: { s: Status }) {
-  const map: Record<Status, { bg: string; color: string; border: string; icon?: typeof Clock }> = {
-    'In Production':  { bg: SLATE_50,   color: SLATE_700, border: SLATE_200 },
-    'Ready to Ship':  { bg: EMERALD_BG, color: EMERALD,   border: EMERALD_200 },
-    'Shipped':        { bg: SLATE_100,  color: SLATE_500, border: SLATE_200 },
-    'Delayed':        { bg: CORAL_BG,   color: CORAL_DK,  border: CORAL_200, icon: Clock },
-    'Backordered':    { bg: CORAL_BG,   color: CORAL_DK,  border: CORAL_200 },
+  const map: Record<Status, { cls: 'chip-neutral' | 'chip-coral' | 'chip-emerald'; icon?: typeof Clock }> = {
+    'In Production':  { cls: 'chip-neutral' },
+    'Ready to Ship':  { cls: 'chip-emerald' },
+    'Shipped':        { cls: 'chip-neutral' },
+    'Delayed':        { cls: 'chip-coral', icon: Clock },
+    'Backordered':    { cls: 'chip-coral' },
   };
   const t = map[s];
   const Icon = t.icon;
   return (
-    <span
-      className="inline-flex items-center gap-1"
-      style={{
-        background: t.bg,
-        color: t.color,
-        border: `1px solid ${t.border}`,
-        height: 22,
-        padding: '0 8px',
-        borderRadius: 6,
-        fontSize: 11.5,
-        fontWeight: 500,
-        whiteSpace: 'nowrap',
-      }}
-      data-testid={`status-${s.toLowerCase().replace(/\s+/g, '-')}`}
-    >
+    <span className={t.cls} style={{ whiteSpace: 'nowrap' }} data-testid={`status-${s.toLowerCase().replace(/\s+/g, '-')}`}>
       {Icon && <Icon size={12} strokeWidth={2} />}
       {s}
     </span>
@@ -397,8 +383,8 @@ export default function MyOrdersPage() {
                         <button
                           type="button"
                           onClick={clearFilters}
-                          className="transition-colors duration-150"
-                          style={{ marginTop: 4, padding: '4px 8px', background: 'transparent', color: CORAL_DK, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                          className="btn-ghost btn-sm"
+                          style={{ marginTop: 4, color: CORAL_DK }}
                           data-testid="orders-empty-clear"
                         >
                           Clear filters
@@ -428,9 +414,8 @@ export default function MyOrdersPage() {
                             <button
                               type="button"
                               onClick={() => setExpanded((s) => ({ ...s, [o.orderNo]: !s[o.orderNo] }))}
-                              style={{ display: 'inline-grid', placeItems: 'center', width: 24, height: 24, borderRadius: 6, background: 'transparent', color: SLATE_500, cursor: 'pointer', transition: 'background .13s ease' }}
-                              onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_100; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                              className="btn-ghost"
+                              style={{ width: 32, height: 32, padding: 0, display: 'inline-grid', placeItems: 'center' }}
                               aria-label={isOpen ? 'Collapse line items' : 'Expand line items'}
                               aria-expanded={isOpen}
                               data-testid={`order-expand-${o.orderNo}`}

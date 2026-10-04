@@ -467,6 +467,7 @@ table.data-numeric-center { text-align: center; }
 table.data-numeric-center th,
 table.data-numeric-center td { text-align: center !important; vertical-align: middle; }
 table.data-numeric-center td { font-feature-settings: 'tnum' 1; }
+table.data-numeric-center th.fg-channel-header { text-align: left !important; padding-left: 20px !important; }
 .pnl-toolbar-band::-webkit-scrollbar { display: none; }
 .pnl-toolbar-select:hover { background: #FAFAFA !important; border-color: #D4D4D8 !important; }
 .pnl-icon-btn { display: grid; place-items: center; width: 32px; height: 32px; border: none; background: transparent; color: #6E6E73; border-radius: 8px; cursor: pointer; transition: background 120ms ease, color 120ms ease; flex-shrink: 0; }

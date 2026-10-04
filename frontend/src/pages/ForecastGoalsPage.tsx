@@ -206,24 +206,12 @@ export default function ForecastGoalsPage() {
           <button
             type="button"
             onClick={doRefresh}
-            className="inline-flex items-center gap-1.5 transition-colors duration-150"
-            style={{
-              height: 36,
-              padding: '0 12px',
-              background: SLATE_100,
-              color: SLATE_700,
-              fontSize: 13,
-              fontWeight: 500,
-              borderRadius: 8,
-              border: `1px solid ${SLATE_200}`,
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_200; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = SLATE_100; }}
+            className="btn-secondary btn-sm inline-flex items-center"
+            style={{ gap: 6 }}
             data-testid="fg-refresh-btn"
           >
             <RotateCw
-              size={14}
+              size={13}
               strokeWidth={2}
               style={{
                 color: SLATE_500,
@@ -253,9 +241,10 @@ export default function ForecastGoalsPage() {
               <thead>
                 <tr style={{ boxShadow: `inset 0 -1px 0 ${SLATE_100}` }}>
                   <th
+                    className="fg-channel-header"
                     style={{
                       padding: '0 20px',
-                      textAlign: 'center',
+                      textAlign: 'left',
                       verticalAlign: 'middle',
                       fontSize: 11,
                       fontWeight: 600,
@@ -398,8 +387,10 @@ export default function ForecastGoalsPage() {
 
                 {/* TOTAL row */}
                 <tr style={{ borderTop: `1px solid ${SLATE_200}`, height: 60 }} data-testid="fg-total-row">
-                  <td style={{ padding: '0 20px', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500, position: 'sticky', left: 0, background: '#FFFFFF' }}>
-                    Total
+                  <td style={{ padding: '0 20px', position: 'sticky', left: 0, background: '#FFFFFF', textAlign: 'center', verticalAlign: 'middle', height: 60 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500 }}>
+                      Total
+                    </div>
                   </td>
                   {totals.map((t, mi) => {
                     const isCurrent = mi === CURRENT_MONTH_IDX && year === 2026;
@@ -408,19 +399,22 @@ export default function ForecastGoalsPage() {
                         key={mi}
                         style={{
                           padding: '0 12px',
-                          textAlign: 'right',
-                          fontSize: 14,
-                          fontWeight: 600,
-                          color: INK,
+                          textAlign: 'center',
+                          verticalAlign: 'middle',
+                          height: 60,
                           background: isCurrent ? CORAL_BG : 'transparent',
                         }}
                       >
-                        {fmtK(t)}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 14, fontWeight: 600, color: INK }}>
+                          {fmtK(t)}
+                        </div>
                       </td>
                     );
                   })}
-                  <td style={{ padding: '0 20px', textAlign: 'right', fontSize: 16, fontWeight: 700, color: INK }}>
-                    {fmtAnnual(grandTotal)}
+                  <td style={{ padding: '0 20px', textAlign: 'center', verticalAlign: 'middle', height: 60 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 16, fontWeight: 700, color: INK }}>
+                      {fmtAnnual(grandTotal)}
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -457,10 +451,7 @@ export default function ForecastGoalsPage() {
             <button
               type="button"
               onClick={() => setEdits({})}
-              className="transition-colors duration-150"
-              style={{ height: 32, padding: '0 12px', background: 'transparent', color: SLATE_500, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = INK; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = SLATE_500; }}
+              className="btn-ghost btn-sm"
               data-testid="fg-discard"
             >
               Discard
@@ -468,10 +459,7 @@ export default function ForecastGoalsPage() {
             <button
               type="button"
               onClick={() => setEdits({})}
-              className="transition-colors duration-150"
-              style={{ height: 32, padding: '0 14px', background: CORAL, color: '#FFFFFF', fontSize: 13, fontWeight: 600, borderRadius: 8, cursor: 'pointer' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = CORAL_DK; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = CORAL; }}
+              className="btn-coral btn-sm"
               data-testid="fg-save"
             >
               Save changes
