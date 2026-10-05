@@ -83,7 +83,7 @@ const ORDER_SEEDS: Array<{ no: string; cust: string }> = [
   { no: 'SO64400', cust: 'Buckle' }, { no: 'SO64321', cust: 'Scheels Sports' },
   { no: 'SO64250', cust: 'Journeys' },
 ];
-const ORDERS: Result[] = ORDER_SEEDS.map((o) => ({ id: `ord-${o.no}`, group: 'Orders', title: o.no, description: o.cust, icon: Package, action: { kind: 'nav', dest: 'Open Orders' } }));
+const ORDERS: Result[] = ORDER_SEEDS.map((o) => ({ id: `ord-${o.no}`, group: 'Orders', title: o.no, description: o.cust, icon: Package, action: { kind: 'nav', dest: 'Open Sales Orders' } }));
 
 const CUSTOMER_SEEDS: Array<{ name: string; meta: string }> = [
   { name: 'Teres Western Wear',  meta: 'CUST836123 · US Wholesale' },

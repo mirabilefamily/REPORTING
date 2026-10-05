@@ -62,7 +62,7 @@ function mockReply(input: string): { text: string; actions?: ActionChip[] } {
   if (q.includes('at-risk') || q.includes('at risk')) {
     return {
       text: '3 wholesale accounts are at risk:\n\n**Industrias Mercury** — last order 68 days ago, 2× normal cadence.\n**Buckle** — -42% YoY revenue.\n**Zumiez** — 3 overdue invoices.',
-      actions: [{ label: 'Open accounts', kind: 'route', payload: 'Open Orders' }],
+      actions: [{ label: 'Open accounts', kind: 'route', payload: 'Open Sales Orders' }],
     };
   }
   if (q.includes('weekly recap') || q.includes('draft email') || (q.includes('draft') && q.includes('recap'))) {

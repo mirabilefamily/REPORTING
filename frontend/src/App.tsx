@@ -22,6 +22,7 @@ import {
   Shield,
   Sparkles,
   Target,
+  Truck,
   User,
   UserPlus,
   Wallet,
@@ -32,6 +33,7 @@ import AuthPage from './AuthPage';
 import SettingsPage from './pages/SettingsPage';
 import DashboardPage from './DashboardPage';
 import MyOrdersPage from './MyOrdersPage';
+import OpenPurchaseOrdersPage from './pages/OpenPurchaseOrdersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import CustomReportingPage from './pages/CustomReportingPage';
 import PnlPage from './pages/PnlPage';
@@ -76,8 +78,9 @@ const navGroups: NavGroup[] = [
     title: 'Operations',
     icon: ClipboardList,
     items: [
-      { label: 'Open Orders', icon: ClipboardList },
-      { label: 'Inventory',   icon: Boxes },
+      { label: 'Inventory',           icon: Boxes },
+      { label: 'Open Sales Orders',   icon: ClipboardList },
+      { label: 'Open Purchase Orders', icon: Truck },
     ],
   },
 ];
@@ -95,8 +98,9 @@ const RAIL: RailEntry[] = [
   { kind: 'sep' },
   { kind: 'item', label: 'Forecast Goals',   icon: Target },
   { kind: 'sep' },
-  { kind: 'item', label: 'Open Orders',      icon: ClipboardList },
-  { kind: 'item', label: 'Inventory',        icon: Boxes },
+  { kind: 'item', label: 'Inventory',             icon: Boxes },
+  { kind: 'item', label: 'Open Sales Orders',     icon: ClipboardList },
+  { kind: 'item', label: 'Open Purchase Orders',  icon: Truck },
 ];
 
 const flattenNav = (): NavItem[] => navGroups.flatMap((g) => g.items);
@@ -351,7 +355,8 @@ function StaffApp() {
           {activeNav === 'Dashboard' && <DashboardPage name="Ryan" onNavigate={goto} />}
           {activeNav === 'Analytics' && <AnalyticsPage />}
           {activeNav === 'Custom Reporting' && <CustomReportingPage />}
-          {activeNav === 'Open Orders' && <MyOrdersPage />}
+          {activeNav === 'Open Sales Orders' && <MyOrdersPage />}
+          {activeNav === 'Open Purchase Orders' && <OpenPurchaseOrdersPage />}
           {activeNav === 'P&L' && <PnlPage />}
           {activeNav === 'Profitability' && <ProfitabilityPage />}
           {activeNav === 'Cash Flow' && <CashFlowPage />}

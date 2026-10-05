@@ -187,7 +187,7 @@ export default function MyOrdersPage() {
 
         {/* ── Editorial header ─────────────────────────────────── */}
         <PageHeader
-          title="Open Orders"
+          title="Open Sales Orders"
           testIdPrefix="orders"
         />
 
