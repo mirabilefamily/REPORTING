@@ -6,6 +6,7 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Copy,
   Github,
@@ -15,6 +16,7 @@ import {
   Layers,
   Mail,
   MessageSquare,
+  Pencil,
   Plus,
   Puzzle,
   RefreshCw,
@@ -28,6 +30,8 @@ import {
 import PageHeader from '../components/PageHeader';
 import DsSelect from '../components/DsSelect';
 import IntegrationsPanel from './settings/IntegrationsPanel';
+import GroupEditorCard from '../components/GroupEditorCard';
+import { loadGroups, makeNewGroup, saveGroups, type Group } from '../mocks/groups';
 
 // ─── Tokens ────────────────────────────────────────────────────────────
 const INTER = { fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", WebkitFontSmoothing: 'antialiased' } as const;
@@ -59,6 +63,7 @@ const SECTIONS = [
   { id: 'notifications', label: 'Notifications',         icon: Bell },
   { id: 'team',          label: 'Team',                  icon: Users },
   { id: 'integrations',  label: 'Integrations',          icon: Puzzle },
+  { id: 'groups',        label: 'Groups',                icon: Layers },
   { id: 'api',           label: 'API Keys',              icon: Key },
   { id: 'danger',        label: 'Danger Zone',           icon: AlertTriangle },
 ] as const;
@@ -231,6 +236,19 @@ export default function SettingsPage() {
   useEffect(() => write('apiKeys', apiKeys), [apiKeys]);
 
   const [resetModal, setResetModal] = useState(false);
+
+  const [groups, setGroups] = useState<Group[]>(() => loadGroups());
+  const groupsInitialRef = useRef(true);
+  useEffect(() => {
+    saveGroups(groups);
+    if (groupsInitialRef.current) { groupsInitialRef.current = false; return; }
+    show('Saved');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups]);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const uniqueDims = new Set(groups.map((g) => g.dimension)).size;
+  const dimensionsOrdered = Array.from(new Set(groups.map((g) => g.dimension)));
+  const groupedByDim = dimensionsOrdered.map((dim) => ({ dim, items: groups.filter((g) => g.dimension === dim) }));
 
   // ─── Handlers ────────────────────────────────────────────────────────
   const toggleChannelVisible = (id: string) => { setChannels(channels.map((c) => c.id === id ? { ...c, visible: !c.visible } : c)); show('Saved'); };
@@ -467,6 +485,71 @@ export default function SettingsPage() {
             </SectionCard>
             )}
 
+            {/* Groups */}
+            {active === 'groups' && (
+              <div data-testid="settings-groups-page">
+                <div className="flex items-end justify-between gap-4 flex-wrap" style={{ marginBottom: 32 }}>
+                  <div>
+                    <h1 className="inline-flex items-center" style={{ margin: 0, fontSize: 'clamp(40px, 4.2vw, 56px)', fontWeight: 700, color: INK, letterSpacing: '-0.025em', lineHeight: 1 }}>
+                      YOUR GROUPS.
+                      <span className="inline-block rounded-full" style={{ width: 10, height: 10, background: EMERALD, marginLeft: 10 }} />
+                    </h1>
+                    <p style={{ margin: '12px 0 0', fontSize: 14.5, color: SLATE_500 }} data-testid="settings-groups-count">
+                      {groups.length} group{groups.length === 1 ? '' : 's'} across {uniqueDims} dimension{uniqueDims === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const g = makeNewGroup(groups.map((x) => x.color));
+                      setGroups([...groups, g]);
+                      setEditingGroupId(g.id);
+                    }}
+                    className="inline-flex items-center gap-2"
+                    style={{ background: '#0F0F10', color: '#FFFFFF', border: 'none', padding: '13px 22px', borderRadius: 999, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}
+                    data-testid="settings-groups-new"
+                  >
+                    <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> NEW GROUP
+                  </button>
+                </div>
+
+                {groups.length === 0 && (
+                  <div className="rounded-2xl" style={{ padding: 24, background: SLATE_50, border: '1px dashed #E2E8F0', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: 14, color: SLATE_700, fontWeight: 500 }}>No groups yet.</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 13, color: SLATE_500 }}>Click "+ NEW GROUP" above to create one.</p>
+                  </div>
+                )}
+
+                {groupedByDim.map((section) => (
+                  <section key={section.dim} className="flex flex-col" style={{ gap: 10, marginBottom: 24 }} data-testid={`settings-dim-${section.dim.toLowerCase().replace(/\s+/g, '-')}`}>
+                    <div className="flex items-center gap-3" style={{ marginBottom: 2 }}>
+                      <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500 }}>{section.dim}</span>
+                      <span aria-hidden="true" style={{ flex: 1, height: 1, background: '#EDEDEF' }} />
+                      <span style={{ fontSize: 11, color: SLATE_500, fontVariantNumeric: 'tabular-nums' }}>{section.items.length}</span>
+                    </div>
+                    {section.items.map((g) => (
+                      editingGroupId === g.id ? (
+                        <GroupEditorCard
+                          key={g.id}
+                          group={g}
+                          onChange={(next) => setGroups(groups.map((x) => (x.id === g.id ? next : x)))}
+                          onDelete={() => { setGroups(groups.filter((x) => x.id !== g.id)); setEditingGroupId(null); }}
+                          testId={`settings-group-${g.id}`}
+                        />
+                      ) : (
+                        <GroupRowCard
+                          key={g.id}
+                          group={g}
+                          onEdit={() => setEditingGroupId(g.id)}
+                          onDelete={() => { if (window.confirm(`Delete "${g.name}"?`)) setGroups(groups.filter((x) => x.id !== g.id)); }}
+                        />
+                      )
+                    ))}
+                  </section>
+                ))}
+              </div>
+            )}
+
             {/* API Keys */}
             {active === 'api' && (
             <SectionCard id="api" title="API Keys" help="Programmatic access to your workspace data.">
@@ -547,6 +630,45 @@ export default function SettingsPage() {
 }
 
 const headTh: React.CSSProperties = { padding: '10px 12px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: SLATE_500, textTransform: 'uppercase', letterSpacing: '0.14em', borderBottom: `1px solid ${SLATE_100}`, whiteSpace: 'nowrap' };
+
+function GroupRowCard({ group, onEdit, onDelete }: { group: Group; onEdit: () => void; onDelete: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const valuesText = group.values.length === 0 ? '— no values yet' : group.values.join(', ');
+  return (
+    <div className="rounded-2xl flex items-start gap-3" style={{ padding: '16px 20px', background: '#FFFFFF', border: '1px solid #EDEDEF' }} data-testid={`settings-group-row-${group.id}`}>
+      <span className="inline-block rounded-full shrink-0" style={{ width: 11, height: 11, background: group.color, marginTop: 6 }} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span style={{ fontSize: 15.5, fontWeight: 600, color: INK }}>{group.name}</span>
+          <span style={{ fontSize: 12.5, color: SLATE_500 }}>{group.values.length} value{group.values.length === 1 ? '' : 's'}</span>
+        </div>
+        <p
+          style={{
+            margin: '4px 0 0',
+            fontSize: 13.5,
+            color: group.values.length === 0 ? SLATE_400 : SLATE_500,
+            whiteSpace: expanded ? 'normal' : 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {valuesText}
+        </p>
+      </div>
+      <div className="inline-flex items-center shrink-0" style={{ gap: 2 }}>
+        <button type="button" onClick={() => setExpanded((v) => !v)} className="btn-ghost" style={{ width: 32, height: 32, padding: 0 }} aria-label={expanded ? 'Collapse' : 'Expand'} data-testid={`settings-group-${group.id}-expand`}>
+          <ChevronDown size={14} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 160ms ease' }} />
+        </button>
+        <button type="button" onClick={onEdit} className="btn-ghost" style={{ width: 32, height: 32, padding: 0 }} aria-label="Edit group" data-testid={`settings-group-${group.id}-edit`}>
+          <Pencil size={13} />
+        </button>
+        <button type="button" onClick={onDelete} className="btn-ghost" style={{ width: 32, height: 32, padding: 0 }} aria-label="Delete group" data-testid={`settings-group-${group.id}-delete`}>
+          <Trash2 size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function ModalOverlay({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   useEffect(() => { const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [onClose]);

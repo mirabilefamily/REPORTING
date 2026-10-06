@@ -35,9 +35,9 @@ export type PoLine = {
 
 export const PO_TODAY = new Date('2026-10-05T19:26:00Z');
 
-export const PO_STATES = ['All', 'Open', 'Partial', 'Closed', 'Cancelled'] as const;
+export const PO_STATES = ['All PO states', 'Open', 'Partial', 'Closed', 'Cancelled'] as const;
 export const PO_SUPPLIERS_LIST = [
-  'All',
+  'All suppliers',
   'ASI Global Limited (China)',
   'ASI Global Limited (Vietnam)',
   'Boldhatmakers (BHM)',
@@ -48,7 +48,7 @@ export const PO_SUPPLIERS_LIST = [
   'Hanoi Stitch House',
 ] as const;
 export const PO_DESTINATIONS = [
-  'All',
+  'All destinations',
   'I3PL - DTC',
   'I3PL - Cross Dock',
   'I3PL - Cross Dock Lids Canada',
@@ -56,11 +56,11 @@ export const PO_DESTINATIONS = [
   'Signal Hill DC',
   'Memphis DC',
 ] as const;
-export const PO_MODES = ['All', 'Ocean', 'Air', 'Truck', 'Rail'] as const;
-export const PO_ROW_STATUSES = ['All', 'On-time', 'Delayed', 'Received', 'In Production', 'Draft'] as const;
-export const PO_CUSTOMERS = ['All', 'DTC', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'] as const;
+export const PO_MODES = ['All modes', 'Ocean', 'Air', 'Truck', 'Rail'] as const;
+export const PO_ROW_STATUSES = ['All statuses', 'On-time', 'Delayed', 'Received', 'In Production', 'Draft'] as const;
+export const PO_CUSTOMERS = ['All customers', 'DTC', 'US Wholesale', 'Distributors', 'Retail', 'Ecommerce', 'Amazon'] as const;
 
-const SUPPLIERS_WITHOUT_ALL = PO_SUPPLIERS_LIST.filter((s) => s !== 'All') as string[];
+const SUPPLIERS_WITHOUT_ALL = PO_SUPPLIERS_LIST.filter((s) => s !== 'All suppliers') as string[];
 const COLLECTIONS = ['Limited Circulation', 'Patch Packs', 'Tropical Series', 'Core Essentials', 'Signature Felt', 'Wax Finish'];
 const SEASONS = ['SS26', 'SS27', 'FW26', 'FW27'];
 const REFERENCES = [
@@ -86,9 +86,9 @@ const PRODUCTS_SEED = [
   { item: '101-2470-GRN01-O/S', product: '[101-2470-GRN01-O/S] Angler Mesh Snapback' },
   { item: '101-2961-DUS02-O/S', product: '[101-2961-DUS02-O/S] Suede Black Panther' },
 ];
-const DESTS_WITHOUT_ALL = PO_DESTINATIONS.filter((d) => d !== 'All') as PoDestination[];
-const MODES_WITHOUT_ALL = PO_MODES.filter((m) => m !== 'All') as PoMode[];
-const CUSTOMERS_WITHOUT_ALL = PO_CUSTOMERS.filter((c) => c !== 'All') as PoCustomer[];
+const DESTS_WITHOUT_ALL = PO_DESTINATIONS.filter((d) => d !== 'All destinations') as PoDestination[];
+const MODES_WITHOUT_ALL = PO_MODES.filter((m) => m !== 'All modes') as PoMode[];
+const CUSTOMERS_WITHOUT_ALL = PO_CUSTOMERS.filter((c) => c !== 'All customers') as PoCustomer[];
 const STATES_CYCLE: PoState[] = ['Open', 'Open', 'Open', 'Partial', 'Open', 'Closed', 'Open', 'Open'];
 const STATUS_CYCLE: PoRowStatus[] = ['On-time', 'On-time', 'Delayed', 'In Production', 'Draft', 'Received', 'On-time', 'In Production'];
 

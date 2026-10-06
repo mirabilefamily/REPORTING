@@ -30,6 +30,8 @@ import {
   type LaneMode,
   type PoLine,
 } from '../mocks/openPurchaseOrders';
+import { loadGroups, makeNewGroup, saveGroups, type Group } from '../mocks/groups';
+import GroupEditorCard from '../components/GroupEditorCard';
 
 // ─── Tokens ────────────────────────────────────────────────────────────
 const CARD_SHADOW = '0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)';
@@ -111,12 +113,12 @@ export default function OpenPurchaseOrdersPage() {
   // Toolbar state
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<'All' | 'Late' | 'Shipped' | 'No lead'>('All');
-  const [stateFilter, setStateFilter] = useState<string>('All');
-  const [supplierFilter, setSupplierFilter] = useState<string>('All');
-  const [destFilter, setDestFilter] = useState<string>('All');
-  const [modeFilter, setModeFilter] = useState<string>('All');
-  const [statusFilter, setStatusFilter] = useState<string>('All');
-  const [customerFilter, setCustomerFilter] = useState<string>('All');
+  const [stateFilter, setStateFilter] = useState<string>('All PO states');
+  const [supplierFilter, setSupplierFilter] = useState<string>('All suppliers');
+  const [destFilter, setDestFilter] = useState<string>('All destinations');
+  const [modeFilter, setModeFilter] = useState<string>('All modes');
+  const [statusFilter, setStatusFilter] = useState<string>('All statuses');
+  const [customerFilter, setCustomerFilter] = useState<string>('All customers');
 
   // Column visibility (mock menu)
   const [colsOpen, setColsOpen] = useState(false);
@@ -143,7 +145,12 @@ export default function OpenPurchaseOrdersPage() {
   });
   const [lanesClean, setLanesClean] = useState<Lane[]>(lanes);
   const [laneFilter, setLaneFilter] = useState('');
-  const dirty = JSON.stringify(prefs) !== JSON.stringify(prefsClean) || JSON.stringify(lanes) !== JSON.stringify(lanesClean);
+  const [groups, setGroups] = useState<Group[]>(() => loadGroups());
+  const [groupsClean, setGroupsClean] = useState<Group[]>(groups);
+  const dirty =
+    JSON.stringify(prefs) !== JSON.stringify(prefsClean) ||
+    JSON.stringify(lanes) !== JSON.stringify(lanesClean) ||
+    JSON.stringify(groups) !== JSON.stringify(groupsClean);
 
   // Row counts for pill tabs (computed off all rows, mirrors reference labels)
   const tabCounts = useMemo(() => {
@@ -162,12 +169,12 @@ export default function OpenPurchaseOrdersPage() {
     if (tab === 'Shipped')  out = out.filter((r) => r.status === 'Received');
     if (tab === 'No lead')  out = out.filter((r) => !r.eta);
     // dropdowns
-    if (stateFilter    !== 'All') out = out.filter((r) => r.state === stateFilter);
-    if (supplierFilter !== 'All') out = out.filter((r) => r.supplier === supplierFilter);
-    if (destFilter     !== 'All') out = out.filter((r) => r.destination === destFilter);
-    if (modeFilter     !== 'All') out = out.filter((r) => r.mode === modeFilter);
-    if (statusFilter   !== 'All') out = out.filter((r) => r.status === statusFilter);
-    if (customerFilter !== 'All') out = out.filter((r) => r.customer === customerFilter);
+    if (stateFilter    !== 'All PO states')   out = out.filter((r) => r.state === stateFilter);
+    if (supplierFilter !== 'All suppliers')   out = out.filter((r) => r.supplier === supplierFilter);
+    if (destFilter     !== 'All destinations') out = out.filter((r) => r.destination === destFilter);
+    if (modeFilter     !== 'All modes')       out = out.filter((r) => r.mode === modeFilter);
+    if (statusFilter   !== 'All statuses')    out = out.filter((r) => r.status === statusFilter);
+    if (customerFilter !== 'All customers')   out = out.filter((r) => r.customer === customerFilter);
     // search
     const q = query.trim().toLowerCase();
     if (q) {
@@ -185,6 +192,25 @@ export default function OpenPurchaseOrdersPage() {
 
   const visibleColList = ALL_COLUMNS.filter((c) => visibleCols[c.key]);
 
+  const activeFilterCount =
+    (stateFilter    !== 'All PO states'   ? 1 : 0) +
+    (supplierFilter !== 'All suppliers'   ? 1 : 0) +
+    (destFilter     !== 'All destinations' ? 1 : 0) +
+    (modeFilter     !== 'All modes'       ? 1 : 0) +
+    (statusFilter   !== 'All statuses'    ? 1 : 0) +
+    (customerFilter !== 'All customers'   ? 1 : 0) +
+    (query.trim() ? 1 : 0);
+
+  const clearFilters = () => {
+    setStateFilter('All PO states');
+    setSupplierFilter('All suppliers');
+    setDestFilter('All destinations');
+    setModeFilter('All modes');
+    setStatusFilter('All statuses');
+    setCustomerFilter('All customers');
+    setQuery('');
+  };
+
   const onRowClick = (po: PoLine) => {
     // eslint-disable-next-line no-console
     console.log('open PO drawer', po.poNo);
@@ -197,12 +223,15 @@ export default function OpenPurchaseOrdersPage() {
   const saveDrawer = () => {
     localStorage.setItem('opoReportSettings', JSON.stringify(prefs));
     localStorage.setItem('opoLanes', JSON.stringify(lanes));
+    saveGroups(groups);
     setPrefsClean(prefs);
     setLanesClean(lanes);
+    setGroupsClean(groups);
   };
   const discardDrawer = () => {
     setPrefs(prefsClean);
     setLanes(lanesClean);
+    setGroups(groupsClean);
   };
 
   return (
@@ -292,8 +321,9 @@ export default function OpenPurchaseOrdersPage() {
         </section>
 
         {/* ── Toolbar ───────────────────────────────────────────── */}
-        <section className="mt-4 rounded-2xl bg-white" style={{ boxShadow: CARD_SHADOW, padding: '14px 20px' }} data-testid="po-toolbar">
-          <div className="flex items-center gap-3 flex-wrap">
+        <section className="mt-4" style={{ borderBottom: '1px solid #EDEDEF', paddingBottom: 12 }} data-testid="po-toolbar">
+          {/* Row 1 */}
+          <div className="flex items-center gap-3 flex-wrap" style={{ minHeight: 40 }}>
             <div className="inline-flex items-center" role="tablist" style={{ gap: 2 }} data-testid="po-tabs">
               {(['All', 'Late', 'Shipped', 'No lead'] as const).map((t) => {
                 const active = tab === t;
@@ -304,18 +334,20 @@ export default function OpenPurchaseOrdersPage() {
                     role="tab"
                     aria-selected={active}
                     onClick={() => setTab(t)}
-                    className="ph-tab inline-flex items-center gap-1.5"
+                    className="ph-tab inline-flex items-center"
                     data-active={active}
                     data-testid={`po-tab-${t.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     {t}
-                    <span style={{ ...TABULAR, fontSize: 11, color: active ? INK : SLATE_500, fontWeight: 600 }}>{tabCounts[t]}</span>
+                    <span style={{ ...TABULAR, fontSize: 11, color: active ? INK : SLATE_400, fontWeight: 600, marginLeft: 4 }}>{tabCounts[t]}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="relative" style={{ width: 360 }}>
+            <span aria-hidden="true" style={{ width: 1, height: 20, background: '#EDEDEF' }} />
+
+            <div className="relative" style={{ width: 320 }}>
               <Search size={14} strokeWidth={1.9} style={{ position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', color: SLATE_400, pointerEvents: 'none' }} />
               <input
                 type="text"
@@ -328,52 +360,71 @@ export default function OpenPurchaseOrdersPage() {
               />
             </div>
 
-            <div className="ml-auto flex items-center gap-2 flex-wrap">
-              <DsSelect value={stateFilter}    options={PO_STATES as unknown as string[]}         onChange={setStateFilter}    testId="po-state-dropdown"       minWidth={110} />
-              <DsSelect value={supplierFilter} options={PO_SUPPLIERS_LIST as unknown as string[]} onChange={setSupplierFilter} testId="po-supplier-dropdown"    minWidth={130} />
-              <DsSelect value={destFilter}     options={PO_DESTINATIONS as unknown as string[]}   onChange={setDestFilter}     testId="po-destination-dropdown" minWidth={140} />
-              <DsSelect value={modeFilter}     options={PO_MODES as unknown as string[]}          onChange={setModeFilter}     testId="po-mode-dropdown"        minWidth={100} />
-              <DsSelect value={statusFilter}   options={PO_ROW_STATUSES as unknown as string[]}   onChange={setStatusFilter}   testId="po-status-dropdown"      minWidth={120} />
-              <DsSelect value={customerFilter} options={PO_CUSTOMERS as unknown as string[]}      onChange={setCustomerFilter} testId="po-customer-dropdown"    minWidth={120} />
+            <div className="ml-auto flex items-center flex-wrap" style={{ gap: 8 }}>
+              <DsSelect value={stateFilter}    options={PO_STATES as unknown as string[]}         onChange={setStateFilter}    testId="po-state-dropdown"       minWidth={140} />
+              <DsSelect value={supplierFilter} options={PO_SUPPLIERS_LIST as unknown as string[]} onChange={setSupplierFilter} testId="po-supplier-dropdown"    minWidth={150} />
+              <DsSelect value={destFilter}     options={PO_DESTINATIONS as unknown as string[]}   onChange={setDestFilter}     testId="po-destination-dropdown" minWidth={160} />
+              <DsSelect value={modeFilter}     options={PO_MODES as unknown as string[]}          onChange={setModeFilter}     testId="po-mode-dropdown"        minWidth={130} />
+              <DsSelect value={statusFilter}   options={PO_ROW_STATUSES as unknown as string[]}   onChange={setStatusFilter}   testId="po-status-dropdown"      minWidth={140} />
+              <DsSelect value={customerFilter} options={PO_CUSTOMERS as unknown as string[]}      onChange={setCustomerFilter} testId="po-customer-dropdown"    minWidth={150} />
             </div>
           </div>
 
-          {/* Second toolbar row */}
-          <div className="mt-3 relative">
-            <button
-              ref={colsBtnRef}
-              type="button"
-              onClick={() => setColsOpen((v) => !v)}
-              className="btn-ghost btn-sm inline-flex items-center gap-1.5"
-              data-testid="po-columns-btn"
-            >
-              <Columns3 size={13} strokeWidth={2} /> Columns
-            </button>
-            {colsOpen && (
-              <div
-                className="absolute z-20 rounded-xl bg-white"
-                style={{ top: 36, left: 0, boxShadow: '0 0 0 1px rgba(15,23,42,0.08), 0 10px 24px rgba(15,23,42,0.10)', padding: 6, minWidth: 200 }}
-                onMouseLeave={() => setColsOpen(false)}
-                data-testid="po-columns-menu"
+          {/* Row 2 */}
+          <div className="mt-2.5 flex items-center justify-between gap-3" style={{ minHeight: 32 }}>
+            <div className="relative">
+              <button
+                ref={colsBtnRef}
+                type="button"
+                onClick={() => setColsOpen((v) => !v)}
+                className="btn-ghost btn-sm inline-flex items-center gap-1.5"
+                data-testid="po-columns-btn"
               >
-                {ALL_COLUMNS.map((c) => (
-                  <label
-                    key={c.key}
-                    className="flex items-center gap-2 cursor-pointer"
-                    style={{ padding: '7px 10px', fontSize: 13, color: SLATE_700, borderRadius: 6 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={visibleCols[c.key]}
-                      onChange={(e) => setVisibleCols((prev) => ({ ...prev, [c.key]: e.target.checked }))}
-                      style={{ accentColor: CORAL }}
-                      data-testid={`po-col-toggle-${c.key}`}
-                    />
-                    {c.label}
-                  </label>
-                ))}
+                <Columns3 size={13} strokeWidth={2} /> Columns
+              </button>
+              {colsOpen && (
+                <div
+                  className="absolute z-20 rounded-xl bg-white"
+                  style={{ top: 36, left: 0, boxShadow: '0 0 0 1px rgba(15,23,42,0.08), 0 10px 24px rgba(15,23,42,0.10)', padding: 6, minWidth: 200 }}
+                  onMouseLeave={() => setColsOpen(false)}
+                  data-testid="po-columns-menu"
+                >
+                  {ALL_COLUMNS.map((c) => (
+                    <label
+                      key={c.key}
+                      className="flex items-center gap-2 cursor-pointer"
+                      style={{ padding: '7px 10px', fontSize: 13, color: SLATE_700, borderRadius: 6 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleCols[c.key]}
+                        onChange={(e) => setVisibleCols((prev) => ({ ...prev, [c.key]: e.target.checked }))}
+                        style={{ accentColor: CORAL }}
+                        data-testid={`po-col-toggle-${c.key}`}
+                      />
+                      {c.label}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {activeFilterCount > 0 && (
+              <div className="inline-flex items-center gap-2" data-testid="po-filter-status">
+                <span style={{ fontSize: 12.5, color: SLATE_500 }}>{activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active</span>
+                <span aria-hidden="true" style={{ color: SLATE_300 }}>·</span>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: CORAL_DK, fontFamily: 'inherit' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+                  data-testid="po-clear-filters"
+                >
+                  Clear all
+                </button>
               </div>
             )}
           </div>
@@ -475,6 +526,8 @@ export default function OpenPurchaseOrdersPage() {
           setPrefs={setPrefs}
           lanes={lanes}
           setLanes={setLanes}
+          groups={groups}
+          setGroups={setGroups}
           laneFilter={laneFilter}
           setLaneFilter={setLaneFilter}
           dirty={dirty}
@@ -517,6 +570,8 @@ type DrawerProps = {
   setPrefs: (p: DisplayPrefs) => void;
   lanes: Lane[];
   setLanes: (l: Lane[]) => void;
+  groups: Group[];
+  setGroups: (g: Group[]) => void;
   laneFilter: string;
   setLaneFilter: (q: string) => void;
   dirty: boolean;
@@ -524,7 +579,8 @@ type DrawerProps = {
   onDiscard: () => void;
 };
 
-function SettingsDrawer({ onClose, tab, setTab, prefs, setPrefs, lanes, setLanes, laneFilter, setLaneFilter, dirty, onSave, onDiscard }: DrawerProps) {
+function SettingsDrawer({ onClose, tab, setTab, prefs, setPrefs, lanes, setLanes, groups, setGroups, laneFilter, setLaneFilter, dirty, onSave, onDiscard }: DrawerProps) {
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
@@ -559,7 +615,7 @@ function SettingsDrawer({ onClose, tab, setTab, prefs, setPrefs, lanes, setLanes
         <div className="flex items-center" style={{ padding: '0 20px', borderBottom: '1px solid #EDEDEF', gap: 20 }}>
           {(['Display', 'Groups', 'Lanes'] as const).map((t) => {
             const active = tab === t;
-            const count = t === 'Groups' ? 0 : t === 'Lanes' ? lanes.length : null;
+            const count = t === 'Groups' ? groups.length : t === 'Lanes' ? lanes.length : null;
             return (
               <button
                 key={t}
@@ -622,10 +678,53 @@ function SettingsDrawer({ onClose, tab, setTab, prefs, setPrefs, lanes, setLanes
           )}
 
           {tab === 'Groups' && (
-            <div className="rounded-xl" style={{ background: SLATE_50, padding: 24, border: '1px dashed #E2E8F0', textAlign: 'center' }} data-testid="po-settings-groups">
-              <p style={{ margin: 0, fontSize: 14, color: SLATE_700, fontWeight: 500 }}>No groups yet.</p>
-              <p style={{ margin: '4px 0 12px', fontSize: 13, color: SLATE_500 }}>Create a group to bundle lanes or suppliers.</p>
-              <button type="button" className="btn-ghost btn-sm" data-testid="po-settings-group-add" onClick={() => { /* eslint-disable-next-line no-console */ console.log('new group'); }}>+ Group</button>
+            <div data-testid="po-settings-groups">
+              <p style={{ margin: '0 0 14px', fontSize: 13, color: SLATE_500 }}>
+                Shared with everyone. Values match exactly. Selected groups combine with OR.
+              </p>
+              <div className="flex flex-col" style={{ gap: 10 }}>
+                {groups.map((g) => (
+                  expandedGroupId === g.id ? (
+                    <div key={g.id}>
+                      <GroupEditorCard
+                        group={g}
+                        onChange={(next) => setGroups(groups.map((x) => (x.id === g.id ? next : x)))}
+                        onDelete={() => { setGroups(groups.filter((x) => x.id !== g.id)); setExpandedGroupId(null); }}
+                        testId={`po-group-${g.id}`}
+                      />
+                      <div className="flex justify-end mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedGroupId(null)}
+                          className="btn-ghost btn-sm"
+                          data-testid={`po-group-${g.id}-done`}
+                        >
+                          Done
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <GroupSummaryRow
+                      key={g.id}
+                      group={g}
+                      onEdit={() => setExpandedGroupId(g.id)}
+                      onDelete={() => setGroups(groups.filter((x) => x.id !== g.id))}
+                    />
+                  )
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const g = makeNewGroup(groups.map((x) => x.color));
+                  setGroups([...groups, g]);
+                  setExpandedGroupId(g.id);
+                }}
+                className="btn-ghost btn-sm inline-flex items-center gap-1 mt-3"
+                data-testid="po-settings-group-add"
+              >
+                <span style={{ fontSize: 15, lineHeight: 1 }}>+</span> New group
+              </button>
             </div>
           )}
 
@@ -730,6 +829,59 @@ function LaneCard({ lane, onChange, onDelete }: { lane: Lane; onChange: (next: L
           style={{ flex: 1, minWidth: 120 }}
           data-testid={`po-lane-${lane.id}-notes`}
         />
+      </div>
+    </div>
+  );
+}
+
+// ─── Group summary row (drawer) ────────────────────────────────────────
+function GroupSummaryRow({ group, onEdit, onDelete }: { group: Group; onEdit: () => void; onDelete: () => void }) {
+  const preview = group.values.slice(0, 3);
+  const extra = Math.max(0, group.values.length - 3);
+  return (
+    <div
+      className="rounded-xl flex items-center gap-3 cursor-pointer transition-colors duration-150"
+      style={{ padding: '12px 14px', background: '#FFFFFF', border: '1px solid #EDEDEF' }}
+      onClick={onEdit}
+      onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
+      data-testid={`po-group-row-${group.id}`}
+    >
+      <span className="inline-block rounded-full shrink-0" style={{ width: 10, height: 10, background: group.color }} />
+      <span style={{ fontSize: 14.5, fontWeight: 600, color: INK, whiteSpace: 'nowrap' }}>{group.name}</span>
+      <span style={{ padding: '2px 8px', background: SLATE_100, color: SLATE_700, borderRadius: 999, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap' }}>{group.dimension}</span>
+      <span style={{ fontSize: 12.5, color: SLATE_500, whiteSpace: 'nowrap' }}>{group.values.length} value{group.values.length === 1 ? '' : 's'}</span>
+      <div className="flex items-center min-w-0" style={{ gap: 4, overflow: 'hidden' }}>
+        {preview.map((v) => (
+          <span
+            key={v}
+            className="inline-flex items-center"
+            style={{ padding: '2px 6px', background: SLATE_100, color: SLATE_700, borderRadius: 999, fontSize: 11.5, fontWeight: 500, maxWidth: 140, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+          >
+            {v}
+          </span>
+        ))}
+        {extra > 0 && <span style={{ fontSize: 11.5, color: SLATE_500, fontWeight: 500, whiteSpace: 'nowrap' }}>+{extra} more</span>}
+      </div>
+      <div className="ml-auto inline-flex items-center shrink-0" style={{ gap: 2 }}>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          className="btn-ghost btn-sm"
+          data-testid={`po-group-row-${group.id}-edit`}
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="btn-ghost"
+          style={{ width: 32, height: 32, padding: 0 }}
+          aria-label="Delete group"
+          data-testid={`po-group-row-${group.id}-delete`}
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
     </div>
   );
