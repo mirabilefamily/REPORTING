@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import DsSelect from '../components/DsSelect';
+import GroupsFilter from '../components/GroupsFilter';
+import { SavedViewsPills, SaveViewControl, type SavedView } from '../components/SavedViewsBar';
 import {
   LANES_SEED,
   PO_CUSTOMERS,
@@ -110,6 +112,35 @@ const DEFAULT_SORT_OPTS = [
   'Supplier Z→A',
 ] as const;
 const DATE_FMT_OPTS = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'] as const;
+
+// ─── Saved view filter shape ──────────────────────────────────────────
+type OpoViewFilters = {
+  tab: 'All' | 'Late' | 'Shipped' | 'No lead';
+  query: string;
+  stateFilter: string;
+  supplierFilter: string;
+  destFilter: string;
+  modeFilter: string;
+  statusFilter: string;
+  customerFilter: string;
+  selectedGroupIds: string[];
+};
+const OPO_SEED_VIEWS: SavedView<OpoViewFilters>[] = [
+  { id: 'v_opo_late_ocean', name: 'Late + Ocean', pinned: true, createdAt: '2026-10-01T00:00:00Z',
+    filters: { tab: 'Late', query: '', stateFilter: 'All PO states', supplierFilter: 'All suppliers', destFilter: 'All destinations', modeFilter: 'Ocean', statusFilter: 'All statuses', customerFilter: 'All customers', selectedGroupIds: [] } },
+  { id: 'v_opo_asi_in',     name: 'ASI inbound',  pinned: true, createdAt: '2026-10-01T00:00:00Z',
+    filters: { tab: 'All', query: '', stateFilter: 'All PO states', supplierFilter: 'ASI Global Limited (China)', destFilter: 'All destinations', modeFilter: 'All modes', statusFilter: 'All statuses', customerFilter: 'All customers', selectedGroupIds: [] } },
+];
+
+// Map a Group.dimension → PoLine field used for OR-filtering.
+const OPO_DIMENSION_TO_FIELD: Record<string, keyof PoLine | undefined> = {
+  Destination: 'destination',
+  Supplier:    'supplier',
+  Status:      'status',
+  Mode:        'mode',
+  Customer:    'customer',
+  'PO State':  'state',
+};
 
 type SortDir = 'asc' | 'desc';
 function defaultSortParams(label: string): { key: ColKey; dir: SortDir; nullsLast?: boolean } {
@@ -230,6 +261,20 @@ export default function OpenPurchaseOrdersPage() {
   const [laneFilter, setLaneFilter] = useState('');
   const [groups, setGroups] = useState<Group[]>(() => loadGroups());
   const [groupsClean, setGroupsClean] = useState<Group[]>(groups);
+
+  // Saved views + Groups filter
+  const [views, setViews] = useState<SavedView<OpoViewFilters>[]>(() => {
+    try {
+      const raw = localStorage.getItem('opoSavedViews');
+      return raw ? (JSON.parse(raw) as SavedView<OpoViewFilters>[]) : OPO_SEED_VIEWS;
+    } catch { return OPO_SEED_VIEWS; }
+  });
+  const [activeViewId, setActiveViewId] = useState<string | null>(null);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  useEffect(() => {
+    try { localStorage.setItem('opoSavedViews', JSON.stringify(views)); } catch { /* ignore */ }
+  }, [views]);
+
   const dirty =
     JSON.stringify(prefs) !== JSON.stringify(prefsClean) ||
     JSON.stringify(lanes) !== JSON.stringify(lanesClean) ||
@@ -266,6 +311,18 @@ export default function OpenPurchaseOrdersPage() {
       );
     }
 
+    // Groups filter — OR across selected groups
+    if (selectedGroupIds.length > 0) {
+      const activeGroups = groups.filter((g) => selectedGroupIds.includes(g.id));
+      if (activeGroups.length > 0) {
+        out = out.filter((r) => activeGroups.some((g) => {
+          const field = OPO_DIMENSION_TO_FIELD[g.dimension];
+          if (!field) return false;
+          return g.values.includes(String(r[field]));
+        }));
+      }
+    }
+
     // Sort — explicit header-sort wins; else default from prefs
     if (sortKey && sortDir) {
       const col = ALL_COLUMNS.find((c) => c.key === sortKey);
@@ -281,7 +338,7 @@ export default function OpenPurchaseOrdersPage() {
       if (field) out = out.slice().sort((a, b) => cmp(a, b, field, dp.dir, dp.nullsLast));
     }
     return out;
-  }, [tab, stateFilter, supplierFilter, destFilter, modeFilter, statusFilter, customerFilter, query, sortKey, sortDir, prefs.defaultSort]);
+  }, [tab, stateFilter, supplierFilter, destFilter, modeFilter, statusFilter, customerFilter, query, sortKey, sortDir, prefs.defaultSort, selectedGroupIds, groups]);
 
   const visibleColList = ALL_COLUMNS.filter((c) => visibleCols[c.key]);
 
@@ -292,6 +349,7 @@ export default function OpenPurchaseOrdersPage() {
     (modeFilter     !== 'All modes'       ? 1 : 0) +
     (statusFilter   !== 'All statuses'    ? 1 : 0) +
     (customerFilter !== 'All customers'   ? 1 : 0) +
+    (selectedGroupIds.length > 0          ? 1 : 0) +
     (query.trim() ? 1 : 0);
 
   const clearFilters = () => {
@@ -301,8 +359,24 @@ export default function OpenPurchaseOrdersPage() {
     setModeFilter('All modes');
     setStatusFilter('All statuses');
     setCustomerFilter('All customers');
+    setSelectedGroupIds([]);
     setQuery('');
+    setActiveViewId(null);
   };
+
+  const getCurrentFilters = (): OpoViewFilters => ({
+    tab, query, stateFilter, supplierFilter, destFilter, modeFilter, statusFilter, customerFilter, selectedGroupIds,
+  });
+  const applyView = (v: SavedView<OpoViewFilters>) => {
+    const f = v.filters;
+    setTab(f.tab); setQuery(f.query);
+    setStateFilter(f.stateFilter); setSupplierFilter(f.supplierFilter);
+    setDestFilter(f.destFilter); setModeFilter(f.modeFilter);
+    setStatusFilter(f.statusFilter); setCustomerFilter(f.customerFilter);
+    setSelectedGroupIds(f.selectedGroupIds || []);
+    setActiveViewId(v.id);
+  };
+  const clearActiveView = () => setActiveViewId(null);
 
   const onHeaderClick = (key: ColKey) => {
     const col = ALL_COLUMNS.find((c) => c.key === key);
@@ -381,6 +455,7 @@ export default function OpenPurchaseOrdersPage() {
         <section className="mt-5 overflow-hidden rounded-2xl bg-white" style={{ border: '1px solid #EDEDEF' }} data-testid="po-table-card">
           <div style={{ padding: '16px 20px' }} data-testid="po-toolbar">
             <div className="flex items-center gap-3 flex-wrap" style={{ minHeight: 40 }}>
+              <SavedViewsPills views={views} activeId={activeViewId} onApply={applyView} onClear={clearActiveView} testIdPrefix="po" />
               <div className="inline-flex items-center" role="tablist" style={{ gap: 2 }} data-testid="po-tabs">
                 {(['All', 'Late', 'Shipped', 'No lead'] as const).map((t) => {
                   const active = tab === t;
@@ -418,6 +493,7 @@ export default function OpenPurchaseOrdersPage() {
               </div>
 
               <div className="ml-auto flex items-center" style={{ gap: 12 }}>
+                <SaveViewControl views={views} setViews={setViews} activeId={activeViewId} setActiveId={setActiveViewId} getCurrentFilters={getCurrentFilters} testIdPrefix="po" />
                 {activeFilterCount > 0 && (
                   <div className="inline-flex items-center gap-2" data-testid="po-filter-status">
                     <span style={{ fontSize: 13, color: SLATE_500 }}>{activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active</span>
@@ -482,6 +558,7 @@ export default function OpenPurchaseOrdersPage() {
               <DsSelect value={modeFilter}     options={PO_MODES as unknown as string[]}          onChange={setModeFilter}     testId="po-mode-dropdown"        minWidth={150} />
               <DsSelect value={statusFilter}   options={PO_ROW_STATUSES as unknown as string[]}   onChange={setStatusFilter}   testId="po-status-dropdown"      minWidth={150} />
               <DsSelect value={customerFilter} options={PO_CUSTOMERS as unknown as string[]}      onChange={setCustomerFilter} testId="po-customer-dropdown"    minWidth={160} />
+              <GroupsFilter groups={groups} selectedIds={selectedGroupIds} onChange={setSelectedGroupIds} testId="po-groups-filter" minWidth={150} />
             </div>
           </div>
 
