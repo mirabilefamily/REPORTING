@@ -5,10 +5,12 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
+  Download,
   Eye,
   MoreHorizontal,
   Package,
   Search,
+  Settings,
 } from 'lucide-react';
 import { SEG_COLORS } from './DashboardPage';
 import PageHeader from './components/PageHeader';
@@ -185,11 +187,33 @@ export default function MyOrdersPage() {
     <div className="min-h-full" data-testid="orders-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
       <div className="page-canvas">
 
-        {/* ── Editorial header ─────────────────────────────────── */}
         <PageHeader
           title="Open Sales Orders"
           testIdPrefix="orders"
+          right={
+            <div className="inline-flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { /* eslint-disable-next-line no-console */ console.log('[open-sales-orders] settings'); }}
+                className="btn-ghost btn-sm inline-flex items-center gap-1.5"
+                data-testid="orders-open-settings"
+              >
+                <Settings size={13} strokeWidth={2} /> Settings
+              </button>
+              <button
+                type="button"
+                onClick={() => { /* eslint-disable-next-line no-console */ console.log('[open-sales-orders] export excel'); }}
+                className="btn-ghost btn-sm inline-flex items-center gap-1.5"
+                data-testid="orders-export"
+              >
+                <Download size={13} strokeWidth={2} /> Excel
+              </button>
+            </div>
+          }
         />
+        <p style={{ margin: '-6px 0 0', fontSize: 13.5, color: SLATE_500 }} data-testid="orders-subtitle">
+          Open outbound orders — fulfillment status, shipment windows, and customer POs
+        </p>
 
         {/* ── KPI strip ────────────────────────────────────────── */}
         <section className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4" data-testid="orders-kpi-row">

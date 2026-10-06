@@ -1,15 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  AlertTriangle,
   ArrowDownToLine,
   Columns3,
   Download,
-  RefreshCcw,
   Search,
   Settings,
   Trash2,
-  Truck,
   X,
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
@@ -50,7 +47,6 @@ const SLATE_50  = '#F8FAFC';
 const CORAL     = '#FF6F61';
 const CORAL_DK  = '#C9422E';
 const CORAL_BG  = '#FFF1EF';
-const EMERALD   = '#047857';
 const AMBER_FG  = '#B4791A';
 const AMBER_BG  = '#FFF7E6';
 
@@ -237,12 +233,6 @@ export default function OpenPurchaseOrdersPage() {
   return (
     <div className="min-h-full" data-testid="purchase-orders-page" style={{ ...INTER, ...TABULAR, background: '#FAFAFA' }}>
       <div className="page-canvas">
-        {/* Breadcrumb eyebrow */}
-        <div className="inline-flex items-center gap-1.5" style={{ fontSize: 12, fontWeight: 500, color: SLATE_500, marginBottom: 6 }} data-testid="po-breadcrumb">
-          <Truck size={13} strokeWidth={1.9} />
-          <span>Open Purchase Orders</span>
-        </div>
-
         <PageHeader
           title="Open Purchase Orders"
           testIdPrefix="po"
@@ -261,47 +251,8 @@ export default function OpenPurchaseOrdersPage() {
           Open inbound lines from Fulfil, with ETAs, lead times and linked sales orders.
         </p>
 
-        {/* ── Status strip ────────────────────────────────────── */}
-        <section className="mt-4 rounded-2xl bg-white" style={{ boxShadow: CARD_SHADOW, padding: '14px 20px' }} data-testid="po-status-strip">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center flex-wrap" style={{ columnGap: 24, rowGap: 8 }}>
-              <StripBit label="FRESHNESS" value={PO_STATUS_STRIP.freshness} dotColor={EMERALD} />
-              <StripBit label="UPDATED" value={PO_STATUS_STRIP.updatedAgo} />
-              <StripBit label="AT"      value={PO_STATUS_STRIP.updatedAt} />
-              <StripBit label="NEXT AUTO" value={PO_STATUS_STRIP.nextAuto} />
-              <StripBit label="COOLDOWN" value={PO_STATUS_STRIP.cooldown} />
-              <StripBit label="REV"     value={PO_STATUS_STRIP.rev} />
-            </div>
-            <span
-              className="inline-flex items-center gap-1.5"
-              style={{ padding: '5px 12px', border: `1px solid ${SLATE_200}`, color: SLATE_600, fontSize: 12.5, fontWeight: 500, borderRadius: 999, background: '#FFFFFF' }}
-              data-testid="po-cooling-chip"
-            >
-              <RefreshCcw size={12} strokeWidth={2} /> Cooling down
-            </span>
-          </div>
-        </section>
-
-        {/* ── Warnings card ─────────────────────────────────────── */}
-        <section className="mt-4 rounded-2xl bg-white" style={{ boxShadow: CARD_SHADOW, padding: '6px 0' }} data-testid="po-warnings">
-          {[
-            'Purchase line 9883: blank received quantity with no stock movements; counted as zero received.',
-            'Product enrichment unavailable; cached product metadata retained where available.',
-            'Sales-order enrichment unavailable; cached matching/window information retained where available.',
-          ].map((msg, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-2.5"
-              style={{ padding: '12px 20px', borderTop: i === 0 ? 'none' : '1px solid #F3F3F5' }}
-            >
-              <AlertTriangle size={14} strokeWidth={2} style={{ color: AMBER_FG, flexShrink: 0, marginTop: 2 }} />
-              <p style={{ margin: 0, fontSize: 13.5, color: SLATE_700 }}>{msg}</p>
-            </div>
-          ))}
-        </section>
-
         {/* ── Section header ────────────────────────────────────── */}
-        <div className="mt-5 flex items-center justify-between flex-wrap gap-2">
+        <div className="mt-6 flex items-center justify-between flex-wrap gap-2">
           <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500 }} data-testid="po-section-label">
             All eligible purchase orders
           </span>
@@ -309,19 +260,19 @@ export default function OpenPurchaseOrdersPage() {
         </div>
 
         {/* ── KPI strip (6) ─────────────────────────────────────── */}
-        <section className="mt-3 overflow-hidden rounded-2xl bg-white" style={{ boxShadow: CARD_SHADOW }} data-testid="po-kpi-strip">
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-            <KpiCell label="Orders"      value={fmtInt(PO_GLOBAL_TOTALS.orders)}         foot="Open POs" />
-            <KpiCell label="Open units"  value={fmtInt(PO_GLOBAL_TOTALS.openUnits)}      foot="Not yet received" />
-            <KpiCell label="Fulfilled"   value={`${PO_GLOBAL_TOTALS.fulfilledPct}%`}     foot="Includes cancellations" />
-            <KpiCell label="Late"        value={fmtInt(PO_GLOBAL_TOTALS.late)}           foot="POs" valueColor={CORAL_DK} />
-            <KpiCell label="No lead"     value={fmtInt(PO_GLOBAL_TOTALS.noLead)}         foot="POs" valueColor={AMBER_FG} />
-            <KpiCell label="On-time rate" value={`${PO_GLOBAL_TOTALS.onTimePct}%`}       foot="Across visible POs" last />
+        <section className="mt-2.5 overflow-hidden rounded-2xl bg-white" style={{ border: '1px solid #EDEDEF', padding: '20px 0' }} data-testid="po-kpi-strip">
+          <div className="grid grid-cols-3 xl:grid-cols-6">
+            <KpiCell label="Orders"       value={fmtInt(PO_GLOBAL_TOTALS.orders)}       foot="Open POs" />
+            <KpiCell label="Open units"   value={fmtInt(PO_GLOBAL_TOTALS.openUnits)}    foot="Not yet received" />
+            <KpiCell label="Fulfilled"    value={`${PO_GLOBAL_TOTALS.fulfilledPct}%`}   foot="Includes cancellations" />
+            <KpiCell label="Late"         value={fmtInt(PO_GLOBAL_TOTALS.late)}         foot="POs" valueColor={CORAL_DK} />
+            <KpiCell label="No lead"      value={fmtInt(PO_GLOBAL_TOTALS.noLead)}       foot="POs" valueColor={AMBER_FG} />
+            <KpiCell label="On-time rate" value={`${PO_GLOBAL_TOTALS.onTimePct}%`}      foot="Across visible POs" last />
           </div>
         </section>
 
         {/* ── Toolbar ───────────────────────────────────────────── */}
-        <section className="mt-4" style={{ borderBottom: '1px solid #EDEDEF', paddingBottom: 12 }} data-testid="po-toolbar">
+        <section className="mt-5" style={{ borderBottom: '1px solid #EDEDEF', paddingBottom: 16 }} data-testid="po-toolbar">
           {/* Row 1 */}
           <div className="flex items-center gap-3 flex-wrap" style={{ minHeight: 40 }}>
             <div className="inline-flex items-center" role="tablist" style={{ gap: 2 }} data-testid="po-tabs">
@@ -347,7 +298,7 @@ export default function OpenPurchaseOrdersPage() {
 
             <span aria-hidden="true" style={{ width: 1, height: 20, background: '#EDEDEF' }} />
 
-            <div className="relative" style={{ width: 320 }}>
+            <div className="relative" style={{ width: 360 }}>
               <Search size={14} strokeWidth={1.9} style={{ position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', color: SLATE_400, pointerEvents: 'none' }} />
               <input
                 type="text"
@@ -360,73 +311,72 @@ export default function OpenPurchaseOrdersPage() {
               />
             </div>
 
-            <div className="ml-auto flex items-center flex-wrap" style={{ gap: 8 }}>
-              <DsSelect value={stateFilter}    options={PO_STATES as unknown as string[]}         onChange={setStateFilter}    testId="po-state-dropdown"       minWidth={140} />
-              <DsSelect value={supplierFilter} options={PO_SUPPLIERS_LIST as unknown as string[]} onChange={setSupplierFilter} testId="po-supplier-dropdown"    minWidth={150} />
-              <DsSelect value={destFilter}     options={PO_DESTINATIONS as unknown as string[]}   onChange={setDestFilter}     testId="po-destination-dropdown" minWidth={160} />
-              <DsSelect value={modeFilter}     options={PO_MODES as unknown as string[]}          onChange={setModeFilter}     testId="po-mode-dropdown"        minWidth={130} />
-              <DsSelect value={statusFilter}   options={PO_ROW_STATUSES as unknown as string[]}   onChange={setStatusFilter}   testId="po-status-dropdown"      minWidth={140} />
-              <DsSelect value={customerFilter} options={PO_CUSTOMERS as unknown as string[]}      onChange={setCustomerFilter} testId="po-customer-dropdown"    minWidth={150} />
+            <div className="ml-auto flex items-center" style={{ gap: 12 }}>
+              {activeFilterCount > 0 && (
+                <div className="inline-flex items-center gap-2" data-testid="po-filter-status">
+                  <span style={{ fontSize: 13, color: SLATE_500 }}>{activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active</span>
+                  <span aria-hidden="true" style={{ color: SLATE_300 }}>·</span>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 500, color: CORAL_DK, fontFamily: 'inherit' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+                    data-testid="po-clear-filters"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
+              <div className="relative">
+                <button
+                  ref={colsBtnRef}
+                  type="button"
+                  onClick={() => setColsOpen((v) => !v)}
+                  className="btn-ghost btn-sm inline-flex items-center gap-1.5"
+                  data-testid="po-columns-btn"
+                >
+                  <Columns3 size={13} strokeWidth={2} /> Columns
+                </button>
+                {colsOpen && (
+                  <div
+                    className="absolute z-20 rounded-xl bg-white"
+                    style={{ top: 36, right: 0, boxShadow: '0 0 0 1px rgba(15,23,42,0.08), 0 10px 24px rgba(15,23,42,0.10)', padding: 6, minWidth: 200 }}
+                    onMouseLeave={() => setColsOpen(false)}
+                    data-testid="po-columns-menu"
+                  >
+                    {ALL_COLUMNS.map((c) => (
+                      <label
+                        key={c.key}
+                        className="flex items-center gap-2 cursor-pointer"
+                        style={{ padding: '7px 10px', fontSize: 13, color: SLATE_700, borderRadius: 6 }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={visibleCols[c.key]}
+                          onChange={(e) => setVisibleCols((prev) => ({ ...prev, [c.key]: e.target.checked }))}
+                          style={{ accentColor: CORAL }}
+                          data-testid={`po-col-toggle-${c.key}`}
+                        />
+                        {c.label}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Row 2 */}
-          <div className="mt-2.5 flex items-center justify-between gap-3" style={{ minHeight: 32 }}>
-            <div className="relative">
-              <button
-                ref={colsBtnRef}
-                type="button"
-                onClick={() => setColsOpen((v) => !v)}
-                className="btn-ghost btn-sm inline-flex items-center gap-1.5"
-                data-testid="po-columns-btn"
-              >
-                <Columns3 size={13} strokeWidth={2} /> Columns
-              </button>
-              {colsOpen && (
-                <div
-                  className="absolute z-20 rounded-xl bg-white"
-                  style={{ top: 36, left: 0, boxShadow: '0 0 0 1px rgba(15,23,42,0.08), 0 10px 24px rgba(15,23,42,0.10)', padding: 6, minWidth: 200 }}
-                  onMouseLeave={() => setColsOpen(false)}
-                  data-testid="po-columns-menu"
-                >
-                  {ALL_COLUMNS.map((c) => (
-                    <label
-                      key={c.key}
-                      className="flex items-center gap-2 cursor-pointer"
-                      style={{ padding: '7px 10px', fontSize: 13, color: SLATE_700, borderRadius: 6 }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={visibleCols[c.key]}
-                        onChange={(e) => setVisibleCols((prev) => ({ ...prev, [c.key]: e.target.checked }))}
-                        style={{ accentColor: CORAL }}
-                        data-testid={`po-col-toggle-${c.key}`}
-                      />
-                      {c.label}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {activeFilterCount > 0 && (
-              <div className="inline-flex items-center gap-2" data-testid="po-filter-status">
-                <span style={{ fontSize: 12.5, color: SLATE_500 }}>{activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active</span>
-                <span aria-hidden="true" style={{ color: SLATE_300 }}>·</span>
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: CORAL_DK, fontFamily: 'inherit' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
-                  data-testid="po-clear-filters"
-                >
-                  Clear all
-                </button>
-              </div>
-            )}
+          {/* Row 2 — all filters */}
+          <div className="mt-2 flex items-center flex-wrap" style={{ minHeight: 40, gap: 8 }} data-testid="po-filters-row">
+            <DsSelect value={stateFilter}    options={PO_STATES as unknown as string[]}         onChange={setStateFilter}    testId="po-state-dropdown"       minWidth={150} />
+            <DsSelect value={supplierFilter} options={PO_SUPPLIERS_LIST as unknown as string[]} onChange={setSupplierFilter} testId="po-supplier-dropdown"    minWidth={160} />
+            <DsSelect value={destFilter}     options={PO_DESTINATIONS as unknown as string[]}   onChange={setDestFilter}     testId="po-destination-dropdown" minWidth={170} />
+            <DsSelect value={modeFilter}     options={PO_MODES as unknown as string[]}          onChange={setModeFilter}     testId="po-mode-dropdown"        minWidth={150} />
+            <DsSelect value={statusFilter}   options={PO_ROW_STATUSES as unknown as string[]}   onChange={setStatusFilter}   testId="po-status-dropdown"      minWidth={150} />
+            <DsSelect value={customerFilter} options={PO_CUSTOMERS as unknown as string[]}      onChange={setCustomerFilter} testId="po-customer-dropdown"    minWidth={160} />
           </div>
         </section>
 
@@ -541,21 +491,11 @@ export default function OpenPurchaseOrdersPage() {
 }
 
 // ─── Atoms ─────────────────────────────────────────────────────────────
-function StripBit({ label, value, dotColor }: { label: string; value: string; dotColor?: string }) {
-  return (
-    <div className="inline-flex items-center gap-2">
-      {dotColor && <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: dotColor }} />}
-      <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.12em', color: SLATE_500 }}>{label}</span>
-      <span style={{ fontSize: 13.5, color: INK, fontWeight: 500 }}>{value}</span>
-    </div>
-  );
-}
-
 function KpiCell({ label, value, foot, valueColor, last }: { label: string; value: string; foot: string; valueColor?: string; last?: boolean }) {
   return (
-    <div style={{ padding: '18px 20px', borderRight: last ? 'none' : `1px solid ${SLATE_100}` }} data-testid={`po-kpi-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+    <div style={{ padding: '0 20px', borderRight: last ? 'none' : '1px solid #F3F3F5' }} data-testid={`po-kpi-${label.toLowerCase().replace(/\s+/g, '-')}`}>
       <p className="text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500, margin: 0 }}>{label}</p>
-      <p style={{ ...TABULAR, margin: '6px 0 4px', fontSize: 'clamp(28px, 2.6vw, 38px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: valueColor || '#0A0A0B' }}>{value}</p>
+      <p style={{ ...TABULAR, margin: '8px 0 6px', fontSize: 'clamp(28px, 2.5vw, 36px)', fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: valueColor || '#0A0A0B' }}>{value}</p>
       <p style={{ margin: 0, fontSize: 12.5, color: SLATE_500 }}>{foot}</p>
     </div>
   );
