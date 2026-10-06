@@ -271,8 +271,9 @@ export default function OpenPurchaseOrdersPage() {
           </div>
         </section>
 
-        {/* ── Toolbar ───────────────────────────────────────────── */}
-        <section className="mt-5" style={{ borderBottom: '1px solid #EDEDEF', paddingBottom: 16 }} data-testid="po-toolbar">
+        {/* ── Unified toolbar + table card ──────────────────────── */}
+        <section className="mt-5 overflow-hidden rounded-2xl bg-white" style={{ border: '1px solid #EDEDEF' }} data-testid="po-table-card">
+          <div style={{ padding: '16px 20px' }} data-testid="po-toolbar">
           {/* Row 1 */}
           <div className="flex items-center gap-3 flex-wrap" style={{ minHeight: 40 }}>
             <div className="inline-flex items-center" role="tablist" style={{ gap: 2 }} data-testid="po-tabs">
@@ -378,10 +379,8 @@ export default function OpenPurchaseOrdersPage() {
             <DsSelect value={statusFilter}   options={PO_ROW_STATUSES as unknown as string[]}   onChange={setStatusFilter}   testId="po-status-dropdown"      minWidth={150} />
             <DsSelect value={customerFilter} options={PO_CUSTOMERS as unknown as string[]}      onChange={setCustomerFilter} testId="po-customer-dropdown"    minWidth={160} />
           </div>
-        </section>
-
-        {/* ── Table ─────────────────────────────────────────────── */}
-        <section className="mt-4 overflow-hidden rounded-2xl bg-white" style={{ boxShadow: CARD_SHADOW }} data-testid="po-table-card">
+          </div>
+          <div aria-hidden="true" style={{ height: 1, background: '#EDEDEF' }} />
           <div style={{ maxHeight: 720, overflowY: 'auto', overflowX: 'auto' }}>
             <table style={{ ...TABULAR, borderCollapse: 'collapse', width: '100%', minWidth: 1400 }} data-testid="po-table">
               <thead>
