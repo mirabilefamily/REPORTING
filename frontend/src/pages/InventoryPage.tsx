@@ -8,12 +8,12 @@ import {
   Download,
   MoreHorizontal,
   Search,
-  Settings,
   X,
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import DsSelect from '../components/DsSelect';
 import GroupEditorCard from '../components/GroupEditorCard';
+import SecondaryButton from '../components/SecondaryButton';
 import { loadGroups, makeNewGroup, saveGroups, type Group } from '../mocks/groups';
 import {
   DEFAULT_THRESHOLDS,
@@ -312,12 +312,7 @@ export default function InventoryPage() {
           testIdPrefix="inventory"
           right={
             <div className="inline-flex items-center gap-2">
-              <button type="button" onClick={() => setSettingsOpen(true)} className="btn-ghost btn-sm inline-flex items-center gap-1.5" data-testid="inventory-open-settings">
-                <Settings size={13} strokeWidth={2} /> Settings
-              </button>
-              <button type="button" onClick={exportMock} className="btn-ghost btn-sm inline-flex items-center gap-1.5" data-testid="inventory-export">
-                <Download size={13} strokeWidth={2} /> Excel
-              </button>
+              <SecondaryButton onClick={exportMock} icon={<Download size={14} strokeWidth={2} />} data-testid="inventory-export">Excel</SecondaryButton>
             </div>
           }
         />

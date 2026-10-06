@@ -4,18 +4,18 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpRight,
-  Columns3,
   Download,
   MoreHorizontal,
   Search,
-  Settings,
   Trash2,
   X,
 } from 'lucide-react';
 import PageHeader from './components/PageHeader';
 import DsSelect from './components/DsSelect';
+import ColumnsPopover from './components/ColumnsPopover';
 import GroupEditorCard from './components/GroupEditorCard';
 import GroupsFilter from './components/GroupsFilter';
+import SecondaryButton from './components/SecondaryButton';
 import { SavedViewsPills, SaveViewControl, type SavedView } from './components/SavedViewsBar';
 import { loadGroups, makeNewGroup, saveGroups, type Group } from './mocks/groups';
 import {
@@ -80,8 +80,8 @@ const daysBetween = (iso: string) => {
 
 // ─── Column schema ─────────────────────────────────────────────────────
 type ColKey = 'soNo' | 'lines' | 'customer' | 'channel' | 'orderDate' | 'requiredShip' | 'shipWindow' | 'status' | 'priority' | 'qty' | 'value' | 'csr';
-const ALL_COLUMNS: { key: ColKey; label: string; align?: 'left' | 'right'; width?: number; sortable?: boolean; field: keyof SalesOrder | null }[] = [
-  { key: 'soNo',         label: 'SO #',           align: 'left',  width: 110, sortable: true,  field: 'soNo' },
+const ALL_COLUMNS: { key: ColKey; label: string; align?: 'left' | 'right'; width?: number; sortable?: boolean; pinned?: boolean; field: keyof SalesOrder | null }[] = [
+  { key: 'soNo',         label: 'SO #',           align: 'left',  width: 110, sortable: true,  pinned: true, field: 'soNo' },
   { key: 'lines',        label: 'Lines',          align: 'right', width: 72,  sortable: true,  field: 'lines' },
   { key: 'customer',     label: 'Customer',       align: 'left',  width: 180, sortable: true,  field: 'customer' },
   { key: 'channel',      label: 'Channel',        align: 'left',  width: 130, sortable: true,  field: 'channel' },
@@ -152,12 +152,8 @@ type OsoViewFilters = {
   shipWindowFilter: string;
   selectedGroupIds: string[];
 };
-const OSO_SEED_VIEWS: SavedView<OsoViewFilters>[] = [
-  { id: 'v_oso_sla_rush', name: 'Behind SLA Rush', pinned: true, createdAt: '2026-10-01T00:00:00Z',
-    filters: { tab: 'Behind SLA', query: '', statusFilter: 'All statuses', channelFilter: 'All channels', customerFilter: 'All customers', warehouseFilter: 'All warehouses', priorityFilter: 'Rush', shipWindowFilter: 'All ship windows', selectedGroupIds: [] } },
-  { id: 'v_oso_dtc_week', name: 'DTC this week', pinned: true, createdAt: '2026-10-01T00:00:00Z',
-    filters: { tab: 'All', query: '', statusFilter: 'All statuses', channelFilter: 'DTC', customerFilter: 'All customers', warehouseFilter: 'All warehouses', priorityFilter: 'All priority', shipWindowFilter: 'Next 7 days', selectedGroupIds: [] } },
-];
+const OSO_SEED_VIEWS: SavedView<OsoViewFilters>[] = [];
+const OSO_LEGACY_VIEW_IDS = ['v_oso_sla_rush', 'v_oso_dtc_week'];
 // Group.dimension → SalesOrder field
 const OSO_DIMENSION_TO_FIELD: Record<string, keyof SalesOrder | undefined> = {
   Customer: 'customer',
@@ -232,8 +228,6 @@ export default function MyOrdersPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('All priority');
   const [shipWindowFilter, setShipWindowFilter] = useState<string>('All ship windows');
 
-  const [colsOpen, setColsOpen] = useState(false);
-  const colsBtnRef = useRef<HTMLButtonElement | null>(null);
   const [visibleCols, setVisibleCols] = useState<Record<ColKey, boolean>>(() =>
     ALL_COLUMNS.reduce((acc, c) => { acc[c.key] = true; return acc; }, {} as Record<ColKey, boolean>),
   );
@@ -268,7 +262,9 @@ export default function MyOrdersPage() {
   const [views, setViews] = useState<SavedView<OsoViewFilters>[]>(() => {
     try {
       const raw = localStorage.getItem('osoSavedViews');
-      return raw ? (JSON.parse(raw) as SavedView<OsoViewFilters>[]) : OSO_SEED_VIEWS;
+      if (!raw) return OSO_SEED_VIEWS;
+      const parsed = JSON.parse(raw) as SavedView<OsoViewFilters>[];
+      return parsed.filter((v) => !OSO_LEGACY_VIEW_IDS.includes(v.id));
     } catch { return OSO_SEED_VIEWS; }
   });
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
@@ -387,6 +383,24 @@ export default function MyOrdersPage() {
     setActiveViewId(v.id);
   };
   const clearActiveView = () => setActiveViewId(null);
+  const unpinView = (id: string) => {
+    setViews(views.filter((v) => v.id !== id));
+    if (activeViewId === id) setActiveViewId(null);
+  };
+
+  const getFilterSummary = (): string[] => {
+    const chips: string[] = [];
+    if (tab !== 'All') chips.push(tab);
+    if (statusFilter     !== 'All statuses')     chips.push(`Status: ${statusFilter}`);
+    if (channelFilter    !== 'All channels')     chips.push(`Channel: ${channelFilter}`);
+    if (customerFilter   !== 'All customers')    chips.push(`Customer: ${customerFilter}`);
+    if (warehouseFilter  !== 'All warehouses')   chips.push(`WH: ${warehouseFilter}`);
+    if (priorityFilter   !== 'All priority')     chips.push(`Priority: ${priorityFilter}`);
+    if (shipWindowFilter !== 'All ship windows') chips.push(`Ship: ${shipWindowFilter}`);
+    if (selectedGroupIds.length > 0) chips.push(`${selectedGroupIds.length} group${selectedGroupIds.length === 1 ? '' : 's'}`);
+    if (query.trim()) chips.push(`Search: "${query.trim()}"`);
+    return chips;
+  };
 
   const exportMock = () => { /* eslint-disable-next-line no-console */ console.log('[open-sales-orders] export excel'); };
   const saveDrawer = () => {
@@ -419,12 +433,7 @@ export default function MyOrdersPage() {
           testIdPrefix="orders"
           right={
             <div className="inline-flex items-center gap-2">
-              <button type="button" onClick={() => setSettingsOpen(true)} className="btn-ghost btn-sm inline-flex items-center gap-1.5" data-testid="orders-open-settings">
-                <Settings size={13} strokeWidth={2} /> Settings
-              </button>
-              <button type="button" onClick={exportMock} className="btn-ghost btn-sm inline-flex items-center gap-1.5" data-testid="orders-export">
-                <Download size={13} strokeWidth={2} /> Excel
-              </button>
+              <SecondaryButton onClick={exportMock} icon={<Download size={14} strokeWidth={2} />} data-testid="orders-export">Excel</SecondaryButton>
             </div>
           }
         />
@@ -455,7 +464,7 @@ export default function MyOrdersPage() {
         <section className="mt-5 overflow-hidden rounded-2xl bg-white" style={{ border: '1px solid #EDEDEF' }} data-testid="orders-table-card">
           <div style={{ padding: '16px 20px' }} data-testid="orders-toolbar">
             <div className="flex items-center gap-3 flex-wrap" style={{ minHeight: 40 }}>
-              <SavedViewsPills views={views} activeId={activeViewId} onApply={applyView} onClear={clearActiveView} testIdPrefix="orders" />
+              <SavedViewsPills views={views} activeId={activeViewId} onApply={applyView} onClear={clearActiveView} onUnpin={unpinView} testIdPrefix="orders" />
               <div className="inline-flex items-center" role="tablist" style={{ gap: 2 }} data-testid="orders-tabs">
                 {(['All', 'Behind SLA', 'Backordered', 'Shipped today', 'On hold'] as const).map((t) => {
                   const active = tab === t;
@@ -492,61 +501,29 @@ export default function MyOrdersPage() {
                 />
               </div>
 
-              <div className="ml-auto flex items-center" style={{ gap: 12 }}>
-                <SaveViewControl views={views} setViews={setViews} activeId={activeViewId} setActiveId={setActiveViewId} getCurrentFilters={getCurrentFilters} testIdPrefix="orders" />
+              <div className="ml-auto flex items-center" style={{ gap: 0 }}>
                 {activeFilterCount > 0 && (
-                  <div className="inline-flex items-center gap-2" data-testid="orders-filter-status">
-                    <span style={{ fontSize: 13, color: SLATE_500 }}>{activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active</span>
-                    <span aria-hidden="true" style={{ color: SLATE_300 }}>·</span>
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 500, color: CORAL_DK, fontFamily: 'inherit' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
-                      data-testid="orders-clear-filters"
-                    >
-                      Clear all
-                    </button>
-                  </div>
-                )}
-                <div className="relative">
-                  <button
-                    ref={colsBtnRef}
-                    type="button"
-                    onClick={() => setColsOpen((v) => !v)}
-                    className="btn-ghost btn-sm inline-flex items-center gap-1.5"
-                    data-testid="orders-columns-btn"
-                  >
-                    <Columns3 size={13} strokeWidth={2} /> Columns
-                  </button>
-                  {colsOpen && (
-                    <div
-                      className="absolute z-20 rounded-xl bg-white"
-                      style={{ top: 36, right: 0, boxShadow: '0 0 0 1px rgba(15,23,42,0.08), 0 10px 24px rgba(15,23,42,0.10)', padding: 6, minWidth: 200 }}
-                      onMouseLeave={() => setColsOpen(false)}
-                      data-testid="orders-columns-menu"
-                    >
-                      {ALL_COLUMNS.map((c) => (
-                        <label
-                          key={c.key}
-                          className="flex items-center gap-2 cursor-pointer"
-                          style={{ padding: '7px 10px', fontSize: 13, color: SLATE_700, borderRadius: 6 }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={visibleCols[c.key]}
-                            onChange={(e) => setVisibleCols((prev) => ({ ...prev, [c.key]: e.target.checked }))}
-                            style={{ accentColor: CORAL }}
-                            data-testid={`orders-col-toggle-${c.key}`}
-                          />
-                          {c.label}
-                        </label>
-                      ))}
+                  <>
+                    <div className="inline-flex items-center gap-2" data-testid="orders-filter-status" style={{ marginRight: 12 }}>
+                      <span style={{ fontSize: 13, color: SLATE_500 }}>{activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active</span>
+                      <span aria-hidden="true" style={{ color: SLATE_300 }}>·</span>
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 500, color: CORAL_DK, fontFamily: 'inherit' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+                        data-testid="orders-clear-filters"
+                      >
+                        Clear all
+                      </button>
                     </div>
-                  )}
+                    <span aria-hidden="true" style={{ width: 1, height: 20, background: '#EDEDEF', marginRight: 12 }} />
+                  </>
+                )}
+                <div className="inline-flex items-center" style={{ gap: 6 }}>
+                  <ColumnsPopover columns={ALL_COLUMNS} visibleCols={visibleCols as Record<string, boolean>} setVisibleCols={(next) => setVisibleCols(next as Record<ColKey, boolean>)} testIdPrefix="orders" />
+                  <SaveViewControl views={views} setViews={setViews} setActiveId={setActiveViewId} getCurrentFilters={getCurrentFilters} getFilterSummary={getFilterSummary} testIdPrefix="orders" />
                 </div>
               </div>
             </div>

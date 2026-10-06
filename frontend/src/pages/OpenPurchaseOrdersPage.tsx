@@ -4,7 +4,6 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpRight,
-  Columns3,
   Download,
   MoreHorizontal,
   Search,
@@ -14,7 +13,9 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import DsSelect from '../components/DsSelect';
+import ColumnsPopover from '../components/ColumnsPopover';
 import GroupsFilter from '../components/GroupsFilter';
+import SecondaryButton from '../components/SecondaryButton';
 import { SavedViewsPills, SaveViewControl, type SavedView } from '../components/SavedViewsBar';
 import {
   LANES_SEED,
@@ -76,8 +77,8 @@ const isPoOverdue = (eta: string | null, status: PoLine['status']) => {
 
 // ─── Column schema ─────────────────────────────────────────────────────
 type ColKey = 'poNo' | 'lines' | 'supplier' | 'reference' | 'memo' | 'itemNo' | 'product' | 'collection' | 'estShip' | 'eta' | 'launch' | 'season';
-const ALL_COLUMNS: { key: ColKey; label: string; align?: 'left' | 'right'; width?: number; sortable?: boolean; field: keyof PoLine | null }[] = [
-  { key: 'poNo',       label: 'PO #',           align: 'left',  width: 96 , sortable: true,  field: 'poNo' },
+const ALL_COLUMNS: { key: ColKey; label: string; align?: 'left' | 'right'; width?: number; sortable?: boolean; pinned?: boolean; field: keyof PoLine | null }[] = [
+  { key: 'poNo',       label: 'PO #',           align: 'left',  width: 96 , sortable: true,  pinned: true, field: 'poNo' },
   { key: 'lines',      label: 'Lines',          align: 'right', width: 72 , sortable: true,  field: 'lines' },
   { key: 'supplier',   label: 'Supplier',       align: 'left',  width: 180, sortable: true,  field: 'supplier' },
   { key: 'reference',  label: 'Reference',      align: 'left',  width: 140, sortable: true,  field: 'reference' },
@@ -125,12 +126,8 @@ type OpoViewFilters = {
   customerFilter: string;
   selectedGroupIds: string[];
 };
-const OPO_SEED_VIEWS: SavedView<OpoViewFilters>[] = [
-  { id: 'v_opo_late_ocean', name: 'Late + Ocean', pinned: true, createdAt: '2026-10-01T00:00:00Z',
-    filters: { tab: 'Late', query: '', stateFilter: 'All PO states', supplierFilter: 'All suppliers', destFilter: 'All destinations', modeFilter: 'Ocean', statusFilter: 'All statuses', customerFilter: 'All customers', selectedGroupIds: [] } },
-  { id: 'v_opo_asi_in',     name: 'ASI inbound',  pinned: true, createdAt: '2026-10-01T00:00:00Z',
-    filters: { tab: 'All', query: '', stateFilter: 'All PO states', supplierFilter: 'ASI Global Limited (China)', destFilter: 'All destinations', modeFilter: 'All modes', statusFilter: 'All statuses', customerFilter: 'All customers', selectedGroupIds: [] } },
-];
+const OPO_SEED_VIEWS: SavedView<OpoViewFilters>[] = [];
+const OPO_LEGACY_VIEW_IDS = ['v_opo_late_ocean', 'v_opo_asi_in'];
 
 // Map a Group.dimension → PoLine field used for OR-filtering.
 const OPO_DIMENSION_TO_FIELD: Record<string, keyof PoLine | undefined> = {
@@ -230,8 +227,6 @@ export default function OpenPurchaseOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('All statuses');
   const [customerFilter, setCustomerFilter] = useState<string>('All customers');
 
-  const [colsOpen, setColsOpen] = useState(false);
-  const colsBtnRef = useRef<HTMLButtonElement | null>(null);
   const [visibleCols, setVisibleCols] = useState<Record<ColKey, boolean>>(() =>
     ALL_COLUMNS.reduce((acc, c) => { acc[c.key] = true; return acc; }, {} as Record<ColKey, boolean>),
   );
@@ -266,7 +261,10 @@ export default function OpenPurchaseOrdersPage() {
   const [views, setViews] = useState<SavedView<OpoViewFilters>[]>(() => {
     try {
       const raw = localStorage.getItem('opoSavedViews');
-      return raw ? (JSON.parse(raw) as SavedView<OpoViewFilters>[]) : OPO_SEED_VIEWS;
+      if (!raw) return OPO_SEED_VIEWS;
+      const parsed = JSON.parse(raw) as SavedView<OpoViewFilters>[];
+      // One-time migration: strip legacy seed views
+      return parsed.filter((v) => !OPO_LEGACY_VIEW_IDS.includes(v.id));
     } catch { return OPO_SEED_VIEWS; }
   });
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
@@ -377,6 +375,24 @@ export default function OpenPurchaseOrdersPage() {
     setActiveViewId(v.id);
   };
   const clearActiveView = () => setActiveViewId(null);
+  const unpinView = (id: string) => {
+    setViews(views.filter((v) => v.id !== id));
+    if (activeViewId === id) setActiveViewId(null);
+  };
+
+  const getFilterSummary = (): string[] => {
+    const chips: string[] = [];
+    if (tab !== 'All') chips.push(tab);
+    if (stateFilter    !== 'All PO states')   chips.push(`State: ${stateFilter}`);
+    if (supplierFilter !== 'All suppliers')   chips.push(`Supplier: ${supplierFilter}`);
+    if (destFilter     !== 'All destinations') chips.push(`Dest: ${destFilter}`);
+    if (modeFilter     !== 'All modes')       chips.push(`Mode: ${modeFilter}`);
+    if (statusFilter   !== 'All statuses')    chips.push(`Status: ${statusFilter}`);
+    if (customerFilter !== 'All customers')   chips.push(`Customer: ${customerFilter}`);
+    if (selectedGroupIds.length > 0) chips.push(`${selectedGroupIds.length} group${selectedGroupIds.length === 1 ? '' : 's'}`);
+    if (query.trim()) chips.push(`Search: "${query.trim()}"`);
+    return chips;
+  };
 
   const onHeaderClick = (key: ColKey) => {
     const col = ALL_COLUMNS.find((c) => c.key === key);
@@ -419,12 +435,8 @@ export default function OpenPurchaseOrdersPage() {
           testIdPrefix="po"
           right={
             <div className="inline-flex items-center gap-2">
-              <button type="button" onClick={() => setDrawerOpen(true)} className="btn-ghost btn-sm inline-flex items-center gap-1.5" data-testid="po-open-settings">
-                <Settings size={13} strokeWidth={2} /> Settings
-              </button>
-              <button type="button" onClick={exportMock} className="btn-ghost btn-sm inline-flex items-center gap-1.5" data-testid="po-export">
-                <Download size={13} strokeWidth={2} /> Excel
-              </button>
+              <SecondaryButton onClick={() => setDrawerOpen(true)} icon={<Settings size={14} strokeWidth={2} />} data-testid="po-open-settings">Settings</SecondaryButton>
+              <SecondaryButton onClick={exportMock} icon={<Download size={14} strokeWidth={2} />} data-testid="po-export">Excel</SecondaryButton>
             </div>
           }
         />
@@ -455,7 +467,7 @@ export default function OpenPurchaseOrdersPage() {
         <section className="mt-5 overflow-hidden rounded-2xl bg-white" style={{ border: '1px solid #EDEDEF' }} data-testid="po-table-card">
           <div style={{ padding: '16px 20px' }} data-testid="po-toolbar">
             <div className="flex items-center gap-3 flex-wrap" style={{ minHeight: 40 }}>
-              <SavedViewsPills views={views} activeId={activeViewId} onApply={applyView} onClear={clearActiveView} testIdPrefix="po" />
+              <SavedViewsPills views={views} activeId={activeViewId} onApply={applyView} onClear={clearActiveView} onUnpin={unpinView} testIdPrefix="po" />
               <div className="inline-flex items-center" role="tablist" style={{ gap: 2 }} data-testid="po-tabs">
                 {(['All', 'Late', 'Shipped', 'No lead'] as const).map((t) => {
                   const active = tab === t;
@@ -492,61 +504,29 @@ export default function OpenPurchaseOrdersPage() {
                 />
               </div>
 
-              <div className="ml-auto flex items-center" style={{ gap: 12 }}>
-                <SaveViewControl views={views} setViews={setViews} activeId={activeViewId} setActiveId={setActiveViewId} getCurrentFilters={getCurrentFilters} testIdPrefix="po" />
+              <div className="ml-auto flex items-center" style={{ gap: 0 }}>
                 {activeFilterCount > 0 && (
-                  <div className="inline-flex items-center gap-2" data-testid="po-filter-status">
-                    <span style={{ fontSize: 13, color: SLATE_500 }}>{activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active</span>
-                    <span aria-hidden="true" style={{ color: SLATE_300 }}>·</span>
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 500, color: CORAL_DK, fontFamily: 'inherit' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
-                      data-testid="po-clear-filters"
-                    >
-                      Clear all
-                    </button>
-                  </div>
-                )}
-                <div className="relative">
-                  <button
-                    ref={colsBtnRef}
-                    type="button"
-                    onClick={() => setColsOpen((v) => !v)}
-                    className="btn-ghost btn-sm inline-flex items-center gap-1.5"
-                    data-testid="po-columns-btn"
-                  >
-                    <Columns3 size={13} strokeWidth={2} /> Columns
-                  </button>
-                  {colsOpen && (
-                    <div
-                      className="absolute z-20 rounded-xl bg-white"
-                      style={{ top: 36, right: 0, boxShadow: '0 0 0 1px rgba(15,23,42,0.08), 0 10px 24px rgba(15,23,42,0.10)', padding: 6, minWidth: 200 }}
-                      onMouseLeave={() => setColsOpen(false)}
-                      data-testid="po-columns-menu"
-                    >
-                      {ALL_COLUMNS.map((c) => (
-                        <label
-                          key={c.key}
-                          className="flex items-center gap-2 cursor-pointer"
-                          style={{ padding: '7px 10px', fontSize: 13, color: SLATE_700, borderRadius: 6 }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = SLATE_50; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={visibleCols[c.key]}
-                            onChange={(e) => setVisibleCols((prev) => ({ ...prev, [c.key]: e.target.checked }))}
-                            style={{ accentColor: CORAL }}
-                            data-testid={`po-col-toggle-${c.key}`}
-                          />
-                          {c.label}
-                        </label>
-                      ))}
+                  <>
+                    <div className="inline-flex items-center gap-2" data-testid="po-filter-status" style={{ marginRight: 12 }}>
+                      <span style={{ fontSize: 13, color: SLATE_500 }}>{activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active</span>
+                      <span aria-hidden="true" style={{ color: SLATE_300 }}>·</span>
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 500, color: CORAL_DK, fontFamily: 'inherit' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+                        data-testid="po-clear-filters"
+                      >
+                        Clear all
+                      </button>
                     </div>
-                  )}
+                    <span aria-hidden="true" style={{ width: 1, height: 20, background: '#EDEDEF', marginRight: 12 }} />
+                  </>
+                )}
+                <div className="inline-flex items-center" style={{ gap: 6 }}>
+                  <ColumnsPopover columns={ALL_COLUMNS} visibleCols={visibleCols as Record<string, boolean>} setVisibleCols={(next) => setVisibleCols(next as Record<ColKey, boolean>)} testIdPrefix="po" />
+                  <SaveViewControl views={views} setViews={setViews} setActiveId={setActiveViewId} getCurrentFilters={getCurrentFilters} getFilterSummary={getFilterSummary} testIdPrefix="po" />
                 </div>
               </div>
             </div>
