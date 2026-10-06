@@ -13,6 +13,22 @@ export type PoDestination =
   | 'Memphis DC';
 export type PoCustomer = 'DTC' | 'US Wholesale' | 'Distributors' | 'Retail' | 'Ecommerce' | 'Amazon';
 
+export type PoLineItemStatus = 'Pending' | 'Partial' | 'Received';
+export type PoLineItem = {
+  itemNo: string;
+  product: string;
+  qty: number;
+  received: number;
+  status: PoLineItemStatus;
+};
+export type PoLinkedSoStatus = 'Open' | 'In Production' | 'Ready to Ship' | 'Shipped';
+export type PoLinkedSO = {
+  soNo: string;
+  customer: string;
+  requiredShip: string;
+  status: PoLinkedSoStatus;
+};
+
 export type PoLine = {
   poNo: string;
   lines: number;
@@ -22,6 +38,7 @@ export type PoLine = {
   itemNo: string;
   product: string;
   collection: string;
+  orderDate: string;
   estShipDate: string | null;
   eta: string | null;
   launch: string | null;
@@ -31,6 +48,12 @@ export type PoLine = {
   destination: PoDestination;
   mode: PoMode;
   customer: PoCustomer;
+  qtyOrdered: number;
+  qtyReceived: number;
+  value: number;
+  supplierNotes: string;
+  lineItems: PoLineItem[];
+  linkedSOs: PoLinkedSO[];
 };
 
 export const PO_TODAY = new Date('2026-10-05T19:26:00Z');
@@ -92,6 +115,18 @@ const CUSTOMERS_WITHOUT_ALL = PO_CUSTOMERS.filter((c) => c !== 'All customers') 
 const STATES_CYCLE: PoState[] = ['Open', 'Open', 'Open', 'Partial', 'Open', 'Closed', 'Open', 'Open'];
 const STATUS_CYCLE: PoRowStatus[] = ['On-time', 'On-time', 'Delayed', 'In Production', 'Draft', 'Received', 'On-time', 'In Production'];
 
+const SO_CUSTOMERS = ['Nordstrom', 'Zumiez', 'West Marine', "Dick's Sporting Goods", 'REI Co-op', 'Buckle Inc.', 'PacSun', 'Journeys'];
+const SO_STATES_CYCLE: PoLinkedSoStatus[] = ['Open', 'In Production', 'Ready to Ship', 'Shipped'];
+
+const SUPPLIER_NOTES_SEED = [
+  'Factory confirms production remains on original schedule. Dyelot approval received for the trucker crowns; stitching tolerance is within spec. Expect bulk ship window to align with the booked ETA.\n\nQuality control pass flagged minor label mis-print on 42 units; replacements already in rework and will not affect the master ship date.',
+  'Export documentation finalized this week. Container booked on second rotation; a secondary vessel is on hold in case port congestion worsens. No surcharges anticipated at this time.\n\nSupplier has requested a two-day grace on the launch window pending inland transit. We have accepted provisionally pending confirmation from logistics.',
+  'Rework complete on felt crown deformation issue reported on the prior PO. Current PO built on refreshed tooling, dimensional variance now at ±1.2mm. Supplier recommends we add inspection photo capture to shipment manifest going forward.',
+  'All raw materials received at factory. Production commenced this week; cutting operation ~60% complete. Supplier reports no sub-supplier delays. Shipping documents will be released once QC sign-off happens on final 20% of run.',
+  'Containers consolidated with secondary PO at origin warehouse. Combined booking shaves 4 days off blended ETA. Please confirm receipt approval at destination so unloading sequence can be planned by cross-dock team.',
+  'No active notes from supplier. Order remains in queue; next status check scheduled Friday. If no update is received by Monday, escalate via account manager.',
+];
+
 function iso(d: Date) {
   return d.toISOString().slice(0, 10);
 }
@@ -110,15 +145,44 @@ function makePo(idx: number): PoLine {
   const prod = PRODUCTS_SEED[idx % PRODUCTS_SEED.length];
   const state = STATES_CYCLE[idx % STATES_CYCLE.length];
   const status: PoRowStatus = overdue ? 'Delayed' : STATUS_CYCLE[idx % STATUS_CYCLE.length];
+  const lines = 1 + (idx % 14);
+  const orderDate = iso(addDays(PO_TODAY, -(20 + (idx * 3) % 60)));
+
+  // Line items
+  const lineItems: PoLineItem[] = Array.from({ length: lines }, (_, i) => {
+    const seed = PRODUCTS_SEED[(idx + i) % PRODUCTS_SEED.length];
+    const qty = 100 + ((idx * 7 + i * 23) % 1200);
+    let liStatus: PoLineItemStatus;
+    if (status === 'Received') liStatus = 'Received';
+    else if (state === 'Partial' && i % 2 === 0) liStatus = 'Partial';
+    else if (state === 'Closed') liStatus = 'Received';
+    else liStatus = 'Pending';
+    const received = liStatus === 'Received' ? qty : liStatus === 'Partial' ? Math.floor(qty * 0.5) : 0;
+    return { itemNo: seed.item, product: seed.product, qty, received, status: liStatus };
+  });
+  const qtyOrdered = lineItems.reduce((s, l) => s + l.qty, 0);
+  const qtyReceived = lineItems.reduce((s, l) => s + l.received, 0);
+  const value = qtyOrdered * 25;
+
+  // Linked SOs — ~60% of POs
+  const linkedCount = idx % 10 < 6 ? 1 + (idx % 4) : 0;
+  const linkedSOs: PoLinkedSO[] = Array.from({ length: linkedCount }, (_, i) => ({
+    soNo: `SO-${10483 + idx * 3 + i}`,
+    customer: SO_CUSTOMERS[(idx + i) % SO_CUSTOMERS.length],
+    requiredShip: iso(addDays(PO_TODAY, 5 + i * 5 + (idx % 7))),
+    status: SO_STATES_CYCLE[(idx + i) % SO_STATES_CYCLE.length],
+  }));
+
   return {
     poNo: `P0${1385 + idx}`,
-    lines: 1 + (idx % 14),
+    lines,
     supplier,
     reference: REFERENCES[idx % REFERENCES.length],
     memo: MEMOS[idx % MEMOS.length],
     itemNo: prod.item,
     product: prod.product,
     collection: COLLECTIONS[idx % COLLECTIONS.length],
+    orderDate,
     estShipDate: noLead ? null : iso(addDays(PO_TODAY, (etaDays! - 10))),
     eta: noLead ? null : iso(addDays(PO_TODAY, etaDays!)),
     launch: noLead ? null : iso(addDays(PO_TODAY, launchDays!)),
@@ -128,6 +192,12 @@ function makePo(idx: number): PoLine {
     destination: DESTS_WITHOUT_ALL[idx % DESTS_WITHOUT_ALL.length],
     mode: MODES_WITHOUT_ALL[idx % MODES_WITHOUT_ALL.length],
     customer: CUSTOMERS_WITHOUT_ALL[idx % CUSTOMERS_WITHOUT_ALL.length],
+    qtyOrdered,
+    qtyReceived,
+    value,
+    supplierNotes: SUPPLIER_NOTES_SEED[idx % SUPPLIER_NOTES_SEED.length],
+    lineItems,
+    linkedSOs,
   };
 }
 
