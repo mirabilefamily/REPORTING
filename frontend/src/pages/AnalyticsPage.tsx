@@ -611,49 +611,42 @@ function ProductTable({ data }: { data: typeof TOP_PRODUCTS }) {
 
 // ─── Physical returns widget (Ecommerce only) ─────────────────────────
 const PR_REASONS = [
-  { rank: 1, reason: 'Not recorded', count: 104, pct: 100.0, italic: true },
+  { rank: 1, reason: "Didn't fit",                   count: 892, pct: 31.3, italic: false },
+  { rank: 2, reason: "Didn't like the style",        count: 587, pct: 20.6, italic: false },
+  { rank: 3, reason: 'Quality not as expected',      count: 412, pct: 14.5, italic: false },
+  { rank: 4, reason: 'Arrived damaged',              count: 318, pct: 11.2, italic: false },
+  { rank: 5, reason: 'Wrong item sent',              count: 201, pct: 7.1,  italic: false },
+  { rank: 6, reason: 'Color different than shown',   count: 174, pct: 6.1,  italic: false },
+  { rank: 7, reason: 'Changed mind',                 count: 142, pct: 5.0,  italic: false },
+  { rank: 8, reason: 'Not recorded',                 count: 121, pct: 4.2,  italic: true  },
 ];
 const PR_SKUS = [
-  { rank: 1, sku: '101-3839-VOI01-O/S', count: 5, pct: 4.8 },
-  { rank: 2, sku: '101-2449-EDG01-O/S', count: 2, pct: 1.9 },
-  { rank: 3, sku: '101-2459-DUS02-O/S', count: 2, pct: 1.9 },
-  { rank: 4, sku: '101-2696-GLO01-O/S', count: 2, pct: 1.9 },
-  { rank: 5, sku: '101-2849-VOI01-O/S', count: 2, pct: 1.9 },
+  { rank: 1, sku: '101-3839-VOI01-O/S', product: 'Classic Trucker · Voyager', count: 182, pct: 6.4 },
+  { rank: 2, sku: '101-2449-EDG01-O/S', product: 'Snapback · Edge Black',     count: 148, pct: 5.2 },
+  { rank: 3, sku: '101-2459-DUS02-O/S', product: 'Fitted · Dusk Olive',       count: 131, pct: 4.6 },
+  { rank: 4, sku: '101-2696-GLO01-O/S', product: 'Beanie · Globe Charcoal',   count: 114, pct: 4.0 },
+  { rank: 5, sku: '101-2849-VOI01-O/S', product: 'Dad Hat · Voyager Sand',    count:  97, pct: 3.4 },
 ];
-const PR_AMBER_FG = '#704A0D';
-const PR_AMBER_BORDER = '#B4791A';
-const PR_AMBER_BG = '#FDF5E6';
 
 function PhysicalReturnsCard() {
   return (
-    <div className="card" style={{ padding: 24, borderRadius: 16, background: '#FFFFFF', border: '1px solid #EDEDEF' }} data-testid="physical-returns-card">
+    <div className="card" style={{ padding: 20, borderRadius: 16, background: '#FFFFFF', border: '1px solid #EDEDEF' }} data-testid="physical-returns-card">
       <h3 style={{ margin: 0, fontSize: 21, fontWeight: 600, color: INK, letterSpacing: '-0.01em' }} data-testid="physical-returns-title">Physical returns</h3>
       <p style={{ margin: '4px 0 10px', fontSize: 13, color: SLATE_500 }}>2026-01-01 – 2026-10-06 · received units ÷ shipped units</p>
-      <p style={{ margin: 0, fontSize: 13, color: SLATE_500, lineHeight: 1.5, maxWidth: 900 }}>
+      <p style={{ margin: 0, fontSize: 13, color: SLATE_500, lineHeight: 1.5, maxWidth: 720 }}>
         Fulfil Customer Returns and completed warehouse shipments only. Receipt and shipment dates are measured independently—not sales cohorts, refunds or credits. Channels follow the original order; unknown reasons are &ldquo;Not recorded&rdquo;. Coverage begins no earlier than January 2025 and excludes activity not recorded in Fulfil.
       </p>
 
-      <div
-        style={{
-          marginTop: 16, background: PR_AMBER_BG, borderRadius: 12,
-          padding: '12px 16px', borderLeft: `2px solid ${PR_AMBER_BORDER}`,
-          color: PR_AMBER_FG, fontSize: 13, fontWeight: 500,
-        }}
-        data-testid="physical-returns-coverage-banner"
-      >
-        Coverage partial · 37 of 279 days imported. Counts below cover imported days only; the full-period rate is unavailable.
-      </div>
-
       <div className="flex" style={{ marginTop: 16, gap: 12, flexWrap: 'wrap' }}>
-        <PrKpi label="Returned units · imported days" value="104"         testId="pr-kpi-returned" />
-        <PrKpi label="Shipped units · imported days"  value="11,138"      testId="pr-kpi-shipped" />
-        <PrKpi label="Physical return rate"           value="Unavailable" muted testId="pr-kpi-rate" />
+        <PrKpi label="Returned units"      value="2,847"  delta={-4.1}  deltaSuffix="%"  footnote="vs. prior period" testId="pr-kpi-returned" />
+        <PrKpi label="Shipped units"       value="67,420" delta={6.3}   deltaSuffix="%"  footnote="vs. prior period" testId="pr-kpi-shipped" />
+        <PrKpi label="Physical return rate" value="4.22%" delta={-0.42} deltaSuffix="pp" footnote="Target: ≤ 5.5%"    tooltip="Returned units ÷ Shipped units, within the selected window." testId="pr-kpi-rate" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2" style={{ marginTop: 20, gap: 16 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2" style={{ marginTop: 24, gap: 16 }}>
         <RankedPanel
           title="Top return reasons"
-          topLabel="Top 1"
+          topLabel="Top 8"
           rows={PR_REASONS.map((r) => ({ rank: r.rank, label: r.reason, count: r.count, pct: r.pct, italic: r.italic }))}
           fill={SLATE_400}
           testId="pr-panel-reasons"
@@ -661,56 +654,73 @@ function PhysicalReturnsCard() {
         <RankedPanel
           title="Top returned SKUs"
           topLabel="Top 5"
-          rows={PR_SKUS.map((r) => ({ rank: r.rank, label: r.sku, count: r.count, pct: r.pct }))}
+          rows={PR_SKUS.map((r) => ({ rank: r.rank, label: r.sku, sublabel: r.product, count: r.count, pct: r.pct }))}
           fill={CORAL_600}
           testId="pr-panel-skus"
           footer={
             <>
-              <p style={{ margin: '10px 2px 0', fontSize: 13, color: SLATE_500 }} data-testid="pr-skus-footer-1">15 additional listed SKUs not shown · 27 units.</p>
-              <p style={{ margin: '2px 2px 0', fontSize: 12, color: SLATE_500 }} data-testid="pr-skus-footer-2">Listed SKUs sum to 40 of 104 returned units.</p>
+              <p style={{ margin: '10px 2px 0', fontSize: 13, color: SLATE_500 }} data-testid="pr-skus-footer-1">15 additional listed SKUs not shown · 173 units.</p>
+              <p style={{ margin: '2px 2px 0', fontSize: 12, color: SLATE_500 }} data-testid="pr-skus-footer-2">Listed SKUs sum to 672 of 2,847 returned units.</p>
             </>
           }
         />
       </div>
 
       <p style={{ margin: '20px 0 0', fontSize: 12, color: SLATE_400, lineHeight: 1.5 }} data-testid="pr-bottom-caption">
-        Shares are of returned units in imported days. Oldest included refresh: 10/6/2026, 8:01:43 PM. Refreshes run in the background; recent days are revisited every 6 hours and older days every 14 days.
+        Shares are of returned units in imported days. Oldest included refresh: 10/8/2026, 9:14:02 AM. Refreshes run in the background; recent days are revisited every 6 hours and older days every 14 days.
       </p>
     </div>
   );
 }
 
-function PrKpi({ label, value, muted, testId }: { label: string; value: string; muted?: boolean; testId: string }) {
+function PrKpi({ label, value, delta, deltaSuffix, footnote, tooltip, testId }: { label: string; value: string; delta: number; deltaSuffix: '%' | 'pp'; footnote: string; tooltip?: string; testId: string }) {
+  const Icon = delta >= 0 ? ArrowUp : ArrowDown;
   return (
-    <div style={{ flex: '1 1 220px', border: '1px solid #EDEDEF', borderRadius: 12, padding: 20 }} data-testid={testId}>
+    <div style={{ flex: '1 1 220px', border: '1px solid #EDEDEF', borderRadius: 12, padding: 16 }} data-testid={testId} title={tooltip}>
       <p className="text-[11px] uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500, margin: 0, fontWeight: 500 }}>{label}</p>
-      <p style={{ ...TNUM, margin: '8px 0 0', fontSize: 'clamp(28px, 2.5vw, 36px)', fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: muted ? SLATE_500 : INK }}>{value}</p>
+      <p style={{ ...TNUM, margin: '8px 0 0', fontSize: 'clamp(24px, 2.1vw, 30px)', fontWeight: 700, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>{value}</p>
+      <div className="flex items-center" style={{ gap: 8, marginTop: 6 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '2px 6px', background: EMERALD_50, color: EMERALD, borderRadius: 999, fontSize: 11, fontWeight: 600, ...TNUM }}>
+          <Icon size={11} strokeWidth={2.4} />
+          {Math.abs(delta).toFixed(deltaSuffix === 'pp' ? 2 : 1)}{deltaSuffix}
+        </span>
+        <span style={{ fontSize: 12, color: SLATE_500 }}>{footnote}</span>
+      </div>
     </div>
   );
 }
 
-type RankedRow = { rank: number; label: string; count: number; pct: number; italic?: boolean };
+type RankedRow = { rank: number; label: string; sublabel?: string; count: number; pct: number; italic?: boolean };
 function RankedPanel({ title, topLabel, rows, fill, footer, testId }: { title: string; topLabel: string; rows: RankedRow[]; fill: string; footer?: React.ReactNode; testId: string }) {
+  const maxPct = Math.max(...rows.map((r) => r.pct), 1);
   return (
-    <div data-testid={testId}>
-      <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+    <div data-testid={testId} style={{ background: '#FAFAFA', border: '1px solid #EDEDEF', borderRadius: 12, padding: 12 }}>
+      <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
         <span className="text-[11px] uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500, fontWeight: 500 }}>{title}</span>
         <span style={{ fontSize: 12, color: SLATE_500 }}>{topLabel}</span>
       </div>
-      <div className="flex flex-col" style={{ gap: 12 }}>
-        {rows.map((r) => (
-          <div key={r.rank} data-testid={`${testId}-row-${r.rank}`}>
-            <div className="flex items-center" style={{ gap: 10 }}>
-              <span style={{ display: 'inline-grid', placeItems: 'center', width: 18, height: 18, borderRadius: 4, background: CORAL_50, color: CORAL_DK, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{r.rank}</span>
-              <span style={{ flex: 1, fontSize: 13, color: SLATE_700, fontStyle: r.italic ? 'italic' : 'normal', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.label}>{r.label}</span>
-              <span style={{ ...TNUM, fontSize: 14, fontWeight: 500, color: INK }}>{r.count}</span>
-              <span style={{ ...TNUM, fontSize: 12, color: SLATE_500, minWidth: 48, textAlign: 'right' }}>{r.pct.toFixed(1)}%</span>
+      <div className="flex flex-col" style={{ gap: 8 }}>
+        {rows.map((r) => {
+          const isTop = r.rank === 1;
+          const badgeBg = isTop ? CORAL_600 : CORAL_50;
+          const badgeColor = isTop ? '#FFFFFF' : CORAL_DK;
+          return (
+            <div key={r.rank} data-testid={`${testId}-row-${r.rank}`} style={{ paddingTop: 2, paddingBottom: 2 }}>
+              <div className="flex items-center" style={{ gap: 10 }}>
+                <span style={{ display: 'inline-grid', placeItems: 'center', width: 18, height: 18, borderRadius: 4, background: badgeBg, color: badgeColor, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{r.rank}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: SLATE_700, fontStyle: r.italic ? 'italic' : 'normal', fontWeight: r.sublabel ? 500 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', ...(r.sublabel ? TNUM : {}) }} title={r.label}>{r.label}</div>
+                  {r.sublabel && <div style={{ fontSize: 12, color: SLATE_500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{r.sublabel}</div>}
+                </div>
+                <span style={{ ...TNUM, fontSize: 14, fontWeight: 500, color: INK }}>{r.count.toLocaleString()}</span>
+                <span style={{ ...TNUM, fontSize: 12, color: SLATE_500, minWidth: 48, textAlign: 'right' }}>{r.pct.toFixed(1)}%</span>
+              </div>
+              <div style={{ marginTop: 6, height: 3, borderRadius: 999, background: '#EEF0F2', overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, (r.pct / maxPct) * 100)}%`, height: '100%', background: fill, borderRadius: 999 }} />
+              </div>
             </div>
-            <div style={{ marginTop: 6, height: 3, borderRadius: 999, background: '#EEF0F2', overflow: 'hidden' }}>
-              <div style={{ width: `${Math.min(100, r.pct)}%`, height: '100%', background: fill, borderRadius: 999 }} />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {footer}
     </div>
