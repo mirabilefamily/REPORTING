@@ -643,7 +643,8 @@ function PhysicalReturnsCard() {
         <div
           role="tablist"
           data-testid="pr-period-selector"
-          style={{ display: 'inline-flex', height: 32, borderRadius: 999, background: '#F5F5F7', padding: 3, gap: 2 }}
+          className="inline-flex items-center"
+          style={{ gap: 2 }}
         >
           {PR_PERIODS.map((opt) => {
             const active = period === opt;
@@ -655,14 +656,18 @@ function PhysicalReturnsCard() {
                 aria-selected={active}
                 onClick={() => setPeriod(opt)}
                 data-testid={`pr-period-${opt.toLowerCase()}`}
+                className="pr-period-btn"
+                data-active={active ? 'true' : 'false'}
                 style={{
-                  position: 'relative', padding: '0 12px', border: 'none', background: active ? '#FFFFFF' : 'transparent',
-                  color: active ? INK : SLATE_500, fontSize: 12, fontWeight: 600, borderRadius: 999, cursor: 'pointer',
-                  boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  height: 28, padding: '0 11px', border: 'none', borderRadius: 6,
+                  background: active ? '#0F0F10' : 'transparent',
+                  color: active ? '#FFFFFF' : SLATE_600,
+                  fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                  transition: 'background-color 120ms ease, color 120ms ease',
+                  ...TNUM,
                 }}
               >
                 {opt}
-                {active && <span style={{ position: 'absolute', left: 10, right: 10, bottom: 2, height: 2, background: CORAL_600, borderRadius: 999 }} />}
               </button>
             );
           })}

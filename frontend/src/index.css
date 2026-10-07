@@ -1780,3 +1780,8 @@ table.data-numeric-center th.fg-channel-header { text-align: left !important; pa
 .sidebar-collapsed .nav-item-rail { border-radius: 12px !important; overflow: hidden !important; }
 .sidebar-collapsed .collapsed-brand-logo { border-radius: 12px !important; width: 44px !important; height: 44px !important; }
 
+
+/* Physical returns period selector */
+.pr-period-btn:focus { outline: none; }
+.pr-period-btn:focus-visible { box-shadow: 0 0 0 2px #CBD5E1; }
+.pr-period-btn[data-active="false"]:hover { background-color: #F1F1F3; color: #0F172A; }
