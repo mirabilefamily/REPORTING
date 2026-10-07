@@ -631,10 +631,6 @@ const PR_SKUS = [
 const PR_PERIODS = ['30D', '90D', 'QTD', 'YTD'] as const;
 type PrPeriod = typeof PR_PERIODS[number];
 
-const PR_SPARK_RETURNED = [100, 98, 102, 97, 95, 99, 94, 96, 92, 95, 91, 93, 89, 92, 88, 90, 86, 89, 85, 87, 83, 85, 81, 83, 79, 82, 78, 80, 76, 78];
-const PR_SPARK_SHIPPED  = [60, 62, 61, 64, 66, 65, 68, 70, 69, 72, 74, 73, 76, 78, 77, 80, 82, 81, 84, 86, 85, 88, 90, 89, 92, 94, 93, 96, 98, 100];
-const PR_SPARK_RATE     = [5.0, 4.8, 5.1, 4.9, 4.7, 5.0, 4.8, 4.6, 4.9, 4.7, 4.5, 4.8, 4.6, 4.4, 4.7, 4.5, 4.3, 4.6, 4.4, 4.2, 4.5, 4.3, 4.1, 4.4, 4.2, 4.0, 4.3, 4.1, 4.22, 4.22];
-
 function PhysicalReturnsCard() {
   const [period, setPeriod] = useState<PrPeriod>('YTD');
   return (
@@ -674,9 +670,9 @@ function PhysicalReturnsCard() {
       </div>
 
       <div className="flex" style={{ marginTop: 16, gap: 12, flexWrap: 'wrap' }}>
-        <PrKpi label="Returned units"      value="2,847"  delta={-4.1}  deltaSuffix="%"  footnote="vs. prior period" sparkData={PR_SPARK_RETURNED} sparkColor={CORAL_600} testId="pr-kpi-returned" />
-        <PrKpi label="Shipped units"       value="67,420" delta={6.3}   deltaSuffix="%"  footnote="vs. prior period" sparkData={PR_SPARK_SHIPPED}  sparkColor={EMERALD_500} testId="pr-kpi-shipped" />
-        <PrKpi label="Physical return rate" value="4.22%" delta={-0.42} deltaSuffix="pp" footnote="Target: ≤ 5.5%"    sparkData={PR_SPARK_RATE}     sparkColor={SLATE_600}  tooltip="Returned units ÷ Shipped units, within the selected window." testId="pr-kpi-rate" />
+        <PrKpi label="Returned units"      value="2,847"  delta={-4.1}  deltaSuffix="%"  footnote="vs. prior period" testId="pr-kpi-returned" />
+        <PrKpi label="Shipped units"       value="67,420" delta={6.3}   deltaSuffix="%"  footnote="vs. prior period" testId="pr-kpi-shipped" />
+        <PrKpi label="Physical return rate" value="4.22%" delta={-0.42} deltaSuffix="pp" footnote="Target: ≤ 5.5%"    tooltip="Returned units ÷ Shipped units, within the selected window." testId="pr-kpi-rate" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2" style={{ marginTop: 20, gap: 16 }}>
@@ -699,30 +695,12 @@ function PhysicalReturnsCard() {
   );
 }
 
-function PrSparkline({ data, color, w = 72, h = 20 }: { data: number[]; color: string; w?: number; h?: number }) {
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const step = w / (data.length - 1);
-  const pts = data.map((v, i) => `${(i * step).toFixed(2)},${(h - ((v - min) / range) * (h - 2) - 1).toFixed(2)}`).join(' ');
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', flexShrink: 0 }} aria-hidden="true">
-      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function PrKpi({ label, value, delta, deltaSuffix, footnote, tooltip, sparkData, sparkColor, testId }: { label: string; value: string; delta: number; deltaSuffix: '%' | 'pp'; footnote: string; tooltip?: string; sparkData: number[]; sparkColor: string; testId: string }) {
+function PrKpi({ label, value, delta, deltaSuffix, footnote, tooltip, testId }: { label: string; value: string; delta: number; deltaSuffix: '%' | 'pp'; footnote: string; tooltip?: string; testId: string }) {
   const Icon = delta >= 0 ? ArrowUp : ArrowDown;
   return (
     <div style={{ flex: '1 1 220px', border: '1px solid #EDEDEF', borderRadius: 12, padding: 16 }} data-testid={testId} title={tooltip}>
       <p className="text-[11px] uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500, margin: 0, fontWeight: 500 }}>{label}</p>
-      <div className="flex items-end justify-between" style={{ gap: 12, marginTop: 8 }}>
-        <p style={{ ...TNUM, margin: 0, fontSize: 'clamp(24px, 2.1vw, 30px)', fontWeight: 700, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>{value}</p>
-        <div data-testid={`${testId}-spark`} style={{ marginBottom: 4 }}>
-          <PrSparkline data={sparkData} color={sparkColor} />
-        </div>
-      </div>
+      <p style={{ ...TNUM, margin: '8px 0 0', fontSize: 'clamp(24px, 2.1vw, 30px)', fontWeight: 700, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>{value}</p>
       <div className="flex items-center" style={{ gap: 8, marginTop: 6 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '2px 6px', background: EMERALD_50, color: EMERALD, borderRadius: 999, fontSize: 11, fontWeight: 600, ...TNUM }}>
           <Icon size={11} strokeWidth={2.4} />
