@@ -568,6 +568,8 @@ function EcommerceView() {
           ))}
         </div>
       </div>
+
+      <PhysicalReturnsCard />
     </>
   );
 }
@@ -603,6 +605,114 @@ function ProductTable({ data }: { data: typeof TOP_PRODUCTS }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// ─── Physical returns widget (Ecommerce only) ─────────────────────────
+const PR_REASONS = [
+  { rank: 1, reason: 'Not recorded', count: 104, pct: 100.0, italic: true },
+];
+const PR_SKUS = [
+  { rank: 1, sku: '101-3839-VOI01-O/S', count: 5, pct: 4.8 },
+  { rank: 2, sku: '101-2449-EDG01-O/S', count: 2, pct: 1.9 },
+  { rank: 3, sku: '101-2459-DUS02-O/S', count: 2, pct: 1.9 },
+  { rank: 4, sku: '101-2696-GLO01-O/S', count: 2, pct: 1.9 },
+  { rank: 5, sku: '101-2849-VOI01-O/S', count: 2, pct: 1.9 },
+];
+const PR_AMBER_FG = '#704A0D';
+const PR_AMBER_BORDER = '#B4791A';
+const PR_AMBER_BG = '#FDF5E6';
+
+function PhysicalReturnsCard() {
+  return (
+    <div className="card" style={{ padding: 24, borderRadius: 16, background: '#FFFFFF', border: '1px solid #EDEDEF' }} data-testid="physical-returns-card">
+      <h3 style={{ margin: 0, fontSize: 21, fontWeight: 600, color: INK, letterSpacing: '-0.01em' }} data-testid="physical-returns-title">Physical returns</h3>
+      <p style={{ margin: '4px 0 10px', fontSize: 13, color: SLATE_500 }}>2026-01-01 – 2026-10-06 · received units ÷ shipped units</p>
+      <p style={{ margin: 0, fontSize: 13, color: SLATE_500, lineHeight: 1.5, maxWidth: 900 }}>
+        Fulfil Customer Returns and completed warehouse shipments only. Receipt and shipment dates are measured independently—not sales cohorts, refunds or credits. Channels follow the original order; unknown reasons are &ldquo;Not recorded&rdquo;. Coverage begins no earlier than January 2025 and excludes activity not recorded in Fulfil.
+      </p>
+
+      <div
+        style={{
+          marginTop: 16, background: PR_AMBER_BG, borderRadius: 12,
+          padding: '12px 16px', borderLeft: `2px solid ${PR_AMBER_BORDER}`,
+          color: PR_AMBER_FG, fontSize: 13, fontWeight: 500,
+        }}
+        data-testid="physical-returns-coverage-banner"
+      >
+        Coverage partial · 37 of 279 days imported. Counts below cover imported days only; the full-period rate is unavailable.
+      </div>
+
+      <div className="flex" style={{ marginTop: 16, gap: 12, flexWrap: 'wrap' }}>
+        <PrKpi label="Returned units · imported days" value="104"         testId="pr-kpi-returned" />
+        <PrKpi label="Shipped units · imported days"  value="11,138"      testId="pr-kpi-shipped" />
+        <PrKpi label="Physical return rate"           value="Unavailable" muted testId="pr-kpi-rate" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2" style={{ marginTop: 20, gap: 16 }}>
+        <RankedPanel
+          title="Top return reasons"
+          topLabel="Top 1"
+          rows={PR_REASONS.map((r) => ({ rank: r.rank, label: r.reason, count: r.count, pct: r.pct, italic: r.italic }))}
+          fill={SLATE_400}
+          testId="pr-panel-reasons"
+        />
+        <RankedPanel
+          title="Top returned SKUs"
+          topLabel="Top 5"
+          rows={PR_SKUS.map((r) => ({ rank: r.rank, label: r.sku, count: r.count, pct: r.pct }))}
+          fill={CORAL_600}
+          testId="pr-panel-skus"
+          footer={
+            <>
+              <p style={{ margin: '10px 2px 0', fontSize: 13, color: SLATE_500 }} data-testid="pr-skus-footer-1">15 additional listed SKUs not shown · 27 units.</p>
+              <p style={{ margin: '2px 2px 0', fontSize: 12, color: SLATE_500 }} data-testid="pr-skus-footer-2">Listed SKUs sum to 40 of 104 returned units.</p>
+            </>
+          }
+        />
+      </div>
+
+      <p style={{ margin: '20px 0 0', fontSize: 12, color: SLATE_400, lineHeight: 1.5 }} data-testid="pr-bottom-caption">
+        Shares are of returned units in imported days. Oldest included refresh: 10/6/2026, 8:01:43 PM. Refreshes run in the background; recent days are revisited every 6 hours and older days every 14 days.
+      </p>
+    </div>
+  );
+}
+
+function PrKpi({ label, value, muted, testId }: { label: string; value: string; muted?: boolean; testId: string }) {
+  return (
+    <div style={{ flex: '1 1 220px', border: '1px solid #EDEDEF', borderRadius: 12, padding: 20 }} data-testid={testId}>
+      <p className="text-[11px] uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500, margin: 0, fontWeight: 500 }}>{label}</p>
+      <p style={{ ...TNUM, margin: '8px 0 0', fontSize: 'clamp(28px, 2.5vw, 36px)', fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: muted ? SLATE_500 : INK }}>{value}</p>
+    </div>
+  );
+}
+
+type RankedRow = { rank: number; label: string; count: number; pct: number; italic?: boolean };
+function RankedPanel({ title, topLabel, rows, fill, footer, testId }: { title: string; topLabel: string; rows: RankedRow[]; fill: string; footer?: React.ReactNode; testId: string }) {
+  return (
+    <div data-testid={testId}>
+      <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+        <span className="text-[11px] uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500, fontWeight: 500 }}>{title}</span>
+        <span style={{ fontSize: 12, color: SLATE_500 }}>{topLabel}</span>
+      </div>
+      <div className="flex flex-col" style={{ gap: 12 }}>
+        {rows.map((r) => (
+          <div key={r.rank} data-testid={`${testId}-row-${r.rank}`}>
+            <div className="flex items-center" style={{ gap: 10 }}>
+              <span style={{ display: 'inline-grid', placeItems: 'center', width: 18, height: 18, borderRadius: 4, background: CORAL_50, color: CORAL_DK, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{r.rank}</span>
+              <span style={{ flex: 1, fontSize: 13, color: SLATE_700, fontStyle: r.italic ? 'italic' : 'normal', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.label}>{r.label}</span>
+              <span style={{ ...TNUM, fontSize: 14, fontWeight: 500, color: INK }}>{r.count}</span>
+              <span style={{ ...TNUM, fontSize: 12, color: SLATE_500, minWidth: 48, textAlign: 'right' }}>{r.pct.toFixed(1)}%</span>
+            </div>
+            <div style={{ marginTop: 6, height: 3, borderRadius: 999, background: '#EEF0F2', overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min(100, r.pct)}%`, height: '100%', background: fill, borderRadius: 999 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      {footer}
     </div>
   );
 }
