@@ -628,22 +628,58 @@ const PR_SKUS = [
   { rank: 5, sku: '101-2849-VOI01-O/S', product: 'Dad Hat · Voyager Sand',    count:  97, pct: 3.4 },
 ];
 
-function PhysicalReturnsCard() {
-  return (
-    <div className="card" style={{ padding: 20, borderRadius: 16, background: '#FFFFFF', border: '1px solid #EDEDEF' }} data-testid="physical-returns-card">
-      <h3 style={{ margin: 0, fontSize: 21, fontWeight: 600, color: INK, letterSpacing: '-0.01em' }} data-testid="physical-returns-title">Physical returns</h3>
-      <p style={{ margin: '4px 0 10px', fontSize: 13, color: SLATE_500 }}>2026-01-01 – 2026-10-06 · received units ÷ shipped units</p>
-      <p style={{ margin: 0, fontSize: 13, color: SLATE_500, lineHeight: 1.5, maxWidth: 720 }}>
-        Fulfil Customer Returns and completed warehouse shipments only. Receipt and shipment dates are measured independently—not sales cohorts, refunds or credits. Channels follow the original order; unknown reasons are &ldquo;Not recorded&rdquo;. Coverage begins no earlier than January 2025 and excludes activity not recorded in Fulfil.
-      </p>
+const PR_PERIODS = ['30D', '90D', 'QTD', 'YTD'] as const;
+type PrPeriod = typeof PR_PERIODS[number];
 
-      <div className="flex" style={{ marginTop: 16, gap: 12, flexWrap: 'wrap' }}>
-        <PrKpi label="Returned units"      value="2,847"  delta={-4.1}  deltaSuffix="%"  footnote="vs. prior period" testId="pr-kpi-returned" />
-        <PrKpi label="Shipped units"       value="67,420" delta={6.3}   deltaSuffix="%"  footnote="vs. prior period" testId="pr-kpi-shipped" />
-        <PrKpi label="Physical return rate" value="4.22%" delta={-0.42} deltaSuffix="pp" footnote="Target: ≤ 5.5%"    tooltip="Returned units ÷ Shipped units, within the selected window." testId="pr-kpi-rate" />
+const PR_SPARK_RETURNED = [100, 98, 102, 97, 95, 99, 94, 96, 92, 95, 91, 93, 89, 92, 88, 90, 86, 89, 85, 87, 83, 85, 81, 83, 79, 82, 78, 80, 76, 78];
+const PR_SPARK_SHIPPED  = [60, 62, 61, 64, 66, 65, 68, 70, 69, 72, 74, 73, 76, 78, 77, 80, 82, 81, 84, 86, 85, 88, 90, 89, 92, 94, 93, 96, 98, 100];
+const PR_SPARK_RATE     = [5.0, 4.8, 5.1, 4.9, 4.7, 5.0, 4.8, 4.6, 4.9, 4.7, 4.5, 4.8, 4.6, 4.4, 4.7, 4.5, 4.3, 4.6, 4.4, 4.2, 4.5, 4.3, 4.1, 4.4, 4.2, 4.0, 4.3, 4.1, 4.22, 4.22];
+
+function PhysicalReturnsCard() {
+  const [period, setPeriod] = useState<PrPeriod>('YTD');
+  return (
+    <div className="card" style={{ padding: '16px 20px 20px', borderRadius: 16, background: '#FFFFFF', border: '1px solid #EDEDEF' }} data-testid="physical-returns-card">
+      <div className="flex items-center justify-between" style={{ gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 21, fontWeight: 600, color: INK, letterSpacing: '-0.01em' }} data-testid="physical-returns-title">Physical returns</h3>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: SLATE_500 }}>2026-01-01 – 2026-10-06 · received units ÷ shipped units</p>
+        </div>
+        <div
+          role="tablist"
+          data-testid="pr-period-selector"
+          style={{ display: 'inline-flex', height: 32, borderRadius: 999, background: '#F5F5F7', padding: 3, gap: 2 }}
+        >
+          {PR_PERIODS.map((opt) => {
+            const active = period === opt;
+            return (
+              <button
+                key={opt}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setPeriod(opt)}
+                data-testid={`pr-period-${opt.toLowerCase()}`}
+                style={{
+                  position: 'relative', padding: '0 12px', border: 'none', background: active ? '#FFFFFF' : 'transparent',
+                  color: active ? INK : SLATE_500, fontSize: 12, fontWeight: 600, borderRadius: 999, cursor: 'pointer',
+                  boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                {opt}
+                {active && <span style={{ position: 'absolute', left: 10, right: 10, bottom: 2, height: 2, background: CORAL_600, borderRadius: 999 }} />}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2" style={{ marginTop: 24, gap: 16 }}>
+      <div className="flex" style={{ marginTop: 16, gap: 12, flexWrap: 'wrap' }}>
+        <PrKpi label="Returned units"      value="2,847"  delta={-4.1}  deltaSuffix="%"  footnote="vs. prior period" sparkData={PR_SPARK_RETURNED} sparkColor={CORAL_600} testId="pr-kpi-returned" />
+        <PrKpi label="Shipped units"       value="67,420" delta={6.3}   deltaSuffix="%"  footnote="vs. prior period" sparkData={PR_SPARK_SHIPPED}  sparkColor={EMERALD_500} testId="pr-kpi-shipped" />
+        <PrKpi label="Physical return rate" value="4.22%" delta={-0.42} deltaSuffix="pp" footnote="Target: ≤ 5.5%"    sparkData={PR_SPARK_RATE}     sparkColor={SLATE_600}  tooltip="Returned units ÷ Shipped units, within the selected window." testId="pr-kpi-rate" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2" style={{ marginTop: 20, gap: 16 }}>
         <RankedPanel
           title="Top return reasons"
           topLabel="Top 8"
@@ -657,28 +693,36 @@ function PhysicalReturnsCard() {
           rows={PR_SKUS.map((r) => ({ rank: r.rank, label: r.sku, sublabel: r.product, count: r.count, pct: r.pct }))}
           fill={CORAL_600}
           testId="pr-panel-skus"
-          footer={
-            <>
-              <p style={{ margin: '10px 2px 0', fontSize: 13, color: SLATE_500 }} data-testid="pr-skus-footer-1">15 additional listed SKUs not shown · 173 units.</p>
-              <p style={{ margin: '2px 2px 0', fontSize: 12, color: SLATE_500 }} data-testid="pr-skus-footer-2">Listed SKUs sum to 672 of 2,847 returned units.</p>
-            </>
-          }
         />
       </div>
-
-      <p style={{ margin: '20px 0 0', fontSize: 12, color: SLATE_400, lineHeight: 1.5 }} data-testid="pr-bottom-caption">
-        Shares are of returned units in imported days. Oldest included refresh: 10/8/2026, 9:14:02 AM. Refreshes run in the background; recent days are revisited every 6 hours and older days every 14 days.
-      </p>
     </div>
   );
 }
 
-function PrKpi({ label, value, delta, deltaSuffix, footnote, tooltip, testId }: { label: string; value: string; delta: number; deltaSuffix: '%' | 'pp'; footnote: string; tooltip?: string; testId: string }) {
+function PrSparkline({ data, color, w = 72, h = 20 }: { data: number[]; color: string; w?: number; h?: number }) {
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const step = w / (data.length - 1);
+  const pts = data.map((v, i) => `${(i * step).toFixed(2)},${(h - ((v - min) / range) * (h - 2) - 1).toFixed(2)}`).join(' ');
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', flexShrink: 0 }} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PrKpi({ label, value, delta, deltaSuffix, footnote, tooltip, sparkData, sparkColor, testId }: { label: string; value: string; delta: number; deltaSuffix: '%' | 'pp'; footnote: string; tooltip?: string; sparkData: number[]; sparkColor: string; testId: string }) {
   const Icon = delta >= 0 ? ArrowUp : ArrowDown;
   return (
     <div style={{ flex: '1 1 220px', border: '1px solid #EDEDEF', borderRadius: 12, padding: 16 }} data-testid={testId} title={tooltip}>
       <p className="text-[11px] uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500, margin: 0, fontWeight: 500 }}>{label}</p>
-      <p style={{ ...TNUM, margin: '8px 0 0', fontSize: 'clamp(24px, 2.1vw, 30px)', fontWeight: 700, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>{value}</p>
+      <div className="flex items-end justify-between" style={{ gap: 12, marginTop: 8 }}>
+        <p style={{ ...TNUM, margin: 0, fontSize: 'clamp(24px, 2.1vw, 30px)', fontWeight: 700, lineHeight: 1.05, letterSpacing: '-0.02em', color: INK }}>{value}</p>
+        <div data-testid={`${testId}-spark`} style={{ marginBottom: 4 }}>
+          <PrSparkline data={sparkData} color={sparkColor} />
+        </div>
+      </div>
       <div className="flex items-center" style={{ gap: 8, marginTop: 6 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '2px 6px', background: EMERALD_50, color: EMERALD, borderRadius: 999, fontSize: 11, fontWeight: 600, ...TNUM }}>
           <Icon size={11} strokeWidth={2.4} />
@@ -694,18 +738,18 @@ type RankedRow = { rank: number; label: string; sublabel?: string; count: number
 function RankedPanel({ title, topLabel, rows, fill, footer, testId }: { title: string; topLabel: string; rows: RankedRow[]; fill: string; footer?: React.ReactNode; testId: string }) {
   const maxPct = Math.max(...rows.map((r) => r.pct), 1);
   return (
-    <div data-testid={testId} style={{ background: '#FAFAFA', border: '1px solid #EDEDEF', borderRadius: 12, padding: 12 }}>
+    <div data-testid={testId} style={{ background: '#FFFFFF', border: '1px solid #EDEDEF', borderRadius: 12, padding: 12 }}>
       <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
         <span className="text-[11px] uppercase" style={{ letterSpacing: '0.14em', color: SLATE_500, fontWeight: 500 }}>{title}</span>
         <span style={{ fontSize: 12, color: SLATE_500 }}>{topLabel}</span>
       </div>
-      <div className="flex flex-col" style={{ gap: 8 }}>
+      <div className="flex flex-col" style={{ gap: 6 }}>
         {rows.map((r) => {
           const isTop = r.rank === 1;
           const badgeBg = isTop ? CORAL_600 : CORAL_50;
           const badgeColor = isTop ? '#FFFFFF' : CORAL_DK;
           return (
-            <div key={r.rank} data-testid={`${testId}-row-${r.rank}`} style={{ paddingTop: 2, paddingBottom: 2 }}>
+            <div key={r.rank} data-testid={`${testId}-row-${r.rank}`}>
               <div className="flex items-center" style={{ gap: 10 }}>
                 <span style={{ display: 'inline-grid', placeItems: 'center', width: 18, height: 18, borderRadius: 4, background: badgeBg, color: badgeColor, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{r.rank}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -715,7 +759,7 @@ function RankedPanel({ title, topLabel, rows, fill, footer, testId }: { title: s
                 <span style={{ ...TNUM, fontSize: 14, fontWeight: 500, color: INK }}>{r.count.toLocaleString()}</span>
                 <span style={{ ...TNUM, fontSize: 12, color: SLATE_500, minWidth: 48, textAlign: 'right' }}>{r.pct.toFixed(1)}%</span>
               </div>
-              <div style={{ marginTop: 6, height: 3, borderRadius: 999, background: '#EEF0F2', overflow: 'hidden' }}>
+              <div style={{ marginTop: 4, height: 3, borderRadius: 999, background: '#EEF0F2', overflow: 'hidden' }}>
                 <div style={{ width: `${Math.min(100, (r.pct / maxPct) * 100)}%`, height: '100%', background: fill, borderRadius: 999 }} />
               </div>
             </div>
